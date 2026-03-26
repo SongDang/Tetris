@@ -1,9 +1,7 @@
 name: Create vanh branch
 
 on:
-  push:
-    branches:
-      - copilot/create-ui-branch
+  workflow_dispatch:
 
 jobs:
   create-branch:
