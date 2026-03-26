@@ -1,0 +1,28 @@
+name: Create vanh branch
+
+on:
+  push:
+    branches:
+      - copilot/create-ui-branch
+
+jobs:
+  create-branch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Create vanh branch from main if it does not exist
+        run: |
+          if git ls-remote --exit-code --heads origin vanh; then
+            echo "Branch vanh already exists on remote, skipping."
+          else
+            git checkout -b vanh
+            git push origin vanh
+            echo "Branch vanh created successfully."
+          fi
