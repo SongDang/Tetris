@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="gamemodesPane" fx:controller="com.se330.tetris.controller.GamemodesController">
+    <top>
+        <Label text="SELECT GAMEMODE" styleClass="screen-title" style="-fx-padding: 20;"/>
+    </top>
+    <center>
+        <HBox style="-fx-alignment: center; -fx-spacing: 30; -fx-padding: 20;">
+            <!-- Standard Mode Card -->
+            <VBox styleClass="mode-card" style="-fx-alignment: top-center; -fx-spacing: 15; -fx-padding: 20; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200; -fx-min-height: 300;">
+                <Label text="STANDARD" styleClass="mode-title"/>
+                <Label text="A classic game of Tetris" styleClass="mode-description" wrapText="true"/>
+                <Region style="-fx-pref-height: 1; -fx-grow-priority: always;"/>
+                <Button fx:id="standardBtn" text="PLAY" styleClass="play-button" prefWidth="150"/>
+            </VBox>
+            
+            <!-- Time Attack Mode Card -->
+            <VBox styleClass="mode-card" style="-fx-alignment: top-center; -fx-spacing: 15; -fx-padding: 20; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200; -fx-min-height: 300;">
+                <Label text="TIME ATTACK" styleClass="mode-title"/>
+                <Label text="Beat the clock, scoring high" styleClass="mode-description" wrapText="true"/>
+                <Region style="-fx-pref-height: 1; -fx-grow-priority: always;"/>
+                <Button fx:id="timeAttackBtn" text="PLAY" styleClass="play-button" prefWidth="150"/>
+            </VBox>
+            
+            <!-- Hard Mode Card -->
+            <VBox styleClass="mode-card" style="-fx-alignment: top-center; -fx-spacing: 15; -fx-padding: 20; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200; -fx-min-height: 300;">
+                <Label text="HARD MODE" styleClass="mode-title"/>
+                <Label text="No forgiveness, only speed" styleClass="mode-description" wrapText="true"/>
+                <Region style="-fx-pref-height: 1; -fx-grow-priority: always;"/>
+                <Button fx:id="hardModeBtn" text="PLAY" styleClass="play-button" prefWidth="150"/>
+            </VBox>
+        </HBox>
+    </center>
+    <bottom>
+        <HBox style="-fx-alignment: center; -fx-padding: 20;">
+            <Button fx:id="backBtn" text="BACK" styleClass="back-button" prefWidth="150"/>
+        </HBox>
+    </bottom>
+</BorderPane>

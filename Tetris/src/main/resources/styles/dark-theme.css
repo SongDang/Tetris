@@ -1,0 +1,300 @@
+/* Dark Theme Stylesheet for Tetris Application */
+
+/* ========== Root Styles ========== */
+.root {
+    -fx-base: #0a0a0a;
+    -fx-control-inner-background: #1a1a1a;
+    -fx-text-fill: #ffffff;
+    -fx-font-family: "Courier New", monospace;
+    -fx-font-size: 14;
+}
+
+/* ========== Main Container Styles ========== */
+.main-menu {
+    -fx-background-color: #0a0a0a;
+}
+
+.gamemodes-screen {
+    -fx-background-color: #0a0a0a;
+}
+
+.game-screen {
+    -fx-background-color: #0a0a0a;
+}
+
+.results-screen {
+    -fx-background-color: #0a0a0a;
+}
+
+.settings-screen {
+    -fx-background-color: #0a0a0a;
+}
+
+/* ========== BorderPane Styles ========== */
+.border-pane {
+    -fx-background-color: #0a0a0a;
+}
+
+/* ========== Layout Styles ========== */
+.vbox {
+    -fx-background-color: transparent;
+}
+
+.hbox {
+    -fx-background-color: transparent;
+}
+
+/* ========== Title Styles ========== */
+.game-title {
+    -fx-font-size: 72;
+    -fx-font-weight: bold;
+    -fx-text-fill: #00ff00;
+    -fx-effect: dropshadow(gaussian, #000000, 15, 0.8, 0, 0);
+}
+
+.screen-title {
+    -fx-font-size: 32;
+    -fx-font-weight: bold;
+    -fx-text-fill: #00ff00;
+}
+
+.result-title {
+    -fx-font-size: 48;
+    -fx-font-weight: bold;
+    -fx-text-fill: #00ff00;
+}
+
+.mode-title {
+    -fx-font-size: 24;
+    -fx-font-weight: bold;
+    -fx-text-fill: #00ff00;
+}
+
+.mode-description {
+    -fx-font-size: 12;
+    -fx-text-fill: #cccccc;
+    -fx-wrap-text: true;
+}
+
+/* ========== Button Styles ========== */
+.menu-button,
+.back-button,
+.play-button,
+.result-button,
+.settings-button {
+    -fx-padding: 12 30 12 30;
+    -fx-background-color: transparent;
+    -fx-text-fill: #00ff00;
+    -fx-border-color: #00ff00;
+    -fx-border-width: 2;
+    -fx-font-weight: bold;
+    -fx-font-size: 14;
+    -fx-font-family: "Courier New", monospace;
+    -fx-cursor: hand;
+}
+
+.menu-button:hover,
+.back-button:hover,
+.play-button:hover,
+.result-button:hover,
+.settings-button:hover {
+    -fx-background-color: #00ff00;
+    -fx-text-fill: #000000;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+}
+
+.menu-button:pressed,
+.back-button:pressed,
+.play-button:pressed,
+.result-button:pressed,
+.settings-button:pressed {
+    -fx-background-color: #00cc00;
+    -fx-text-fill: #000000;
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+.button {
+    -fx-padding: 10 20 10 20;
+    -fx-background-color: transparent;
+    -fx-text-fill: #00ff00;
+    -fx-border-color: #00ff00;
+    -fx-border-width: 2;
+    -fx-font-weight: bold;
+    -fx-font-size: 14;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: #00ff00;
+    -fx-text-fill: #000000;
+}
+
+.button:pressed {
+    -fx-background-color: #00cc00;
+    -fx-text-fill: #000000;
+}
+
+/* ========== Mode Card Styles ========== */
+.mode-card {
+    -fx-border-color: #00ff00;
+    -fx-border-width: 2;
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 20;
+}
+
+/* ========== Info Panel Styles ========== */
+.info-panel {
+    -fx-border-color: #00ff00;
+    -fx-border-width: 2;
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 15;
+}
+
+.info-title {
+    -fx-font-size: 14;
+    -fx-text-fill: #00ff00;
+    -fx-font-weight: bold;
+}
+
+.info-value {
+    -fx-font-size: 18;
+    -fx-text-fill: #ffff00;
+    -fx-font-weight: bold;
+}
+
+/* ========== Statistics Panel Styles ========== */
+.stats-panel {
+    -fx-border-color: #00ff00;
+    -fx-border-width: 2;
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 20;
+}
+
+.stat-label {
+    -fx-font-size: 14;
+    -fx-text-fill: #00ff00;
+}
+
+.stat-value {
+    -fx-font-size: 16;
+    -fx-text-fill: #ffff00;
+    -fx-font-weight: bold;
+}
+
+.final-score {
+    -fx-font-size: 48;
+    -fx-text-fill: #ffff00;
+    -fx-font-weight: bold;
+}
+
+/* ========== Settings Styles ========== */
+.settings-group {
+    -fx-border-color: #00ff00;
+    -fx-border-width: 2;
+    -fx-background-color: #1a1a1a;
+    -fx-padding: 20;
+}
+
+.setting-label {
+    -fx-font-size: 14;
+    -fx-text-fill: #00ff00;
+}
+
+/* ========== Label Styles ========== */
+.label {
+    -fx-text-fill: #ffffff;
+}
+
+/* ========== Slider Styles ========== */
+.slider {
+    -fx-control-inner-background: #1a1a1a;
+}
+
+.slider:focused {
+    -fx-control-inner-background: #2a2a2a;
+}
+
+.slider .thumb {
+    -fx-background-color: #00ff00;
+}
+
+.slider .track {
+    -fx-background-color: #2a2a2a;
+}
+
+/* ========== CheckBox Styles ========== */
+.check-box {
+    -fx-text-fill: #ffffff;
+}
+
+.check-box .box {
+    -fx-background-color: #1a1a1a;
+    -fx-border-color: #00ff00;
+    -fx-border-width: 2;
+}
+
+.check-box:selected .box {
+    -fx-background-color: #00ff00;
+}
+
+.check-box:selected .mark {
+    -fx-text-fill: #000000;
+}
+
+/* ========== ComboBox Styles ========== */
+.combo-box {
+    -fx-background-color: #1a1a1a;
+    -fx-text-fill: #00ff00;
+    -fx-border-color: #00ff00;
+    -fx-border-width: 2;
+}
+
+.combo-box:focused {
+    -fx-background-color: #2a2a2a;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: #1a1a1a;
+}
+
+.combo-box-popup .list-view .list-cell {
+    -fx-text-fill: #00ff00;
+    -fx-background-color: #1a1a1a;
+}
+
+.combo-box-popup .list-view .list-cell:filled:hover {
+    -fx-background-color: #00ff00;
+    -fx-text-fill: #000000;
+}
+
+/* ========== Separator Styles ========== */
+.separator {
+    -fx-border-color: #00ff00;
+    -fx-border-width: 1;
+}
+
+/* ========== ScrollPane Styles ========== */
+.scroll-pane {
+    -fx-background-color: #0a0a0a;
+    -fx-control-inner-background: #0a0a0a;
+}
+
+.scroll-bar {
+    -fx-background-color: #1a1a1a;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #00ff00;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #00cc00;
+}
+
+/* ========== Canvas Styles ========== */
+.canvas {
+    -fx-border-color: #00ff00;
+    -fx-border-width: 2;
+}

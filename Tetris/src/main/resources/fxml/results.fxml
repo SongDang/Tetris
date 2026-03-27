@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="resultsPane" fx:controller="com.se330.tetris.controller.ResultsController">
+    <center>
+        <VBox style="-fx-alignment: top-center; -fx-spacing: 40; -fx-padding: 40;">
+            <!-- Final Score Title -->
+            <Label text="FINAL SCORE" styleClass="result-title"/>
+            
+            <!-- Score Information -->
+            <VBox style="-fx-alignment: center; -fx-spacing: 15;">
+                <Label fx:id="finalScoreLabel" text="366767" styleClass="final-score"/>
+                <Label fx:id="gameModeLabel" text="Standard Mode" style="-fx-font-size: 16; -fx-text-fill: #00ff00;"/>
+                <Label fx:id="timeLabel" text="Time: 5:32" style="-fx-font-size: 14; -fx-text-fill: #cccccc;"/>
+            </VBox>
+            
+            <!-- Statistics Panel -->
+            <VBox styleClass="stats-panel" style="-fx-border-color: #00ff00; -fx-border-width: 2; -fx-padding: 20; -fx-spacing: 15; -fx-min-width: 300;">
+                <!-- Lines Cleared -->
+                <HBox style="-fx-alignment: center-left; -fx-spacing: 20;">
+                    <Label text="Lines Cleared:" style="-fx-font-size: 14; -fx-text-fill: #00ff00;"/>
+                    <Label fx:id="linesLabel" text="45" styleClass="stat-value"/>
+                </HBox>
+                
+                <!-- Level Reached -->
+                <HBox style="-fx-alignment: center-left; -fx-spacing: 20;">
+                    <Label text="Level Reached:" style="-fx-font-size: 14; -fx-text-fill: #00ff00;"/>
+                    <Label fx:id="levelLabel" text="12" styleClass="stat-value"/>
+                </HBox>
+                
+                <!-- Blocks Placed -->
+                <HBox style="-fx-alignment: center-left; -fx-spacing: 20;">
+                    <Label text="Blocks Placed:" style="-fx-font-size: 14; -fx-text-fill: #00ff00;"/>
+                    <Label fx:id="blocksLabel" text="156" styleClass="stat-value"/>
+                </HBox>
+            </VBox>
+            
+            <!-- Action Buttons -->
+            <VBox style="-fx-alignment: center; -fx-spacing: 15;">
+                <Button fx:id="saveScoreBtn" text="SAVE SCORE" styleClass="result-button" prefWidth="200"/>
+                <Button fx:id="retryBtn" text="RETRY" styleClass="result-button" prefWidth="200"/>
+                <Button fx:id="backToMenuBtn" text="BACK TO MENU" styleClass="result-button" prefWidth="200"/>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>

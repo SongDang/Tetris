@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.canvas.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="gamePane" fx:controller="com.se330.tetris.controller.GameController">
+    <left>
+        <Canvas fx:id="gameCanvas" width="300" height="600" style="-fx-border-color: #cccccc; -fx-border-width: 2;"/>
+    </left>
+    <center>
+        <VBox style="-fx-alignment: top-center; -fx-spacing: 20; -fx-padding: 20;">
+            <!-- Score Panel -->
+            <VBox styleClass="info-panel" style="-fx-alignment: center; -fx-spacing: 10; -fx-padding: 15; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200;">
+                <Label text="SCORE" styleClass="info-title"/>
+                <Label fx:id="scoreLabel" text="0" styleClass="info-value"/>
+            </VBox>
+            
+            <!-- Level Panel -->
+            <VBox styleClass="info-panel" style="-fx-alignment: center; -fx-spacing: 10; -fx-padding: 15; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200;">
+                <Label text="LEVEL" styleClass="info-title"/>
+                <Label fx:id="levelLabel" text="1" styleClass="info-value"/>
+            </VBox>
+            
+            <!-- Lines Panel -->
+            <VBox styleClass="info-panel" style="-fx-alignment: center; -fx-spacing: 10; -fx-padding: 15; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200;">
+                <Label text="LINES" styleClass="info-title"/>
+                <Label fx:id="linesLabel" text="0" styleClass="info-value"/>
+            </VBox>
+            
+            <!-- Next Block Preview -->
+            <VBox style="-fx-alignment: center; -fx-spacing: 10; -fx-padding: 15; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200;">
+                <Label text="NEXT" style="-fx-font-size: 14; -fx-text-fill: #ffffff;"/>
+                <Canvas fx:id="nextBlockCanvas" width="120" height="120" style="-fx-border-color: #666666; -fx-border-width: 1;"/>
+            </VBox>
+        </VBox>
+    </center>
+    <bottom>
+        <HBox style="-fx-alignment: center; -fx-padding: 20; -fx-spacing: 10;">
+            <Label text="? ? : Move | ? : Rotate | SPACE : Drop | P : Pause" style="-fx-font-size: 12; -fx-text-fill: #cccccc;"/>
+        </HBox>
+    </bottom>
+</BorderPane>

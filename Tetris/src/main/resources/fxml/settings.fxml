@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="settingsPane" fx:controller="com.se330.tetris.controller.SettingsController">
+    <center>
+        <ScrollPane style="-fx-background-color: #0a0a0a; -fx-border-color: transparent;">
+            <VBox style="-fx-alignment: top-center; -fx-spacing: 30; -fx-padding: 40;">
+                <!-- Settings Title -->
+                <Label text="SETTINGS" styleClass="screen-title"/>
+                
+                <!-- Audio Settings Group -->
+                <VBox styleClass="settings-group" style="-fx-border-color: #00ff00; -fx-border-width: 2; -fx-padding: 20; -fx-spacing: 15;">
+                    <Label text="AUDIO" style="-fx-font-size: 18; -fx-text-fill: #00ff00; -fx-font-weight: bold;"/>
+                    
+                    <!-- Background Music Toggle -->
+                    <HBox style="-fx-alignment: center-left; -fx-spacing: 15;">
+                        <Label text="Background Music:" style="-fx-font-size: 14; -fx-text-fill: #00ff00; -fx-min-width: 150;"/>
+                        <CheckBox fx:id="musicToggle" selected="true" style="-fx-text-fill: #ffffff;"/>
+                    </HBox>
+                    
+                    <!-- Music Volume Slider -->
+                    <HBox style="-fx-alignment: center-left; -fx-spacing: 15;">
+                        <Label text="Music Volume:" style="-fx-font-size: 14; -fx-text-fill: #00ff00; -fx-min-width: 150;"/>
+                        <Slider fx:id="musicVolume" min="0" max="100" value="70" prefWidth="200"/>
+                        <Label fx:id="musicVolumeLabel" text="70%" style="-fx-font-size: 12; -fx-text-fill: #ffff00; -fx-min-width: 40;"/>
+                    </HBox>
+                    
+                    <!-- Sound Effects Toggle -->
+                    <HBox style="-fx-alignment: center-left; -fx-spacing: 15;">
+                        <Label text="Sound Effects:" style="-fx-font-size: 14; -fx-text-fill: #00ff00; -fx-min-width: 150;"/>
+                        <CheckBox fx:id="sfxToggle" selected="true" style="-fx-text-fill: #ffffff;"/>
+                    </HBox>
+                    
+                    <!-- SFX Volume Slider -->
+                    <HBox style="-fx-alignment: center-left; -fx-spacing: 15;">
+                        <Label text="SFX Volume:" style="-fx-font-size: 14; -fx-text-fill: #00ff00; -fx-min-width: 150;"/>
+                        <Slider fx:id="sfxVolume" min="0" max="100" value="80" prefWidth="200"/>
+                        <Label fx:id="sfxVolumeLabel" text="80%" style="-fx-font-size: 12; -fx-text-fill: #ffff00; -fx-min-width: 40;"/>
+                    </HBox>
+                </VBox>
+                
+                <!-- Gameplay Settings Group -->
+                <VBox styleClass="settings-group" style="-fx-border-color: #00ff00; -fx-border-width: 2; -fx-padding: 20; -fx-spacing: 15;">
+                    <Label text="GAMEPLAY" style="-fx-font-size: 18; -fx-text-fill: #00ff00; -fx-font-weight: bold;"/>
+                    
+                    <!-- Hard Mode Toggle -->
+                    <HBox style="-fx-alignment: center-left; -fx-spacing: 15;">
+                        <Label text="Difficulty:" style="-fx-font-size: 14; -fx-text-fill: #00ff00; -fx-min-width: 150;"/>
+                        <CheckBox fx:id="hardModeToggle" text="Hard Mode" style="-fx-text-fill: #ffffff;"/>
+                    </HBox>
+                    
+                    <!-- Grid Display Toggle -->
+                    <HBox style="-fx-alignment: center-left; -fx-spacing: 15;">
+                        <Label text="Show Grid:" style="-fx-font-size: 14; -fx-text-fill: #00ff00; -fx-min-width: 150;"/>
+                        <CheckBox fx:id="gridToggle" selected="true" style="-fx-text-fill: #ffffff;"/>
+                    </HBox>
+                </VBox>
+                
+                <!-- Separator -->
+                <Separator style="-fx-border-color: #00ff00;"/>
+                
+                <!-- Action Buttons -->
+                <HBox style="-fx-alignment: center; -fx-spacing: 20;">
+                    <Button fx:id="saveBtn" text="SAVE" styleClass="settings-button" prefWidth="150"/>
+                    <Button fx:id="cancelBtn" text="CANCEL" styleClass="settings-button" prefWidth="150"/>
+                </HBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+</BorderPane>

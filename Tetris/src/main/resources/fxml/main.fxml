@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
+            fx:id="mainMenuPane" fx:controller="com.se330.tetris.controller.MainMenuController">
+    <center>
+        <VBox style="-fx-alignment: center; -fx-spacing: 50;">
+            <Label text="TETRIS" styleClass="game-title"/>
+            <VBox style="-fx-alignment: center; -fx-spacing: 20;">
+                <Button text="GAMEMODES" styleClass="menu-button" onAction="#onGamemodesClicked"/>
+                <Button text="SETTINGS" styleClass="menu-button" onAction="#onSettingsClicked"/>
+                <Button text="EXIT" styleClass="menu-button" onAction="#onExitClicked"/>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>
