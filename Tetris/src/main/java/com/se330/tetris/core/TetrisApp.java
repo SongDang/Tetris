@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import com.se330.tetris.controller.GameController;
@@ -15,20 +16,26 @@ public class TetrisApp extends Application {
 
     @Override
     public void start(Stage stage) {
-        Canvas canvas = new Canvas(BOARD_WIDTH * CELL_SIZE, BOARD_HEIGHT * CELL_SIZE);
+        Canvas boardCanvas = new Canvas(BOARD_WIDTH * CELL_SIZE, BOARD_HEIGHT * CELL_SIZE);
+        Canvas nextCanvas = new Canvas(6 * CELL_SIZE, 6 * CELL_SIZE);
 
-        GameController controller = new GameController(canvas);
+        HBox root = new HBox(20);
+        root.setStyle("-fx-background-color: #14121f; -fx-padding: 20;");
+        root.getChildren().addAll(boardCanvas, nextCanvas);
+
+        GameController controller = new GameController(boardCanvas, nextCanvas);
         controller.start();
 
-        BorderPane root = new BorderPane(canvas);
-        root.setStyle("-fx-background-color: #14121f;");
+        Scene scene = new Scene(root,
+                boardCanvas.getWidth() + nextCanvas.getWidth() + 60,
+                boardCanvas.getHeight() + 40,
+                Color.BLACK);
 
-        Scene scene = new Scene(root, canvas.getWidth() + 40, canvas.getHeight() + 40, Color.BLACK);
         scene.setOnKeyPressed(controller::onKeyPressed);
-        stage.setTitle("Tetris - Step 1");
+
+        stage.setTitle("Tetris");
         stage.setScene(scene);
         stage.show();
-
     }
 
     public static void main(String[] args) {
