@@ -17,8 +17,8 @@ public class GameController {
     private final int[][] board = new int[TetrisApp.BOARD_HEIGHT][TetrisApp.BOARD_WIDTH];
 
     private long lastFallTime = 0;
-    private final long fallIntervalNs = 500_000_000L;
     private final java.util.Random rng = new java.util.Random();
+    private final long fallIntervalNs = 500_000_000L;
 
     public GameController(Canvas canvas) {
         this.canvas = canvas;
@@ -30,7 +30,8 @@ public class GameController {
         timer = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                if (now - lastFallTime >= fallIntervalNs) {
+                long interval = fallIntervalNs;
+                if (now - lastFallTime >= interval) {
                     updateFall();
                     lastFallTime = now;
                 }
@@ -56,6 +57,7 @@ public class GameController {
 
         drawBoard();
         drawPiece(currentPiece);
+        drawGhost(currentPiece);
     }
 
     private void drawPiece(Piece piece) {
@@ -90,6 +92,7 @@ public class GameController {
         } else {
             lockPiece();
             spawnPiece();
+            lastFallTime = System.nanoTime();
         }
     }
 
@@ -159,11 +162,7 @@ public class GameController {
                     currentPiece.setX(currentPiece.getX() + 1);
                 }
             }
-            case DOWN -> {
-                if (canMove(0, 1, currentPiece.getRotation())) {
-                    currentPiece.setY(currentPiece.getY() + 1);
-                }
-            }
+            case DOWN -> hardDrop();
             case UP -> {
                 int newRot = (currentPiece.getRotation() + 1) % 4;
                 if (canMove(0, 0, newRot)) {
@@ -196,5 +195,43 @@ public class GameController {
             case 7 -> TetrominoType.L;
             default -> null;
         };
+    }
+
+    private int getDropDistance(Piece piece) {
+        int distance = 0;
+        while (canMove(0, distance + 1, piece.getRotation())) {
+            distance++;
+        }
+        return distance;
+    }
+
+    private void drawGhost(Piece piece) {
+        int drop = getDropDistance(piece);
+        int[][] shape = piece.getType().getShape(piece.getRotation());
+
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int x = piece.getX() + col;
+                    int y = piece.getY() + row + drop;
+                    double px = x * TetrisApp.CELL_SIZE;
+                    double py = y * TetrisApp.CELL_SIZE;
+
+                    gc.setFill(piece.getType().getColor().deriveColor(0, 1, 1, 0.25));
+                    gc.fillRect(px, py, TetrisApp.CELL_SIZE, TetrisApp.CELL_SIZE);
+
+                    gc.setStroke(Color.web("#111111"));
+                    gc.strokeRect(px, py, TetrisApp.CELL_SIZE, TetrisApp.CELL_SIZE);
+                }
+            }
+        }
+    }
+
+    private void hardDrop() {
+        int drop = getDropDistance(currentPiece);
+        currentPiece.setY(currentPiece.getY() + drop);
+        lockPiece();
+        spawnPiece();
+        lastFallTime = System.nanoTime();
     }
 }
