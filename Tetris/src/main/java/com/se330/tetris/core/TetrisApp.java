@@ -18,12 +18,13 @@ public class TetrisApp extends Application {
     public void start(Stage stage) {
         Canvas boardCanvas = new Canvas(BOARD_WIDTH * CELL_SIZE, BOARD_HEIGHT * CELL_SIZE);
         Canvas nextCanvas = new Canvas(6 * CELL_SIZE, 6 * CELL_SIZE);
+        Canvas scoreCanvas = new Canvas(6 * CELL_SIZE, 6 * CELL_SIZE);
 
         HBox root = new HBox(20);
         root.setStyle("-fx-background-color: #14121f; -fx-padding: 20;");
         root.getChildren().addAll(boardCanvas, nextCanvas);
 
-        GameController controller = new GameController(boardCanvas, nextCanvas);
+        GameController controller = new GameController(boardCanvas, nextCanvas, scoreCanvas);
         controller.start();
 
         Scene scene = new Scene(root,

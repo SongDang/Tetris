@@ -23,11 +23,21 @@ public class GameController {
     private final java.util.Random rng = new java.util.Random();
     private final long fallIntervalNs = 500_000_000L;
 
-    public GameController(Canvas boardCanvas, Canvas nextCanvas) {
+    private final Canvas scoreCanvas;
+    private final GraphicsContext scoreGc;
+    private final java.util.Queue<Piece> nextQueue = new java.util.LinkedList<>();
+    private final int NEXT_COUNT = 5;
+    private int score = 0;
+    private boolean isGameOver = false;
+
+    public GameController(Canvas boardCanvas, Canvas nextCanvas, Canvas scoreCanvas) {
         this.boardCanvas = boardCanvas;
         this.nextCanvas = nextCanvas;
+        this.scoreCanvas = scoreCanvas;
         this.boardGc = boardCanvas.getGraphicsContext2D();
         this.nextGc = nextCanvas.getGraphicsContext2D();
+        this.scoreGc = scoreCanvas.getGraphicsContext2D();
+
         spawnPiece();
     }
 
@@ -64,6 +74,14 @@ public class GameController {
         drawPiece(currentPiece);
         drawGhost(currentPiece);
         drawNext();
+
+        boardGc.setFill(Color.WHITE);
+        boardGc.fillText("Score: " + score, 10, 20);
+
+        if (isGameOver) {
+            boardGc.setFill(Color.RED);
+            boardGc.fillText("GAME OVER", 50, 250);
+        }
     }
 
     private void drawPiece(Piece piece) {
@@ -94,6 +112,10 @@ public class GameController {
         nextPiece = randomPiece();
         currentPiece.setX(3);
         currentPiece.setY(0);
+        if (isGameOver()) {
+            isGameOver = true;
+            timer.stop();
+        }
     }
 
     private void updateFall() {
@@ -101,7 +123,17 @@ public class GameController {
             currentPiece.setY(currentPiece.getY() + 1);
         } else {
             lockPiece();
+
+            int cleared = clearLines();
+            updateScore(cleared);
+
             spawnPiece();
+
+            if (isGameOver()) {
+                isGameOver = true;
+                timer.stop();
+            }
+
             lastFallTime = System.nanoTime();
         }
     }
@@ -162,18 +194,18 @@ public class GameController {
 
     public void onKeyPressed(javafx.scene.input.KeyEvent event) {
         switch (event.getCode()) {
-            case LEFT -> {
+            case LEFT, A -> {
                 if (canMove(-1, 0, currentPiece.getRotation())) {
                     currentPiece.setX(currentPiece.getX() - 1);
                 }
             }
-            case RIGHT -> {
+            case RIGHT, D -> {
                 if (canMove(1, 0, currentPiece.getRotation())) {
                     currentPiece.setX(currentPiece.getX() + 1);
                 }
             }
-            case DOWN -> hardDrop();
-            case UP -> {
+            case DOWN, S -> hardDrop();
+            case UP, W -> {
                 int newRot = (currentPiece.getRotation() + 1) % 4;
                 if (canMove(0, 0, newRot)) {
                     currentPiece.setRotation(newRot);
@@ -241,6 +273,10 @@ public class GameController {
         int drop = getDropDistance(currentPiece);
         currentPiece.setY(currentPiece.getY() + drop);
         lockPiece();
+
+        int cleared = clearLines();
+        updateScore(cleared);
+
         spawnPiece();
         lastFallTime = System.nanoTime();
     }
@@ -274,5 +310,49 @@ public class GameController {
                 }
             }
         }
+    }
+
+    private int clearLines() {
+        int linesCleared = 0;
+
+        for (int y = TetrisApp.BOARD_HEIGHT - 1; y >= 0; y--) {
+            boolean full = true;
+
+            for (int x = 0; x < TetrisApp.BOARD_WIDTH; x++) {
+                if (board[y][x] == 0) {
+                    full = false;
+                    break;
+                }
+            }
+
+            if (full) {
+                linesCleared++;
+
+                // kéo các hàng trên xuống
+                for (int row = y; row > 0; row--) {
+                    board[row] = board[row - 1].clone();
+                }
+
+                // hàng trên cùng = rỗng
+                board[0] = new int[TetrisApp.BOARD_WIDTH];
+
+                y++; // kiểm tra lại dòng này sau khi kéo xuống
+            }
+        }
+
+        return linesCleared;
+    }
+
+    private void updateScore(int lines) {
+        switch (lines) {
+            case 1 -> score += 100;
+            case 2 -> score += 300;
+            case 3 -> score += 500;
+            case 4 -> score += 800;
+        }
+    }
+
+    private boolean isGameOver() {
+        return !canMove(0, 0, currentPiece.getRotation());
     }
 }
