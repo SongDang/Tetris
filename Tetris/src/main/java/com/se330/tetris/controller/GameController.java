@@ -8,6 +8,7 @@ import javafx.animation.AnimationTimer;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 
 public class GameController {
     private final Canvas boardCanvas;
@@ -27,7 +28,7 @@ public class GameController {
     private final GraphicsContext scoreGc;
     private final java.util.Queue<Piece> nextQueue = new java.util.LinkedList<>();
     private final int NEXT_COUNT = 5;
-    private int score = 0;
+    private int score, lines = 0;
     private boolean isGameOver = false;
 
     public GameController(Canvas boardCanvas, Canvas nextCanvas, Canvas scoreCanvas) {
@@ -74,9 +75,7 @@ public class GameController {
         drawPiece(currentPiece);
         drawGhost(currentPiece);
         drawNext();
-
-        boardGc.setFill(Color.WHITE);
-        boardGc.fillText("Score: " + score, 10, 20);
+        drawScore();
 
         if (isGameOver) {
             boardGc.setFill(Color.RED);
@@ -275,6 +274,7 @@ public class GameController {
         lockPiece();
 
         int cleared = clearLines();
+        lines += cleared;
         updateScore(cleared);
 
         spawnPiece();
@@ -310,6 +310,19 @@ public class GameController {
                 }
             }
         }
+    }
+
+    private void drawScore() {
+        scoreGc.setFill(Color.web("#0f0d1a"));
+        scoreGc.fillRect(0, 0, scoreCanvas.getWidth(), scoreCanvas.getHeight());
+
+        scoreGc.setFill(Color.WHITE);
+
+        scoreGc.fillText("SCORE", 10, 20);
+        scoreGc.fillText(String.valueOf(score), 10, 50);
+
+        scoreGc.fillText("LINES", 10, 80);
+        scoreGc.fillText(String.valueOf(lines), 80, 80);
     }
 
     private int clearLines() {

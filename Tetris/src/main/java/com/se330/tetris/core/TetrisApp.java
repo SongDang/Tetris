@@ -22,13 +22,13 @@ public class TetrisApp extends Application {
 
         HBox root = new HBox(20);
         root.setStyle("-fx-background-color: #14121f; -fx-padding: 20;");
-        root.getChildren().addAll(boardCanvas, nextCanvas);
+        root.getChildren().addAll(scoreCanvas, boardCanvas, nextCanvas);
 
         GameController controller = new GameController(boardCanvas, nextCanvas, scoreCanvas);
         controller.start();
 
         Scene scene = new Scene(root,
-                boardCanvas.getWidth() + nextCanvas.getWidth() + 60,
+                boardCanvas.getWidth() + nextCanvas.getWidth() + scoreCanvas.getWidth() + 60,
                 boardCanvas.getHeight() + 40,
                 Color.BLACK);
 
