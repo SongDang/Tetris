@@ -1,12 +1,7 @@
 package com.se330.tetris.service;
 
-/**
- * GameContext is a singleton class that stores the current game state and configuration.
- * It manages information about the selected game mode, score, level, and other game settings.
- */
 public class GameContext {
 
-    // ========== Game Mode Enum ==========
     public enum GameMode {
         STANDARD("Standard Mode"),
         TIME_ATTACK("Time Attack"),
@@ -23,10 +18,8 @@ public class GameContext {
         }
     }
 
-    // ========== Singleton Instance ==========
     private static GameContext instance;
 
-    // ========== Instance Variables ==========
     private GameMode gameMode;
     private int score;
     private int level;
@@ -34,9 +27,6 @@ public class GameContext {
     private int blocksPlaced;
     private long gameTime;
 
-    /**
-     * Private constructor to enforce singleton pattern
-     */
     private GameContext() {
         this.gameMode = GameMode.STANDARD;
         this.score = 0;
@@ -46,11 +36,6 @@ public class GameContext {
         this.gameTime = 0;
     }
 
-    /**
-     * Gets the singleton instance of GameContext
-     *
-     * @return the singleton instance
-     */
     public static synchronized GameContext getInstance() {
         if (instance == null) {
             instance = new GameContext();
@@ -58,9 +43,6 @@ public class GameContext {
         return instance;
     }
 
-    /**
-     * Resets the game context to default values
-     */
     public void reset() {
         this.score = 0;
         this.level = 1;
@@ -68,8 +50,6 @@ public class GameContext {
         this.blocksPlaced = 0;
         this.gameTime = 0;
     }
-
-    // ========== Getters and Setters ==========
 
     public GameMode getGameMode() {
         return gameMode;

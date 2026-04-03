@@ -1,42 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
 
-<BorderPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1"
-            fx:id="gamemodesPane" fx:controller="com.se330.tetris.controller.GamemodesController">
-    <top>
-        <Label text="SELECT GAMEMODE" styleClass="screen-title" style="-fx-padding: 20;"/>
-    </top>
-    <center>
-        <HBox style="-fx-alignment: center; -fx-spacing: 30; -fx-padding: 20;">
-            <!-- Standard Mode Card -->
-            <VBox styleClass="mode-card" style="-fx-alignment: top-center; -fx-spacing: 15; -fx-padding: 20; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200; -fx-min-height: 300;">
-                <Label text="STANDARD" styleClass="mode-title"/>
-                <Label text="A classic game of Tetris" styleClass="mode-description" wrapText="true"/>
-                <Region style="-fx-pref-height: 1; -fx-grow-priority: always;"/>
-                <Button fx:id="standardBtn" text="PLAY" styleClass="play-button" prefWidth="150"/>
-            </VBox>
-            
-            <!-- Time Attack Mode Card -->
-            <VBox styleClass="mode-card" style="-fx-alignment: top-center; -fx-spacing: 15; -fx-padding: 20; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200; -fx-min-height: 300;">
-                <Label text="TIME ATTACK" styleClass="mode-title"/>
-                <Label text="Beat the clock, scoring high" styleClass="mode-description" wrapText="true"/>
-                <Region style="-fx-pref-height: 1; -fx-grow-priority: always;"/>
-                <Button fx:id="timeAttackBtn" text="PLAY" styleClass="play-button" prefWidth="150"/>
-            </VBox>
-            
-            <!-- Hard Mode Card -->
-            <VBox styleClass="mode-card" style="-fx-alignment: top-center; -fx-spacing: 15; -fx-padding: 20; -fx-border-color: #cccccc; -fx-border-width: 1; -fx-min-width: 200; -fx-min-height: 300;">
-                <Label text="HARD MODE" styleClass="mode-title"/>
-                <Label text="No forgiveness, only speed" styleClass="mode-description" wrapText="true"/>
-                <Region style="-fx-pref-height: 1; -fx-grow-priority: always;"/>
-                <Button fx:id="hardModeBtn" text="PLAY" styleClass="play-button" prefWidth="150"/>
-            </VBox>
-        </HBox>
-    </center>
-    <bottom>
-        <HBox style="-fx-alignment: center; -fx-padding: 20;">
-            <Button fx:id="backBtn" text="BACK" styleClass="back-button" prefWidth="150"/>
-        </HBox>
-    </bottom>
-</BorderPane>
+<AnchorPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="gamemodesPane" fx:controller="com.se330.tetris.controller.GamemodesController"
+            prefWidth="1440.0" prefHeight="1024.0" styleClass="screen-gamemodes">
+
+    <Region layoutX="0.0" layoutY="0.0" prefWidth="1440.0" prefHeight="1024.0" styleClass="background-dim" />
+
+    <HBox layoutY="88.0" spacing="98.0" alignment="CENTER"
+          AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <Button fx:id="standardBtn" onAction="#onStandardClicked" prefWidth="349.0" prefHeight="664.0"
+                styleClass="mode-card-button">
+            <graphic>
+                <VBox prefWidth="297.0" prefHeight="612.0" alignment="CENTER" fillWidth="true">
+                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
+                        <Label text="Standard" styleClass="mode-card-title" prefWidth="297.0" />
+                    </StackPane>
+                    <StackPane prefWidth="297.0" prefHeight="220.0" alignment="CENTER">
+                        <ImageView fitWidth="180.0" fitHeight="180.0" preserveRatio="true">
+                            <image>
+                                <Image url="@../assets/standard_icon.png" />
+                            </image>
+                        </ImageView>
+                    </StackPane>
+                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
+                        <Label text="A classic game&#10;of Tetris" styleClass="mode-card-description" prefWidth="297.0" />
+                    </StackPane>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="timeAttackBtn" onAction="#onTimeAttackClicked" prefWidth="349.0" prefHeight="664.0"
+                styleClass="mode-card-button">
+            <graphic>
+                <VBox prefWidth="297.0" prefHeight="612.0" alignment="CENTER" fillWidth="true">
+                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
+                        <Label text="Time&#10;Attack" styleClass="mode-card-title" prefWidth="297.0" />
+                    </StackPane>
+                    <StackPane prefWidth="297.0" prefHeight="220.0" alignment="CENTER">
+                        <ImageView fitWidth="160.0" fitHeight="160.0" preserveRatio="true">
+                            <image>
+                                <Image url="@../assets/clock-face-ten.png" />
+                            </image>
+                        </ImageView>
+                    </StackPane>
+                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
+                        <Label text="Time is&#10;constantly&#10;ticking down" styleClass="mode-card-description" prefWidth="297.0" />
+                    </StackPane>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="hardModeBtn" onAction="#onHardModeClicked" prefWidth="349.0" prefHeight="664.0"
+                styleClass="mode-card-button">
+            <graphic>
+                <VBox prefWidth="297.0" prefHeight="612.0" alignment="CENTER" fillWidth="true">
+                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
+                        <Label text="Hard&#10;Mode" styleClass="mode-card-title" prefWidth="297.0" />
+                    </StackPane>
+                    <StackPane prefWidth="297.0" prefHeight="220.0" alignment="CENTER">
+                        <ImageView fitWidth="185.0" fitHeight="185.0" preserveRatio="true">
+                            <image>
+                                <Image url="@../assets/pngegg-1.png" />
+                            </image>
+                        </ImageView>
+                    </StackPane>
+                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
+                        <Label text="No forecasts,&#10;lights&#10;occasionally go&#10;out" styleClass="mode-card-description" prefWidth="297.0" />
+                    </StackPane>
+                </VBox>
+            </graphic>
+        </Button>
+    </HBox>
+
+        <AnchorPane prefHeight="176.0" styleClass="mode-footer"
+            AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="0.0">
+        <Region prefHeight="176.0" styleClass="bottom-glow"
+            AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="0.0" />
+
+        <Button fx:id="backBtn" onAction="#onBackClicked" text="Back"
+            layoutX="82.0" layoutY="51.0" prefWidth="148.0" prefHeight="74.0"
+            styleClass="figma-button" />
+        </AnchorPane>
+
+</AnchorPane>
