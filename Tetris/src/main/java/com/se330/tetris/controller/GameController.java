@@ -1,5 +1,6 @@
 package com.se330.tetris.controller;
 
+import com.se330.tetris.core.TetrisApp;
 import javafx.animation.AnimationTimer;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
@@ -9,184 +10,400 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+
+import com.se330.tetris.game.Piece;
+import com.se330.tetris.game.TetrominoType;
 import com.se330.tetris.service.GameContext;
 import com.se330.tetris.service.SceneManager;
 
 public class GameController {
 
-    @FXML
-    private BorderPane gamePane;
+    // ── FXML injections (từ HEAD) ────────────────────────────────────────────
+    @FXML private BorderPane gamePane;
+    @FXML private Canvas      gameCanvas;
+    @FXML private Canvas      nextBlockCanvas;
+    @FXML private Label       scoreLabel;
+    @FXML private Label       levelLabel;
+    @FXML private Label       linesLabel;
 
-    @FXML
-    private Canvas gameCanvas;
-
-    @FXML
-    private Canvas nextBlockCanvas;
-
-    @FXML
-    private Label scoreLabel;
-
-    @FXML
-    private Label levelLabel;
-
-    @FXML
-    private Label linesLabel;
-
+    // ── Services (từ HEAD) ──────────────────────────────────────────────────
     private SceneManager sceneManager;
-    private GameContext gameContext;
-    private GraphicsContext gameGraphics;
-    private GraphicsContext nextBlockGraphics;
-    private AnimationTimer gameLoop;
-    private boolean gamePaused;
-    private long lastUpdateTime;
+    private GameContext  gameContext;
 
+    // ── Graphics contexts ───────────────────────────────────────────────────
+    private GraphicsContext gameGc;
+    private GraphicsContext nextGc;
+
+    // ── Game state (từ feature/base-game) ───────────────────────────────────
+    private final int[][] board = new int[TetrisApp.BOARD_HEIGHT][TetrisApp.BOARD_WIDTH];
+    private Piece currentPiece;
+    private Piece nextPiece;
+
+    private AnimationTimer gameLoop;
+    private boolean gamePaused  = false;
+    private boolean isGameOver  = false;
+
+    private long lastFallTime   = 0;
+    /** Interval tính bằng nanosecond; giảm dần theo level */
+    private long fallIntervalNs = 500_000_000L;
+
+    private final java.util.Random rng = new java.util.Random();
+
+    // ── FXML initialize ─────────────────────────────────────────────────────
     @FXML
     private void initialize() {
         sceneManager = SceneManager.getInstance();
-        gameContext = GameContext.getInstance();
+        gameContext  = GameContext.getInstance();
         gameContext.reset();
 
-        gameGraphics = gameCanvas.getGraphicsContext2D();
-        nextBlockGraphics = nextBlockCanvas.getGraphicsContext2D();
+        gameGc = gameCanvas.getGraphicsContext2D();
+        nextGc = nextBlockCanvas.getGraphicsContext2D();
 
-        gamePaused = false;
-        lastUpdateTime = System.currentTimeMillis();
+        // Spawn hai mảnh đầu tiên
+        nextPiece = randomPiece();
+        spawnPiece();
 
-        updateScore(0);
-        updateLevel(1);
-        updateLines(0);
+        // Cập nhật labels ban đầu
+        refreshLabels();
 
+        // Key handler
         gamePane.setOnKeyPressed(this::handleKeyPressed);
         gamePane.requestFocus();
 
         startGameLoop();
-
-        drawGameBoard();
-        drawNextBlock();
     }
 
+    // ── Game loop ────────────────────────────────────────────────────────────
     private void startGameLoop() {
+        lastFallTime = System.nanoTime();
         gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                if (!gamePaused) {
-                    long currentTime = System.currentTimeMillis();
-                    if (currentTime - lastUpdateTime >= 100) {
-                        lastUpdateTime = currentTime;
-                        updateGameState();
-                        drawGameBoard();
-                        drawNextBlock();
-                    }
+                if (gamePaused || isGameOver) return;
+
+                if (now - lastFallTime >= fallIntervalNs) {
+                    updateFall();
+                    lastFallTime = now;
                 }
+                render();
             }
         };
         gameLoop.start();
     }
 
-    private void updateGameState() {
-    }
-
-    public void updateScore(int score) {
-        gameContext.setScore(score);
-        scoreLabel.setText(String.valueOf(score));
-    }
-
-    public void updateLevel(int level) {
-        gameContext.setLevel(level);
-        levelLabel.setText(String.valueOf(level));
-    }
-
-    public void updateLines(int lines) {
-        gameContext.setLines(lines);
-        linesLabel.setText(String.valueOf(lines));
-    }
-
-    public void drawGameBoard() {
-        GraphicsContext gc = gameGraphics;
-
-        gc.setFill(Color.web("#1a1a1a"));
-        gc.fillRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
-
-        gc.setStroke(Color.web("#00ff00"));
-        gc.setLineWidth(2);
-        gc.strokeRect(0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
-
-        gc.setStroke(Color.web("#333333"));
-        gc.setLineWidth(0.5);
-        int blockSize = 30;
-        for (int i = 0; i <= 10; i++) {
-            gc.strokeLine(i * blockSize, 0, i * blockSize, gameCanvas.getHeight());
-        }
-        for (int i = 0; i <= 20; i++) {
-            gc.strokeLine(0, i * blockSize, gameCanvas.getWidth(), i * blockSize);
+    // ── Fall / lock logic (từ feature/base-game) ────────────────────────────
+    private void updateFall() {
+        if (canMove(0, 1, currentPiece.getRotation())) {
+            currentPiece.setY(currentPiece.getY() + 1);
+        } else {
+            lockAndSpawn();
         }
     }
 
-    public void drawNextBlock() {
-        GraphicsContext gc = nextBlockGraphics;
+    private void lockAndSpawn() {
+        lockPiece();
 
-        gc.setFill(Color.web("#1a1a1a"));
-        gc.fillRect(0, 0, nextBlockCanvas.getWidth(), nextBlockCanvas.getHeight());
+        int cleared = clearLines();
+        if (cleared > 0) {
+            addScore(cleared);
+            addLines(cleared);
+            updateLevel();
+        }
 
-        gc.setStroke(Color.web("#00ff00"));
-        gc.setLineWidth(2);
-        gc.strokeRect(0, 0, nextBlockCanvas.getWidth(), nextBlockCanvas.getHeight());
+        spawnPiece();
 
-        gc.setFill(Color.web("#00ff00"));
-        gc.setFont(javafx.scene.text.Font.font("Courier New", 12));
-        gc.fillText("Next Block", nextBlockCanvas.getWidth() / 2 - 40, nextBlockCanvas.getHeight() / 2);
+        if (!canMove(0, 0, currentPiece.getRotation())) {
+            isGameOver = true;
+            gameLoop.stop();
+            sceneManager.switchToScene(SceneManager.RESULTS_SCENE); // từ HEAD
+        }
     }
 
+    // ── Spawn ────────────────────────────────────────────────────────────────
+    private void spawnPiece() {
+        currentPiece = nextPiece;
+        currentPiece.setX(TetrisApp.BOARD_WIDTH / 2 - 2);
+        currentPiece.setY(0);
+        nextPiece = randomPiece();
+    }
+
+    private Piece randomPiece() {
+        TetrominoType[] types = TetrominoType.values();
+        return new Piece(types[rng.nextInt(types.length)], 0, 0);
+    }
+
+    // ── Collision ────────────────────────────────────────────────────────────
+    private boolean canMove(int dx, int dy, int rotation) {
+        int[][] shape = currentPiece.getType().getShape(rotation);
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int nx = currentPiece.getX() + col + dx;
+                    int ny = currentPiece.getY() + row + dy;
+                    if (nx < 0 || nx >= TetrisApp.BOARD_WIDTH) return false;
+                    if (ny < 0 || ny >= TetrisApp.BOARD_HEIGHT) return false;
+                    if (board[ny][nx] != 0) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // ── Lock ─────────────────────────────────────────────────────────────────
+    private void lockPiece() {
+        int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int x = currentPiece.getX() + col;
+                    int y = currentPiece.getY() + row;
+                    if (y >= 0 && y < TetrisApp.BOARD_HEIGHT
+                            && x >= 0 && x < TetrisApp.BOARD_WIDTH) {
+                        board[y][x] = typeId(currentPiece.getType());
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Clear lines ──────────────────────────────────────────────────────────
+    private int clearLines() {
+        int cleared = 0;
+        for (int y = TetrisApp.BOARD_HEIGHT - 1; y >= 0; y--) {
+            boolean full = true;
+            for (int x = 0; x < TetrisApp.BOARD_WIDTH; x++) {
+                if (board[y][x] == 0) { full = false; break; }
+            }
+            if (full) {
+                cleared++;
+                for (int row = y; row > 0; row--) {
+                    board[row] = board[row - 1].clone();
+                }
+                board[0] = new int[TetrisApp.BOARD_WIDTH];
+                y++; // kiểm tra lại dòng vừa kéo xuống
+            }
+        }
+        return cleared;
+    }
+
+    // ── Score / Level (cập nhật qua GameContext như HEAD) ───────────────────
+    private void addScore(int linesCleared) {
+        int bonus = switch (linesCleared) {
+            case 1 -> 100;
+            case 2 -> 300;
+            case 3 -> 500;
+            case 4 -> 800;
+            default -> 0;
+        };
+        int newScore = gameContext.getScore() + bonus;
+        gameContext.setScore(newScore);
+        scoreLabel.setText(String.valueOf(newScore));
+    }
+
+    private void addLines(int count) {
+        int newLines = gameContext.getLines() + count;
+        gameContext.setLines(newLines);
+        linesLabel.setText(String.valueOf(newLines));
+    }
+
+    private void updateLevel() {
+        // Mỗi 10 dòng tăng 1 level, tối đa level 10
+        int newLevel = Math.min(gameContext.getLines() / 10 + 1, 10);
+        if (newLevel != gameContext.getLevel()) {
+            gameContext.setLevel(newLevel);
+            levelLabel.setText(String.valueOf(newLevel));
+            // Tăng tốc độ rơi
+            fallIntervalNs = Math.max(100_000_000L, 500_000_000L - (newLevel - 1) * 40_000_000L);
+        }
+    }
+
+    private void refreshLabels() {
+        scoreLabel.setText(String.valueOf(gameContext.getScore()));
+        levelLabel.setText(String.valueOf(gameContext.getLevel()));
+        linesLabel.setText(String.valueOf(gameContext.getLines()));
+    }
+
+    // ── Hard drop ────────────────────────────────────────────────────────────
+    private void hardDrop() {
+        int drop = getDropDistance();
+        currentPiece.setY(currentPiece.getY() + drop);
+        lockAndSpawn();
+    }
+
+    private int getDropDistance() {
+        int distance = 0;
+        while (canMove(0, distance + 1, currentPiece.getRotation())) distance++;
+        return distance;
+    }
+
+    // ── Key handler (từ HEAD, bổ sung phím từ feature/base-game) ────────────
     @FXML
     private void handleKeyPressed(KeyEvent event) {
         KeyCode code = event.getCode();
-
         switch (code) {
-            case LEFT:
-                handleMoveLeft();
-                event.consume();
-                break;
-            case RIGHT:
-                handleMoveRight();
-                event.consume();
-                break;
-            case UP:
-                handleRotate();
-                event.consume();
-                break;
-            case SPACE:
-                handleDrop();
-                event.consume();
-                break;
-            case P:
-                handlePause();
-                event.consume();
-                break;
-            default:
-                break;
+            case LEFT,  A     -> { if (canMove(-1, 0, currentPiece.getRotation()))
+                currentPiece.setX(currentPiece.getX() - 1); }
+            case RIGHT, D     -> { if (canMove( 1, 0, currentPiece.getRotation()))
+                currentPiece.setX(currentPiece.getX() + 1); }
+            case DOWN,  S     -> hardDrop();
+            case UP,    W     -> { int nr = (currentPiece.getRotation() + 1) % 4;
+                if (canMove(0, 0, nr)) currentPiece.setRotation(nr); }
+            case SPACE        -> hardDrop();
+            case P            -> handlePause();
+            default           -> { return; }
         }
-    }
-
-    private void handleMoveLeft() {
-    }
-
-    private void handleMoveRight() {
-    }
-
-    private void handleRotate() {
-    }
-
-    private void handleDrop() {
+        event.consume();
     }
 
     private void handlePause() {
         gamePaused = !gamePaused;
     }
 
-    public void gameOver() {
-        if (gameLoop != null) {
-            gameLoop.stop();
+    // ── Render ───────────────────────────────────────────────────────────────
+    private void render() {
+        drawGameBoard();
+        drawNextBlock();
+    }
+
+    public void drawGameBoard() {
+        GraphicsContext gc = gameGc;
+        double w = gameCanvas.getWidth();
+        double h = gameCanvas.getHeight();
+        int cs   = TetrisApp.CELL_SIZE;
+
+        // Background
+        gc.setFill(Color.web("#0f0d1a"));
+        gc.fillRect(0, 0, w, h);
+
+        // Grid lines
+        gc.setStroke(Color.web("#2b2740"));
+        gc.setLineWidth(0.5);
+        for (int x = 0; x <= TetrisApp.BOARD_WIDTH;  x++) gc.strokeLine(x * cs, 0, x * cs, h);
+        for (int y = 0; y <= TetrisApp.BOARD_HEIGHT; y++) gc.strokeLine(0, y * cs, w, y * cs);
+
+        // Border
+        gc.setStroke(Color.web("#00ff00"));
+        gc.setLineWidth(2);
+        gc.strokeRect(0, 0, w, h);
+
+        // Locked cells
+        for (int y = 0; y < TetrisApp.BOARD_HEIGHT; y++) {
+            for (int x = 0; x < TetrisApp.BOARD_WIDTH; x++) {
+                if (board[y][x] != 0) {
+                    TetrominoType t = idToType(board[y][x]);
+                    if (t != null) drawCell(gc, x, y, t.getColor(), 1.0);
+                }
+            }
         }
+
+        // Ghost
+        int drop = getDropDistance();
+        int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (ghostShape[row][col] == 1) {
+                    drawCell(gc,
+                            currentPiece.getX() + col,
+                            currentPiece.getY() + row + drop,
+                            currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25),
+                            1.0);
+                }
+            }
+        }
+
+        // Current piece
+        int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    drawCell(gc,
+                            currentPiece.getX() + col,
+                            currentPiece.getY() + row,
+                            currentPiece.getType().getColor(),
+                            1.0);
+                }
+            }
+        }
+
+        // Game Over overlay
+        if (isGameOver) {
+            gc.setFill(Color.color(0, 0, 0, 0.6));
+            gc.fillRect(0, 0, w, h);
+            gc.setFill(Color.web("#ff4444"));
+            gc.setFont(Font.font("Courier New", 28));
+            gc.fillText("GAME OVER", w / 2 - 80, h / 2);
+        }
+
+        // Paused overlay
+        if (gamePaused) {
+            gc.setFill(Color.color(0, 0, 0, 0.5));
+            gc.fillRect(0, 0, w, h);
+            gc.setFill(Color.web("#00ff00"));
+            gc.setFont(Font.font("Courier New", 28));
+            gc.fillText("PAUSED", w / 2 - 55, h / 2);
+        }
+    }
+
+    public void drawNextBlock() {
+        GraphicsContext gc = nextGc;
+        double w = nextBlockCanvas.getWidth();
+        double h = nextBlockCanvas.getHeight();
+
+        gc.setFill(Color.web("#0f0d1a"));
+        gc.fillRect(0, 0, w, h);
+
+        gc.setStroke(Color.web("#00ff00"));
+        gc.setLineWidth(2);
+        gc.strokeRect(0, 0, w, h);
+
+        int[][] shape = nextPiece.getType().getShape(nextPiece.getRotation());
+        int cs = TetrisApp.CELL_SIZE;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    drawCell(gc, col + 1, row + 1, nextPiece.getType().getColor(), 1.0, nextGc, cs);
+                }
+            }
+        }
+    }
+
+    // Helper: vẽ 1 ô trên gameGc
+    private void drawCell(GraphicsContext gc, int x, int y, Color color, double opacity) {
+        drawCell(gc, x, y, color, opacity, gc, TetrisApp.CELL_SIZE);
+    }
+
+    private void drawCell(GraphicsContext gc, int x, int y, Color color,
+                          double opacity, GraphicsContext target, int cs) {
+        double px = x * cs;
+        double py = y * cs;
+        target.setFill(color.deriveColor(0, 1, 1, opacity));
+        target.fillRect(px, py, cs, cs);
+        target.setStroke(Color.web("#111111"));
+        target.setLineWidth(1);
+        target.strokeRect(px, py, cs, cs);
+    }
+
+    // ── Tetromino ID helpers ─────────────────────────────────────────────────
+    private int typeId(TetrominoType type) {
+        return switch (type) {
+            case I -> 1; case O -> 2; case T -> 3;
+            case S -> 4; case Z -> 5; case J -> 6; case L -> 7;
+        };
+    }
+
+    private TetrominoType idToType(int id) {
+        return switch (id) {
+            case 1 -> TetrominoType.I; case 2 -> TetrominoType.O;
+            case 3 -> TetrominoType.T; case 4 -> TetrominoType.S;
+            case 5 -> TetrominoType.Z; case 6 -> TetrominoType.J;
+            case 7 -> TetrominoType.L; default -> null;
+        };
+    }
+
+    // ── Public API (gọi từ SceneManager nếu cần) ────────────────────────────
+    public void gameOver() {
+        if (gameLoop != null) gameLoop.stop();
         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
     }
 }
