@@ -1,7 +1,9 @@
 package com.se330.tetris.controller;
 
 import com.se330.tetris.core.TetrisApp;
+import com.se330.tetris.util.Constants;
 import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -9,6 +11,7 @@ import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
@@ -19,24 +22,20 @@ import com.se330.tetris.service.SceneManager;
 
 public class GameController {
 
-    // ── FXML injections (từ HEAD) ────────────────────────────────────────────
-    @FXML private BorderPane gamePane;
+    @FXML private HBox gamePane;
     @FXML private Canvas      gameCanvas;
     @FXML private Canvas      nextBlockCanvas;
     @FXML private Label       scoreLabel;
     @FXML private Label       levelLabel;
     @FXML private Label       linesLabel;
 
-    // ── Services (từ HEAD) ──────────────────────────────────────────────────
     private SceneManager sceneManager;
     private GameContext  gameContext;
 
-    // ── Graphics contexts ───────────────────────────────────────────────────
     private GraphicsContext gameGc;
     private GraphicsContext nextGc;
 
-    // ── Game state (từ feature/base-game) ───────────────────────────────────
-    private final int[][] board = new int[TetrisApp.BOARD_HEIGHT][TetrisApp.BOARD_WIDTH];
+    private final int[][] board = new int[Constants.BOARD_HEIGHT][Constants.BOARD_WIDTH];
     private Piece currentPiece;
     private Piece nextPiece;
 
@@ -45,12 +44,10 @@ public class GameController {
     private boolean isGameOver  = false;
 
     private long lastFallTime   = 0;
-    /** Interval tính bằng nanosecond; giảm dần theo level */
     private long fallIntervalNs = 500_000_000L;
 
     private final java.util.Random rng = new java.util.Random();
 
-    // ── FXML initialize ─────────────────────────────────────────────────────
     @FXML
     private void initialize() {
         sceneManager = SceneManager.getInstance();
@@ -69,12 +66,13 @@ public class GameController {
 
         // Key handler
         gamePane.setOnKeyPressed(this::handleKeyPressed);
-        gamePane.requestFocus();
+        Platform.runLater(() -> {
+            gamePane.requestFocus();
+        });
 
         startGameLoop();
     }
 
-    // ── Game loop ────────────────────────────────────────────────────────────
     private void startGameLoop() {
         lastFallTime = System.nanoTime();
         gameLoop = new AnimationTimer() {
@@ -92,7 +90,6 @@ public class GameController {
         gameLoop.start();
     }
 
-    // ── Fall / lock logic (từ feature/base-game) ────────────────────────────
     private void updateFall() {
         if (canMove(0, 1, currentPiece.getRotation())) {
             currentPiece.setY(currentPiece.getY() + 1);
@@ -120,10 +117,9 @@ public class GameController {
         }
     }
 
-    // ── Spawn ────────────────────────────────────────────────────────────────
     private void spawnPiece() {
         currentPiece = nextPiece;
-        currentPiece.setX(TetrisApp.BOARD_WIDTH / 2 - 2);
+        currentPiece.setX(Constants.BOARD_WIDTH / 2 - 2);
         currentPiece.setY(0);
         nextPiece = randomPiece();
     }
@@ -133,7 +129,6 @@ public class GameController {
         return new Piece(types[rng.nextInt(types.length)], 0, 0);
     }
 
-    // ── Collision ────────────────────────────────────────────────────────────
     private boolean canMove(int dx, int dy, int rotation) {
         int[][] shape = currentPiece.getType().getShape(rotation);
         for (int row = 0; row < 4; row++) {
@@ -141,8 +136,8 @@ public class GameController {
                 if (shape[row][col] == 1) {
                     int nx = currentPiece.getX() + col + dx;
                     int ny = currentPiece.getY() + row + dy;
-                    if (nx < 0 || nx >= TetrisApp.BOARD_WIDTH) return false;
-                    if (ny < 0 || ny >= TetrisApp.BOARD_HEIGHT) return false;
+                    if (nx < 0 || nx >= Constants.BOARD_WIDTH) return false;
+                    if (ny < 0 || ny >= Constants.BOARD_HEIGHT) return false;
                     if (board[ny][nx] != 0) return false;
                 }
             }
@@ -150,7 +145,6 @@ public class GameController {
         return true;
     }
 
-    // ── Lock ─────────────────────────────────────────────────────────────────
     private void lockPiece() {
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         for (int row = 0; row < 4; row++) {
@@ -158,8 +152,8 @@ public class GameController {
                 if (shape[row][col] == 1) {
                     int x = currentPiece.getX() + col;
                     int y = currentPiece.getY() + row;
-                    if (y >= 0 && y < TetrisApp.BOARD_HEIGHT
-                            && x >= 0 && x < TetrisApp.BOARD_WIDTH) {
+                    if (y >= 0 && y < Constants.BOARD_HEIGHT
+                            && x >= 0 && x < Constants.BOARD_WIDTH) {
                         board[y][x] = typeId(currentPiece.getType());
                     }
                 }
@@ -167,12 +161,11 @@ public class GameController {
         }
     }
 
-    // ── Clear lines ──────────────────────────────────────────────────────────
     private int clearLines() {
         int cleared = 0;
-        for (int y = TetrisApp.BOARD_HEIGHT - 1; y >= 0; y--) {
+        for (int y = Constants.BOARD_HEIGHT - 1; y >= 0; y--) {
             boolean full = true;
-            for (int x = 0; x < TetrisApp.BOARD_WIDTH; x++) {
+            for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                 if (board[y][x] == 0) { full = false; break; }
             }
             if (full) {
@@ -180,14 +173,13 @@ public class GameController {
                 for (int row = y; row > 0; row--) {
                     board[row] = board[row - 1].clone();
                 }
-                board[0] = new int[TetrisApp.BOARD_WIDTH];
+                board[0] = new int[Constants.BOARD_WIDTH];
                 y++; // kiểm tra lại dòng vừa kéo xuống
             }
         }
         return cleared;
     }
 
-    // ── Score / Level (cập nhật qua GameContext như HEAD) ───────────────────
     private void addScore(int linesCleared) {
         int bonus = switch (linesCleared) {
             case 1 -> 100;
@@ -224,7 +216,6 @@ public class GameController {
         linesLabel.setText(String.valueOf(gameContext.getLines()));
     }
 
-    // ── Hard drop ────────────────────────────────────────────────────────────
     private void hardDrop() {
         int drop = getDropDistance();
         currentPiece.setY(currentPiece.getY() + drop);
@@ -237,7 +228,6 @@ public class GameController {
         return distance;
     }
 
-    // ── Key handler (từ HEAD, bổ sung phím từ feature/base-game) ────────────
     @FXML
     private void handleKeyPressed(KeyEvent event) {
         KeyCode code = event.getCode();
@@ -260,7 +250,6 @@ public class GameController {
         gamePaused = !gamePaused;
     }
 
-    // ── Render ───────────────────────────────────────────────────────────────
     private void render() {
         drawGameBoard();
         drawNextBlock();
@@ -270,7 +259,7 @@ public class GameController {
         GraphicsContext gc = gameGc;
         double w = gameCanvas.getWidth();
         double h = gameCanvas.getHeight();
-        int cs   = TetrisApp.CELL_SIZE;
+        int cs   = Constants.BLOCK_SIZE;
 
         // Background
         gc.setFill(Color.web("#0f0d1a"));
@@ -279,8 +268,8 @@ public class GameController {
         // Grid lines
         gc.setStroke(Color.web("#2b2740"));
         gc.setLineWidth(0.5);
-        for (int x = 0; x <= TetrisApp.BOARD_WIDTH;  x++) gc.strokeLine(x * cs, 0, x * cs, h);
-        for (int y = 0; y <= TetrisApp.BOARD_HEIGHT; y++) gc.strokeLine(0, y * cs, w, y * cs);
+        for (int x = 0; x <= Constants.BOARD_WIDTH;  x++) gc.strokeLine(x * cs, 0, x * cs, h);
+        for (int y = 0; y <= Constants.BOARD_HEIGHT; y++) gc.strokeLine(0, y * cs, w, y * cs);
 
         // Border
         gc.setStroke(Color.web("#00ff00"));
@@ -288,8 +277,8 @@ public class GameController {
         gc.strokeRect(0, 0, w, h);
 
         // Locked cells
-        for (int y = 0; y < TetrisApp.BOARD_HEIGHT; y++) {
-            for (int x = 0; x < TetrisApp.BOARD_WIDTH; x++) {
+        for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
+            for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                 if (board[y][x] != 0) {
                     TetrominoType t = idToType(board[y][x]);
                     if (t != null) drawCell(gc, x, y, t.getColor(), 1.0);
@@ -358,7 +347,7 @@ public class GameController {
         gc.strokeRect(0, 0, w, h);
 
         int[][] shape = nextPiece.getType().getShape(nextPiece.getRotation());
-        int cs = TetrisApp.CELL_SIZE;
+        int cs = Constants.BLOCK_SIZE;
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 if (shape[row][col] == 1) {
@@ -370,7 +359,7 @@ public class GameController {
 
     // Helper: vẽ 1 ô trên gameGc
     private void drawCell(GraphicsContext gc, int x, int y, Color color, double opacity) {
-        drawCell(gc, x, y, color, opacity, gc, TetrisApp.CELL_SIZE);
+        drawCell(gc, x, y, color, opacity, gc, Constants.BLOCK_SIZE);
     }
 
     private void drawCell(GraphicsContext gc, int x, int y, Color color,
@@ -384,7 +373,6 @@ public class GameController {
         target.strokeRect(px, py, cs, cs);
     }
 
-    // ── Tetromino ID helpers ─────────────────────────────────────────────────
     private int typeId(TetrominoType type) {
         return switch (type) {
             case I -> 1; case O -> 2; case T -> 3;
@@ -401,7 +389,6 @@ public class GameController {
         };
     }
 
-    // ── Public API (gọi từ SceneManager nếu cần) ────────────────────────────
     public void gameOver() {
         if (gameLoop != null) gameLoop.stop();
         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);

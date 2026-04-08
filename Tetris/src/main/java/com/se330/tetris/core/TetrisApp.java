@@ -1,4 +1,4 @@
-package com.se330.tetris;
+package com.se330.tetris.core;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
