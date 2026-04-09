@@ -50,9 +50,9 @@ public class ResultsController {
     }
 
     private void populateResults() {
-        int demoScore = 366767;
-        int demoLevel = 12;
-        int demoLines = 45;
+        int demoScore = gameContext.getScore();;
+        int demoLevel = gameContext.getLevel();
+        int demoLines = gameContext.getLines();
         int demoBlocks = 156;
         long demoTime = 332000;
 
