@@ -1,19 +1,24 @@
-package main.java;
+package com.se330.tetris.service;
 
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import java.net.URL;
-import java.util.Optional;
 
-public class Sound {
+public class SoundManager {
+    private static SoundManager instance;
     Clip clip;
     URL soundURL[] = new URL[20];
 
-    public Sound()
+    public SoundManager()
     {
         soundURL[0] = getClass().getResource("/sound/main_theme_music.wav");
         soundURL[1] = getClass().getResource("/sound/enter_mode_sound");
+    }
+
+    public static SoundManager getInstance() {
+        if (instance == null) instance = new SoundManager();
+        return instance;
     }
 
     public void setFile(int i)
@@ -37,5 +42,20 @@ public class Sound {
     public void stop()
     {
         clip.stop();
+    }
+
+    public void playMusic(int i) {
+        setFile(i);
+        play();
+        loop();
+    }
+
+    public void playSE(int i) { // SE = Sound Effect
+        try {
+            AudioInputStream ais = AudioSystem.getAudioInputStream(soundURL[i]);
+            Clip seClip = AudioSystem.getClip();
+            seClip.open(ais);
+            seClip.start();
+        } catch (Exception e) {}
     }
 }
