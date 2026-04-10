@@ -1,6 +1,5 @@
 package com.se330.tetris.controller;
 
-import com.se330.tetris.core.TetrisApp;
 import com.se330.tetris.util.Constants;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
@@ -12,7 +11,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -29,7 +27,11 @@ public class GameController {
     @FXML
     private Canvas gameCanvas;
     @FXML
-    private Canvas nextBlockCanvas;
+    private Canvas nextBlockCanvas1;
+    @FXML
+    private Canvas nextBlockCanvas2;
+    @FXML
+    private Canvas nextBlockCanvas3;
     @FXML
     private Label scoreLabel;
     @FXML
@@ -41,11 +43,13 @@ public class GameController {
     private GameContext gameContext;
 
     private GraphicsContext gameGc;
-    private GraphicsContext nextGc;
+    private GraphicsContext nextGc1;
+    private GraphicsContext nextGc2;
+    private GraphicsContext nextGc3;
 
     private final int[][] board = new int[Constants.BOARD_HEIGHT][Constants.BOARD_WIDTH];
     private Piece currentPiece;
-    private Piece nextPiece;
+    private final java.util.ArrayDeque<Piece> nextQueue = new java.util.ArrayDeque<>();
 
     private AnimationTimer gameLoop;
     private boolean gamePaused = false;
@@ -65,10 +69,15 @@ public class GameController {
         gameContext.reset();
 
         gameGc = gameCanvas.getGraphicsContext2D();
-        nextGc = nextBlockCanvas.getGraphicsContext2D();
+        nextGc1 = nextBlockCanvas1.getGraphicsContext2D();
+        nextGc2 = nextBlockCanvas2.getGraphicsContext2D();
+        nextGc3 = nextBlockCanvas3.getGraphicsContext2D();
 
-        // Spawn hai mảnh đầu tiên
-        nextPiece = randomPiece();
+        // Seed queue for current + 3 previews.
+        nextQueue.clear();
+        for (int i = 0; i < 4; i++) {
+            nextQueue.addLast(randomPiece());
+        }
         spawnPiece();
 
         // Cập nhật labels ban đầu
@@ -133,10 +142,10 @@ public class GameController {
     }
 
     private void spawnPiece() {
-        currentPiece = nextPiece;
+        currentPiece = nextQueue.removeFirst();
         currentPiece.setX(Constants.BOARD_WIDTH / 2 - 2);
         currentPiece.setY(0);
-        nextPiece = randomPiece();
+        nextQueue.addLast(randomPiece());
     }
 
     private Piece randomPiece() {
@@ -366,7 +375,7 @@ public class GameController {
 
     private void render() {
         drawGameBoard();
-        drawNextBlock();
+        drawNextBlocks();
     }
 
     public void drawGameBoard() {
@@ -451,10 +460,16 @@ public class GameController {
         }
     }
 
-    public void drawNextBlock() {
-        GraphicsContext gc = nextGc;
-        double w = nextBlockCanvas.getWidth();
-        double h = nextBlockCanvas.getHeight();
+    public void drawNextBlocks() {
+        java.util.Iterator<Piece> it = nextQueue.iterator();
+        drawPreview(nextGc1, nextBlockCanvas1, it.hasNext() ? it.next() : null);
+        drawPreview(nextGc2, nextBlockCanvas2, it.hasNext() ? it.next() : null);
+        drawPreview(nextGc3, nextBlockCanvas3, it.hasNext() ? it.next() : null);
+    }
+
+    private void drawPreview(GraphicsContext gc, Canvas canvas, Piece piece) {
+        double w = canvas.getWidth();
+        double h = canvas.getHeight();
 
         gc.setFill(Color.web("#0f0d1a"));
         gc.fillRect(0, 0, w, h);
@@ -463,12 +478,18 @@ public class GameController {
         gc.setLineWidth(2);
         gc.strokeRect(0, 0, w, h);
 
-        int[][] shape = nextPiece.getType().getShape(nextPiece.getRotation());
-        int cs = Constants.BLOCK_SIZE;
+        if (piece == null) {
+            return;
+        }
+
+        int[][] shape = piece.getType().getShape(piece.getRotation());
+        int previewCellSize = 24;
+        int offsetX = 1;
+        int offsetY = 1;
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 if (shape[row][col] == 1) {
-                    drawCell(gc, col + 1, row + 1, nextPiece.getType().getColor(), 1.0, nextGc, cs);
+                    drawCell(gc, col + offsetX, row + offsetY, piece.getType().getColor(), 1.0, gc, previewCellSize);
                 }
             }
         }
