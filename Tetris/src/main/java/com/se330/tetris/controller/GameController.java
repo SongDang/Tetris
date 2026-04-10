@@ -263,11 +263,7 @@ public class GameController {
                     currentPiece.setX(currentPiece.getX() + 1);
             }
             case DOWN, S -> hardDrop();
-            case UP, W -> {
-                int nr = (currentPiece.getRotation() + 1) % 4;
-                if (canMove(0, 0, nr))
-                    currentPiece.setRotation(nr);
-            }
+            case UP, W -> tryRotateWithWallKick();
             case SPACE -> hardDrop();
             case P -> handlePause();
             default -> {
@@ -316,12 +312,25 @@ public class GameController {
         }
 
         if (event.getButton() == MouseButton.SECONDARY) {
-            int nextRotation = (currentPiece.getRotation() + 1) % 4;
-            if (canMove(0, 0, nextRotation)) {
-                currentPiece.setRotation(nextRotation);
-            }
+            tryRotateWithWallKick();
             event.consume();
         }
+    }
+
+    private boolean tryRotateWithWallKick() {
+        int nextRotation = (currentPiece.getRotation() + 1) % 4;
+
+        // Basic wall-kick offsets to allow rotation when touching side walls.
+        int[] kickOffsets = { 0, -1, 1, -2, 2 };
+        for (int dx : kickOffsets) {
+            if (canMove(dx, 0, nextRotation)) {
+                currentPiece.setX(currentPiece.getX() + dx);
+                currentPiece.setRotation(nextRotation);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private int getTargetPieceX(int targetColumn) {
