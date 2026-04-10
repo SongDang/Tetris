@@ -1,0 +1,224 @@
+@font-face {
+    font-family: "VT323";
+    src: url("../fonts/VT323-Regular.ttf");
+}
+
+.root {
+    -fx-base: #000000;
+    -fx-background-color: #000000;
+    -fx-font-family: "VT323";
+}
+
+.screen-main-menu,
+.screen-settings {
+    -fx-background-color: rgba(0, 0, 0, 0.95);
+    -fx-background-image: none;
+}
+
+.screen-gamemodes {
+    -fx-background-color: #111111;
+    -fx-background-image: url("../assets/black_bg.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: 20% 50%;
+    -fx-background-size: 175% 175%;
+}
+
+.background-dim {
+    -fx-background-color: rgba(0, 0, 0, 0.42);
+}
+
+.screen-results {
+    -fx-background-color: #111111;
+    -fx-background-image: url("../assets/black_bg.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: 20% 50%;
+    -fx-background-size: 175% 175%;
+}
+
+.figma-main-title {
+    -fx-font-family: "VT323";
+    -fx-font-size: 128;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center;
+}
+
+.figma-button {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-26.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-font-family: "VT323";
+    -fx-font-size: 50;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+.main-menu-button {
+    -fx-font-size: 50;
+}
+
+.mode-card-button {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-2.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-alignment: center;
+    -fx-content-display: graphic-only;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+.mode-card-button .label {
+    -fx-font-family: "VT323";
+    -fx-text-fill: #ffffff;
+}
+
+.mode-card-title {
+    -fx-font-size: 72;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.mode-card-description {
+    -fx-font-size: 32;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-wrap-text: true;
+}
+
+.bottom-glow {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #171717 3.69%, #000000 62.5%);
+}
+
+.mode-footer {
+    -fx-background-color: transparent;
+}
+
+.settings-main-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-30.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-border-width: 0;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 4, 0.0, 0, 4);
+}
+
+.settings-overlay-backdrop {
+    -fx-background-color: rgba(0, 0, 0, 0.56);
+}
+
+.settings-popup-shell {
+    -fx-background-color: transparent;
+}
+
+.settings-popup-content {
+    -fx-background-color: transparent;
+}
+
+.settings-action-button {
+    -fx-font-size: 46;
+}
+
+.settings-header-overlay {
+    -fx-background-color: transparent;
+}
+
+.settings-header-title {
+    -fx-font-family: "VT323";
+    -fx-font-size: 64;
+    -fx-text-fill: #ffffff;
+}
+
+.settings-score-label {
+    -fx-font-family: "VT323";
+    -fx-font-size: 32;
+    -fx-text-fill: #ffffff;
+}
+
+.settings-score-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 64;
+    -fx-text-fill: #96ffde;
+}
+
+.figma-slider .track {
+    -fx-background-color: #ffffff;
+    -fx-pref-height: 10;
+}
+
+.figma-slider .thumb {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 0;
+    -fx-pref-width: 14;
+    -fx-pref-height: 24;
+}
+
+.figma-slider:focused {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.audio-icon-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+    -fx-border-insets: 0;
+}
+
+.audio-icon-button:hover {
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+.results-title {
+    -fx-font-family: "VT323";
+    -fx-font-size: 48;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.results-score {
+    -fx-font-family: "VT323";
+    -fx-font-size: 128;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.results-note-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/quote_rec.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-padding: 12 20 12 20;
+}
+
+.results-note-text {
+    -fx-font-family: "VT323";
+    -fx-font-size: 32;
+    -fx-text-fill: #ffffff;
+}
+
+.button:hover,
+.figma-button:hover,
+.mode-card-button:hover {
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.button:pressed,
+.figma-button:pressed,
+.mode-card-button:pressed {
+    -fx-effect: none;
+}
