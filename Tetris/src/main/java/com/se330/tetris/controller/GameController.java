@@ -10,6 +10,8 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
@@ -22,15 +24,21 @@ import com.se330.tetris.service.SceneManager;
 
 public class GameController {
 
-    @FXML private HBox gamePane;
-    @FXML private Canvas      gameCanvas;
-    @FXML private Canvas      nextBlockCanvas;
-    @FXML private Label       scoreLabel;
-    @FXML private Label       levelLabel;
-    @FXML private Label       linesLabel;
+    @FXML
+    private HBox gamePane;
+    @FXML
+    private Canvas gameCanvas;
+    @FXML
+    private Canvas nextBlockCanvas;
+    @FXML
+    private Label scoreLabel;
+    @FXML
+    private Label levelLabel;
+    @FXML
+    private Label linesLabel;
 
     private SceneManager sceneManager;
-    private GameContext  gameContext;
+    private GameContext gameContext;
 
     private GraphicsContext gameGc;
     private GraphicsContext nextGc;
@@ -40,18 +48,20 @@ public class GameController {
     private Piece nextPiece;
 
     private AnimationTimer gameLoop;
-    private boolean gamePaused  = false;
-    private boolean isGameOver  = false;
+    private boolean gamePaused = false;
+    private boolean isGameOver = false;
 
-    private long lastFallTime   = 0;
+    private long lastFallTime = 0;
     private long fallIntervalNs = 500_000_000L;
+
+    private int mouseTargetColumn = -1;
 
     private final java.util.Random rng = new java.util.Random();
 
     @FXML
     private void initialize() {
         sceneManager = SceneManager.getInstance();
-        gameContext  = GameContext.getInstance();
+        gameContext = GameContext.getInstance();
         gameContext.reset();
 
         gameGc = gameCanvas.getGraphicsContext2D();
@@ -66,6 +76,8 @@ public class GameController {
 
         // Key handler
         gamePane.setOnKeyPressed(this::handleKeyPressed);
+        gameCanvas.setOnMouseMoved(this::handleMouseMoved);
+        gameCanvas.setOnMouseClicked(this::handleMouseClicked);
         Platform.runLater(() -> {
             gamePane.requestFocus();
         });
@@ -78,7 +90,10 @@ public class GameController {
         gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                if (gamePaused || isGameOver) return;
+                if (gamePaused || isGameOver)
+                    return;
+
+                applyMouseTarget(now);
 
                 if (now - lastFallTime >= fallIntervalNs) {
                     updateFall();
@@ -136,9 +151,12 @@ public class GameController {
                 if (shape[row][col] == 1) {
                     int nx = currentPiece.getX() + col + dx;
                     int ny = currentPiece.getY() + row + dy;
-                    if (nx < 0 || nx >= Constants.BOARD_WIDTH) return false;
-                    if (ny < 0 || ny >= Constants.BOARD_HEIGHT) return false;
-                    if (board[ny][nx] != 0) return false;
+                    if (nx < 0 || nx >= Constants.BOARD_WIDTH)
+                        return false;
+                    if (ny < 0 || ny >= Constants.BOARD_HEIGHT)
+                        return false;
+                    if (board[ny][nx] != 0)
+                        return false;
                 }
             }
         }
@@ -166,7 +184,10 @@ public class GameController {
         for (int y = Constants.BOARD_HEIGHT - 1; y >= 0; y--) {
             boolean full = true;
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
-                if (board[y][x] == 0) { full = false; break; }
+                if (board[y][x] == 0) {
+                    full = false;
+                    break;
+                }
             }
             if (full) {
                 cleared++;
@@ -224,7 +245,8 @@ public class GameController {
 
     private int getDropDistance() {
         int distance = 0;
-        while (canMove(0, distance + 1, currentPiece.getRotation())) distance++;
+        while (canMove(0, distance + 1, currentPiece.getRotation()))
+            distance++;
         return distance;
     }
 
@@ -232,18 +254,101 @@ public class GameController {
     private void handleKeyPressed(KeyEvent event) {
         KeyCode code = event.getCode();
         switch (code) {
-            case LEFT,  A     -> { if (canMove(-1, 0, currentPiece.getRotation()))
-                currentPiece.setX(currentPiece.getX() - 1); }
-            case RIGHT, D     -> { if (canMove( 1, 0, currentPiece.getRotation()))
-                currentPiece.setX(currentPiece.getX() + 1); }
-            case DOWN,  S     -> hardDrop();
-            case UP,    W     -> { int nr = (currentPiece.getRotation() + 1) % 4;
-                if (canMove(0, 0, nr)) currentPiece.setRotation(nr); }
-            case SPACE        -> hardDrop();
-            case P            -> handlePause();
-            default           -> { return; }
+            case LEFT, A -> {
+                if (canMove(-1, 0, currentPiece.getRotation()))
+                    currentPiece.setX(currentPiece.getX() - 1);
+            }
+            case RIGHT, D -> {
+                if (canMove(1, 0, currentPiece.getRotation()))
+                    currentPiece.setX(currentPiece.getX() + 1);
+            }
+            case DOWN, S -> hardDrop();
+            case UP, W -> {
+                int nr = (currentPiece.getRotation() + 1) % 4;
+                if (canMove(0, 0, nr))
+                    currentPiece.setRotation(nr);
+            }
+            case SPACE -> hardDrop();
+            case P -> handlePause();
+            default -> {
+                return;
+            }
         }
         event.consume();
+    }
+
+    private void handleMouseMoved(MouseEvent event) {
+        if (gamePaused || isGameOver)
+            return;
+
+        // Only update target; movement is applied in the game loop.
+        mouseTargetColumn = (int) (event.getX() / Constants.BLOCK_SIZE);
+        event.consume();
+    }
+
+    private void applyMouseTarget(long now) {
+        if (mouseTargetColumn < 0)
+            return;
+
+        int targetX = getTargetPieceX(mouseTargetColumn);
+        int currentX = currentPiece.getX();
+        if (targetX == currentX)
+            return;
+
+        // Limit horizontal speed to 1 column per frame to avoid jitter.
+        int step = Integer.compare(targetX, currentX);
+        if (canMove(step, 0, currentPiece.getRotation())) {
+            currentPiece.setX(currentX + step);
+        }
+    }
+
+    private void handleMouseClicked(MouseEvent event) {
+        if (gamePaused || isGameOver)
+            return;
+
+        // Keep keyboard control active after interacting with the canvas.
+        gamePane.requestFocus();
+
+        if (event.getButton() == MouseButton.PRIMARY) {
+            hardDrop();
+            event.consume();
+            return;
+        }
+
+        if (event.getButton() == MouseButton.SECONDARY) {
+            int nextRotation = (currentPiece.getRotation() + 1) % 4;
+            if (canMove(0, 0, nextRotation)) {
+                currentPiece.setRotation(nextRotation);
+            }
+            event.consume();
+        }
+    }
+
+    private int getTargetPieceX(int targetColumn) {
+        int clampedTarget = Math.max(0, Math.min(Constants.BOARD_WIDTH - 1, targetColumn));
+        int rotation = currentPiece.getRotation();
+        int[][] shape = currentPiece.getType().getShape(rotation);
+
+        int minCol = 4;
+        int maxCol = -1;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    minCol = Math.min(minCol, col);
+                    maxCol = Math.max(maxCol, col);
+                }
+            }
+        }
+
+        if (maxCol < 0)
+            return currentPiece.getX();
+
+        int centerCol = (minCol + maxCol) / 2;
+        int desiredX = clampedTarget - centerCol;
+
+        int minX = -minCol;
+        int maxX = Constants.BOARD_WIDTH - 1 - maxCol;
+        return Math.max(minX, Math.min(maxX, desiredX));
     }
 
     private void handlePause() {
@@ -259,7 +364,7 @@ public class GameController {
         GraphicsContext gc = gameGc;
         double w = gameCanvas.getWidth();
         double h = gameCanvas.getHeight();
-        int cs   = Constants.BLOCK_SIZE;
+        int cs = Constants.BLOCK_SIZE;
 
         // Background
         gc.setFill(Color.web("#0f0d1a"));
@@ -268,8 +373,10 @@ public class GameController {
         // Grid lines
         gc.setStroke(Color.web("#2b2740"));
         gc.setLineWidth(0.5);
-        for (int x = 0; x <= Constants.BOARD_WIDTH;  x++) gc.strokeLine(x * cs, 0, x * cs, h);
-        for (int y = 0; y <= Constants.BOARD_HEIGHT; y++) gc.strokeLine(0, y * cs, w, y * cs);
+        for (int x = 0; x <= Constants.BOARD_WIDTH; x++)
+            gc.strokeLine(x * cs, 0, x * cs, h);
+        for (int y = 0; y <= Constants.BOARD_HEIGHT; y++)
+            gc.strokeLine(0, y * cs, w, y * cs);
 
         // Border
         gc.setStroke(Color.web("#00ff00"));
@@ -281,7 +388,8 @@ public class GameController {
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                 if (board[y][x] != 0) {
                     TetrominoType t = idToType(board[y][x]);
-                    if (t != null) drawCell(gc, x, y, t.getColor(), 1.0);
+                    if (t != null)
+                        drawCell(gc, x, y, t.getColor(), 1.0);
                 }
             }
         }
@@ -363,7 +471,7 @@ public class GameController {
     }
 
     private void drawCell(GraphicsContext gc, int x, int y, Color color,
-                          double opacity, GraphicsContext target, int cs) {
+            double opacity, GraphicsContext target, int cs) {
         double px = x * cs;
         double py = y * cs;
         target.setFill(color.deriveColor(0, 1, 1, opacity));
@@ -375,22 +483,32 @@ public class GameController {
 
     private int typeId(TetrominoType type) {
         return switch (type) {
-            case I -> 1; case O -> 2; case T -> 3;
-            case S -> 4; case Z -> 5; case J -> 6; case L -> 7;
+            case I -> 1;
+            case O -> 2;
+            case T -> 3;
+            case S -> 4;
+            case Z -> 5;
+            case J -> 6;
+            case L -> 7;
         };
     }
 
     private TetrominoType idToType(int id) {
         return switch (id) {
-            case 1 -> TetrominoType.I; case 2 -> TetrominoType.O;
-            case 3 -> TetrominoType.T; case 4 -> TetrominoType.S;
-            case 5 -> TetrominoType.Z; case 6 -> TetrominoType.J;
-            case 7 -> TetrominoType.L; default -> null;
+            case 1 -> TetrominoType.I;
+            case 2 -> TetrominoType.O;
+            case 3 -> TetrominoType.T;
+            case 4 -> TetrominoType.S;
+            case 5 -> TetrominoType.Z;
+            case 6 -> TetrominoType.J;
+            case 7 -> TetrominoType.L;
+            default -> null;
         };
     }
 
     public void gameOver() {
-        if (gameLoop != null) gameLoop.stop();
+        if (gameLoop != null)
+            gameLoop.stop();
         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
     }
 }
