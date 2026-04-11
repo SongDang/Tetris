@@ -15,6 +15,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
+import com.se330.tetris.game.Particle;
+import com.se330.tetris.game.ParticleSystem;
 import com.se330.tetris.game.Piece;
 import com.se330.tetris.game.TetrominoType;
 import com.se330.tetris.service.GameContext;
@@ -24,6 +26,7 @@ public class GameController {
 
     @FXML private HBox gamePane;
     @FXML private Canvas      gameCanvas;
+    @FXML private Canvas      vfxCanvas;
     @FXML private Canvas      nextBlockCanvas;
     @FXML private Label       scoreLabel;
     @FXML private Label       levelLabel;
@@ -34,17 +37,31 @@ public class GameController {
 
     private GraphicsContext gameGc;
     private GraphicsContext nextGc;
+    private GraphicsContext vfxGc;
+
+    // vfxCanvas extends 150 px beyond each board edge (canvas width = 600, layoutX = -150)
+    private static final double VFX_MARGIN = 150.0;
 
     private final int[][] board = new int[Constants.BOARD_HEIGHT][Constants.BOARD_WIDTH];
     private Piece currentPiece;
     private Piece nextPiece;
+
+    private final ParticleSystem particleSystem = new ParticleSystem();
 
     private AnimationTimer gameLoop;
     private boolean gamePaused  = false;
     private boolean isGameOver  = false;
 
     private long lastFallTime   = 0;
+    private long lastFrameTime  = 0;
     private long fallIntervalNs = 500_000_000L;
+
+    private int    dropStartRow      = -1;
+    private double shakeIntensity    = 0;
+    private double shakeDuration     = 0;
+    private double shakeInitDuration = 0.18;
+    private double rotationPulse     = 0;    // 1.0 = full brightness pulse, 0 = normal
+    private double flashIntensity    = 0;    // 0 = none, >0 = bright background flash
 
     private final java.util.Random rng = new java.util.Random();
 
@@ -56,6 +73,7 @@ public class GameController {
 
         gameGc = gameCanvas.getGraphicsContext2D();
         nextGc = nextBlockCanvas.getGraphicsContext2D();
+        vfxGc  = vfxCanvas.getGraphicsContext2D();
 
         // Spawn hai mảnh đầu tiên
         nextPiece = randomPiece();
@@ -74,15 +92,23 @@ public class GameController {
     }
 
     private void startGameLoop() {
-        lastFallTime = System.nanoTime();
+        lastFallTime  = System.nanoTime();
+        lastFrameTime = System.nanoTime();
         gameLoop = new AnimationTimer() {
             @Override
             public void handle(long now) {
-                if (gamePaused || isGameOver) return;
+                double dt = (now - lastFrameTime) / 1_000_000_000.0;
+                lastFrameTime = now;
 
-                if (now - lastFallTime >= fallIntervalNs) {
-                    updateFall();
-                    lastFallTime = now;
+                if (!gamePaused && !isGameOver) {
+                    if (now - lastFallTime >= fallIntervalNs) {
+                        updateFall();
+                        lastFallTime = now;
+                    }
+                    particleSystem.update(dt);
+                    updateScreenShake(dt);
+                    if (rotationPulse  > 0) rotationPulse  = Math.max(0, rotationPulse  - dt * 8.0);
+                    if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
                 }
                 render();
             }
@@ -101,19 +127,61 @@ public class GameController {
     private void lockAndSpawn() {
         lockPiece();
 
-        int cleared = clearLines();
-        if (cleared > 0) {
+        // Detect full rows, emit burst VFX from each cell, then clear instantly
+        int cs = Constants.BLOCK_SIZE;
+        java.util.List<Integer> fullRows = new java.util.ArrayList<>();
+        for (int y = Constants.BOARD_HEIGHT - 1; y >= 0; y--) {
+            boolean full = true;
+            for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+                if (board[y][x] == 0) { full = false; break; }
+            }
+            if (full) fullRows.add(y);
+        }
+
+        if (!fullRows.isEmpty()) {
+            int cleared = fullRows.size();
+            // Emit particle burst from every cell in the cleared rows
+            for (int row : fullRows) {
+                for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+                    TetrominoType t = idToType(board[row][x]);
+                    if (t != null)
+                        particleSystem.emitRowBurst(x * cs, row * cs, t.getColor(), 8);
+                }
+            }
+            // Horizontal beams shooting out from each cleared row's left/right edges
+            double leftBase  = VFX_MARGIN;                               // board left edge in vfxCanvas coords
+            double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs;  // board right edge in vfxCanvas coords
+            Color pieceCol   = currentPiece.getType().getColor();
+            for (int row : fullRows) {
+                particleSystem.emitRowBeams(leftBase, rightBase, row * cs, cs, pieceCol);
+            }
+            // Clear rows instantly (sorted bottom-up so indices stay valid)
+            fullRows.sort(java.util.Collections.reverseOrder());
+            for (int row : fullRows) {
+                for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
+                board[0] = new int[Constants.BOARD_WIDTH];
+            }
             addScore(cleared);
             addLines(cleared);
             updateLevel();
+
+            // Scale shake + flash with lines cleared; Tetris gets extra violence
+            double t          = cleared / 4.0;
+            flashIntensity    = 0.12 + t * 0.28;
+            shakeIntensity    = 5.0  + t * 13.0  + (cleared == 4 ? 22.0 : 0);
+            shakeInitDuration = 0.18 + t * 0.17  + (cleared == 4 ? 0.20 : 0);
+            shakeDuration     = shakeInitDuration;
         }
 
-        spawnPiece();
+        spawnAndCheckGameOver();
+    }
 
+    private void spawnAndCheckGameOver() {
+        spawnPiece();
         if (!canMove(0, 0, currentPiece.getRotation())) {
             isGameOver = true;
             gameLoop.stop();
-            sceneManager.switchToScene(SceneManager.RESULTS_SCENE); // từ HEAD
+            sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
         }
     }
 
@@ -147,6 +215,12 @@ public class GameController {
 
     private void lockPiece() {
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+        int cs = Constants.BLOCK_SIZE;
+
+        int minCol = Integer.MAX_VALUE;
+        int maxCol = Integer.MIN_VALUE;
+        int maxRow = Integer.MIN_VALUE;
+
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 if (shape[row][col] == 1) {
@@ -155,9 +229,29 @@ public class GameController {
                     if (y >= 0 && y < Constants.BOARD_HEIGHT
                             && x >= 0 && x < Constants.BOARD_WIDTH) {
                         board[y][x] = typeId(currentPiece.getType());
+                        if (dropStartRow >= 0) {
+                            particleSystem.emitLockParticles(
+                                x * cs, y * cs, currentPiece.getType().getColor(), 18);
+                        }
+                        if (x < minCol) minCol = x;
+                        if (x > maxCol) maxCol = x;
+                        if (y > maxRow) maxRow = y;
                     }
                 }
             }
+        }
+
+        // Single wide light column on hard drop only
+        if (dropStartRow >= 0 && minCol <= maxCol) {
+            double leftPixelX  = minCol * cs;
+            double spanWidth   = (maxCol - minCol + 1) * cs;
+            double fromPixelY  = dropStartRow * cs;
+            double toPixelY    = (maxRow + 1) * cs;
+            particleSystem.emitLightColumn(
+                leftPixelX, fromPixelY, toPixelY, spanWidth,
+                currentPiece.getType().getColor()
+            );
+            dropStartRow = -1;
         }
     }
 
@@ -216,7 +310,35 @@ public class GameController {
         linesLabel.setText(String.valueOf(gameContext.getLines()));
     }
 
+    private void emitRotationArc() {
+        particleSystem.emitCornerSparks(
+            currentPiece.getX(),
+            currentPiece.getY(),
+            currentPiece.getType().getShape(currentPiece.getRotation()),
+            Constants.BLOCK_SIZE,
+            currentPiece.getType().getColor()
+        );
+        rotationPulse = 1.0;
+    }
+
+    private void updateScreenShake(double dt) {
+        if (shakeDuration <= 0) return;
+        shakeDuration -= dt;
+        if (shakeDuration <= 0) {
+            gameCanvas.setTranslateX(0);
+            gameCanvas.setTranslateY(0);
+        } else {
+            double factor = shakeDuration / shakeInitDuration; // eases out as duration drops
+            gameCanvas.setTranslateX((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor);
+            gameCanvas.setTranslateY((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor);
+        }
+    }
+
     private void hardDrop() {
+        dropStartRow      = currentPiece.getY();
+        shakeIntensity    = 4.0;
+        shakeInitDuration = 0.18;
+        shakeDuration     = 0.18;
         int drop = getDropDistance();
         currentPiece.setY(currentPiece.getY() + drop);
         lockAndSpawn();
@@ -238,7 +360,11 @@ public class GameController {
                 currentPiece.setX(currentPiece.getX() + 1); }
             case DOWN,  S     -> hardDrop();
             case UP,    W     -> { int nr = (currentPiece.getRotation() + 1) % 4;
-                if (canMove(0, 0, nr)) currentPiece.setRotation(nr); }
+                if (canMove(0, 0, nr)) {
+                    currentPiece.setRotation(nr);
+                    emitRotationArc();
+                }
+            }
             case SPACE        -> hardDrop();
             case P            -> handlePause();
             default           -> { return; }
@@ -250,8 +376,28 @@ public class GameController {
         gamePaused = !gamePaused;
     }
 
+    // Base background color components for gamePane (#0f0d1a)
+    private static final double BG_R = 0x0f / 255.0;
+    private static final double BG_G = 0x0d / 255.0;
+    private static final double BG_B = 0x1a / 255.0;
+    private static final String PANE_BASE_STYLE =
+        "-fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;";
+
     private void render() {
+        // Flash outer background behind the board
+        if (flashIntensity > 0) {
+            double r = BG_R + flashIntensity * (1.0 - BG_R);
+            double g = BG_G + flashIntensity * (1.0 - BG_G);
+            double b = BG_B + flashIntensity * (1.0 - BG_B);
+            String hex = String.format("#%02x%02x%02x",
+                (int)(r * 255), (int)(g * 255), (int)(b * 255));
+            gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
+        } else {
+            gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
+        }
         drawGameBoard();
+        particleSystem.render(gameGc);
+        particleSystem.renderBeams(vfxGc);
         drawNextBlock();
     }
 
@@ -301,15 +447,17 @@ public class GameController {
             }
         }
 
-        // Current piece
+        // Current piece — apply rotation pulse brightness
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+        Color pieceColor = currentPiece.getType().getColor()
+                .deriveColor(0, 1, 1.0 + rotationPulse * 1.8, 1);
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 if (shape[row][col] == 1) {
                     drawCell(gc,
                             currentPiece.getX() + col,
                             currentPiece.getY() + row,
-                            currentPiece.getType().getColor(),
+                            pieceColor,
                             1.0);
                 }
             }
