@@ -1,7 +1,12 @@
 package com.se330.tetris.controller;
 
-import com.se330.tetris.core.TetrisApp;
+import com.se330.tetris.game.ParticleSystem;
+import com.se330.tetris.game.Piece;
+import com.se330.tetris.game.TetrominoType;
+import com.se330.tetris.service.GameContext;
+import com.se330.tetris.service.SceneManager;
 import com.se330.tetris.util.Constants;
+
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -10,17 +15,10 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-
-import com.se330.tetris.game.Particle;
-import com.se330.tetris.game.ParticleSystem;
-import com.se330.tetris.game.Piece;
-import com.se330.tetris.game.TetrominoType;
-import com.se330.tetris.service.GameContext;
-import com.se330.tetris.service.SceneManager;
+import javafx.scene.text.FontWeight;
 
 public class GameController {
 
@@ -57,6 +55,14 @@ public class GameController {
     private long fallIntervalNs = 500_000_000L;
     private long freezeUntil    = 0;  // nanosecond timestamp; game logic frozen until this time
     private int[] frozenRowFlash = null;  // row indices to flash white during Tetris freeze
+
+    private int    comboCount      = 0;
+    private int    comboDisplay    = 0;
+    private double comboFloatX     = 0;
+    private double comboFloatY     = 0;
+    private double comboFloatAlpha = 0;
+    private double comboFloatPhase = 0;
+    private Color  comboColor      = Color.WHITE;
 
     private int    dropStartRow      = -1;
     private double shakeIntensity    = 0;
@@ -116,6 +122,11 @@ public class GameController {
                     updateScreenShake(dt);
                     if (rotationPulse  > 0) rotationPulse  = Math.max(0, rotationPulse  - dt * 8.0);
                     if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
+                    if (comboFloatAlpha > 0) {
+                        comboFloatY     -= dt * 60;
+                        comboFloatPhase += dt * 5.0;
+                        comboFloatAlpha  = Math.max(0, comboFloatAlpha - dt * 1.1);
+                    }
                 }
                 render();
             }
@@ -184,6 +195,21 @@ public class GameController {
             shakeIntensity    = 5.0  + t * 13.0  + (cleared == 4 ? 12.0 : 0);
             shakeInitDuration = 0.18 + t * 0.17  + (cleared == 4 ? 0.10 : 0);
             shakeDuration     = shakeInitDuration;
+
+            // Combo tracking
+            comboCount++;
+            if (comboCount >= 2) {
+                int avgRow = fullRows.stream().mapToInt(Integer::intValue).sum() / fullRows.size();
+                comboDisplay    = comboCount;
+                comboFloatX     = gameCanvas.getWidth() / 2.0 - 50;
+                comboFloatY     = avgRow * cs;
+                comboFloatAlpha = 1.0;
+                comboFloatPhase = 0;
+                TetrominoType[] types = TetrominoType.values();
+                comboColor = types[rng.nextInt(types.length)].getColor();
+            }
+        } else {
+            comboCount = 0;
         }
 
         spawnAndCheckGameOver();
@@ -482,6 +508,18 @@ public class GameController {
                             1.0);
                 }
             }
+        }
+
+        // Floating combo text
+        if (comboFloatAlpha > 0) {
+            double cx = comboFloatX + Math.sin(comboFloatPhase) * 18;
+            double flash = (Math.sin(comboFloatPhase * 3.0) + 1.0) / 2.0;  // 0..1
+            Color drawColor = comboColor.interpolate(Color.WHITE, flash);
+            gc.setGlobalAlpha(comboFloatAlpha);
+            gc.setFont(Font.font("VT323", FontWeight.BOLD, 50));
+            gc.setFill(drawColor);
+            gc.fillText("COMBO x" + comboDisplay, cx, comboFloatY);
+            gc.setGlobalAlpha(1.0);
         }
 
         // Game Over overlay
