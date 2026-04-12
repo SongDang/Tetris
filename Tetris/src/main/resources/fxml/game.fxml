@@ -19,7 +19,7 @@
 
         <!-- Hint bar nằm ngay dưới board, cùng chiều rộng -->
         <HBox style="-fx-alignment: center; -fx-padding: 8 0 0 0;">
-            <Label text="← → : Di chuyển  |  ↑ : Xoay  |  SPACE : Drop  |  P : Tạm dừng"
+                     <Label text="← → : Di chuyển  |  ↑ : Xoay  |  C/SHIFT : Hold  |  SPACE : Drop  |  P : Tạm dừng"
                    style="-fx-font-size: 11; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
         </HBox>
     </VBox>
@@ -79,6 +79,19 @@
                 <Canvas fx:id="nextBlockCanvas" width="180" height="180"/>
             </StackPane>
         </VBox>
+
+              <!-- Hold piece preview -->
+              <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14;
+                                    -fx-border-color: #334455; -fx-border-width: 1;
+                                    -fx-background-color: #1a1830; -fx-background-radius: 4;
+                                    -fx-border-radius: 4;">
+                     <Label text="HOLD"
+                               style="-fx-font-size: 11; -fx-text-fill: #8899aa;
+                                            -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+                     <StackPane style="-fx-border-color: #334455; -fx-border-width: 1;">
+                            <Canvas fx:id="holdBlockCanvas" width="180" height="180"/>
+                     </StackPane>
+              </VBox>
 
     </VBox>
 </HBox>
