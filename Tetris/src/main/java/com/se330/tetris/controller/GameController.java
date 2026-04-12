@@ -55,6 +55,7 @@ public class GameController {
     private long lastFallTime   = 0;
     private long lastFrameTime  = 0;
     private long fallIntervalNs = 500_000_000L;
+    private long freezeUntil    = 0;  // nanosecond timestamp; game logic frozen until this time
 
     private int    dropStartRow      = -1;
     private double shakeIntensity    = 0;
@@ -100,7 +101,11 @@ public class GameController {
                 double dt = (now - lastFrameTime) / 1_000_000_000.0;
                 lastFrameTime = now;
 
-                if (!gamePaused && !isGameOver) {
+                if (freezeUntil > 0 && now >= freezeUntil) {
+                    lastFallTime = now;  // don't let the piece instantly drop after freeze
+                    freezeUntil = 0;
+                }
+                if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     if (now - lastFallTime >= fallIntervalNs) {
                         updateFall();
                         lastFallTime = now;
@@ -164,6 +169,9 @@ public class GameController {
             addScore(cleared);
             addLines(cleared);
             updateLevel();
+
+            // Freeze game logic briefly on Tetris to let the VFX land
+            if (cleared == 4) freezeUntil = System.nanoTime() + 300_000_000L;
 
             // Scale shake + flash with lines cleared; Tetris gets extra violence
             double t          = cleared / 4.0;
