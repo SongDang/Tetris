@@ -56,6 +56,7 @@ public class GameController {
     private long lastFrameTime  = 0;
     private long fallIntervalNs = 500_000_000L;
     private long freezeUntil    = 0;  // nanosecond timestamp; game logic frozen until this time
+    private int[] frozenRowFlash = null;  // row indices to flash white during Tetris freeze
 
     private int    dropStartRow      = -1;
     private double shakeIntensity    = 0;
@@ -102,8 +103,9 @@ public class GameController {
                 lastFrameTime = now;
 
                 if (freezeUntil > 0 && now >= freezeUntil) {
-                    lastFallTime = now;  // don't let the piece instantly drop after freeze
-                    freezeUntil = 0;
+                    lastFallTime   = now;  // don't let the piece instantly drop after freeze
+                    freezeUntil    = 0;
+                    frozenRowFlash = null;
                 }
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     if (now - lastFallTime >= fallIntervalNs) {
@@ -171,13 +173,16 @@ public class GameController {
             updateLevel();
 
             // Freeze game logic briefly on Tetris to let the VFX land
-            if (cleared == 4) freezeUntil = System.nanoTime() + 300_000_000L;
+            if (cleared == 4) {
+                freezeUntil   = System.nanoTime() + 300_000_000L;
+                frozenRowFlash = fullRows.stream().mapToInt(Integer::intValue).toArray();
+            }
 
             // Scale shake + flash with lines cleared; Tetris gets extra violence
             double t          = cleared / 4.0;
             flashIntensity    = 0.12 + t * 0.28;
-            shakeIntensity    = 5.0  + t * 13.0  + (cleared == 4 ? 22.0 : 0);
-            shakeInitDuration = 0.18 + t * 0.17  + (cleared == 4 ? 0.20 : 0);
+            shakeIntensity    = 5.0  + t * 13.0  + (cleared == 4 ? 12.0 : 0);
+            shakeInitDuration = 0.18 + t * 0.17  + (cleared == 4 ? 0.10 : 0);
             shakeDuration     = shakeInitDuration;
         }
 
@@ -437,6 +442,14 @@ public class GameController {
                     TetrominoType t = idToType(board[y][x]);
                     if (t != null) drawCell(gc, x, y, t.getColor(), 1.0);
                 }
+            }
+        }
+
+        // Flash cleared rows white during Tetris freeze
+        if (frozenRowFlash != null && freezeUntil > 0) {
+            gc.setFill(Color.WHITE);
+            for (int row : frozenRowFlash) {
+                gc.fillRect(0, row * cs, w, cs);
             }
         }
 
