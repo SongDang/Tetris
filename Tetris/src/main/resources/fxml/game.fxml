@@ -12,9 +12,10 @@
 
     <!-- ── Board ─────────────────────────────────────────────────────────── -->
     <VBox style="-fx-alignment: center; -fx-spacing: 0;">
-        <!-- Wrap Canvas trong StackPane để -fx-border-color hoạt động -->
+        <!-- StackPane sizes to gameCanvas only; vfxCanvas is unmanaged so it renders outside without affecting layout -->
         <StackPane style="-fx-border-color: #00ff00; -fx-border-width: 2;">
             <Canvas fx:id="gameCanvas" width="300" height="600"/>
+            <Canvas fx:id="vfxCanvas"  width="600" height="600" managed="false" layoutX="-150" mouseTransparent="true"/>
         </StackPane>
 
         <!-- Hint bar nằm ngay dưới board, cùng chiều rộng -->
