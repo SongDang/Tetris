@@ -60,9 +60,10 @@ public class GameController {
     private int    comboDisplay    = 0;
     private double comboFloatX     = 0;
     private double comboFloatY     = 0;
-    private double comboFloatAlpha = 0;
-    private double comboFloatPhase = 0;
-    private Color  comboColor      = Color.WHITE;
+    private double comboFloatAlpha  = 0;
+    private double comboFloatPhase  = 0;
+    private double comboShakeAmount = 0;
+    private Color  comboColor       = Color.WHITE;
 
     private int    dropStartRow      = -1;
     private double shakeIntensity    = 0;
@@ -123,9 +124,10 @@ public class GameController {
                     if (rotationPulse  > 0) rotationPulse  = Math.max(0, rotationPulse  - dt * 8.0);
                     if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
                     if (comboFloatAlpha > 0) {
-                        comboFloatY     -= dt * 60;
-                        comboFloatPhase += dt * 5.0;
-                        comboFloatAlpha  = Math.max(0, comboFloatAlpha - dt * 1.1);
+                        comboFloatY      -= dt * 60;
+                        comboFloatPhase  += dt * 5.0;
+                        comboShakeAmount  = Math.max(0, comboShakeAmount - dt * 100);
+                        comboFloatAlpha   = Math.max(0, comboFloatAlpha - dt * 1.1);
                     }
                 }
                 render();
@@ -203,8 +205,9 @@ public class GameController {
                 comboDisplay    = comboCount;
                 comboFloatX     = gameCanvas.getWidth() / 2.0 - 50;
                 comboFloatY     = avgRow * cs;
-                comboFloatAlpha = 1.0;
-                comboFloatPhase = 0;
+                comboFloatAlpha  = 1.0;
+                comboFloatPhase  = 0;
+                comboShakeAmount = 10 + comboDisplay * 5;
                 TetrominoType[] types = TetrominoType.values();
                 comboColor = types[rng.nextInt(types.length)].getColor();
             }
@@ -479,17 +482,19 @@ public class GameController {
             }
         }
 
-        // Ghost
-        int drop = getDropDistance();
-        int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 4; col++) {
-                if (ghostShape[row][col] == 1) {
-                    drawCell(gc,
-                            currentPiece.getX() + col,
-                            currentPiece.getY() + row + drop,
-                            currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25),
-                            1.0);
+        // Ghost (hidden during freeze so it doesn't show the next piece's drop position)
+        if (freezeUntil == 0) {
+            int drop = getDropDistance();
+            int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (ghostShape[row][col] == 1) {
+                        drawCell(gc,
+                                currentPiece.getX() + col,
+                                currentPiece.getY() + row + drop,
+                                currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25),
+                                1.0);
+                    }
                 }
             }
         }
@@ -512,13 +517,15 @@ public class GameController {
 
         // Floating combo text
         if (comboFloatAlpha > 0) {
-            double cx = comboFloatX + Math.sin(comboFloatPhase) * 18;
+            double cx = comboFloatX + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount;
+            double cy = comboFloatY + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount * 0.4;
             double flash = (Math.sin(comboFloatPhase * 3.0) + 1.0) / 2.0;  // 0..1
             Color drawColor = comboColor.interpolate(Color.WHITE, flash);
+            int fontSize = (int) Math.min(75, 32 + comboDisplay * 7);
             gc.setGlobalAlpha(comboFloatAlpha);
-            gc.setFont(Font.font("VT323", FontWeight.BOLD, 50));
+            gc.setFont(Font.font("VT323", FontWeight.BOLD, fontSize));
             gc.setFill(drawColor);
-            gc.fillText("COMBO x" + comboDisplay, cx, comboFloatY);
+            gc.fillText("COMBO x" + comboDisplay, cx, cy);
             gc.setGlobalAlpha(1.0);
         }
 
