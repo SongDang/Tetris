@@ -13,7 +13,9 @@ public class SoundManager {
     public SoundManager()
     {
         soundURL[0] = getClass().getResource("/sound/main_theme_music.wav");
-        soundURL[1] = getClass().getResource("/sound/enter_mode_sound");
+        soundURL[1] = getClass().getResource("/sound/enter_mode_sound.wav");
+        soundURL[2] = getClass().getResource("/sound/gameplay_theme.wav");
+
     }
 
     public static SoundManager getInstance() {
@@ -41,10 +43,16 @@ public class SoundManager {
     }
     public void stop()
     {
-        clip.stop();
+        if (this.clip != null) {
+            if (this.clip.isRunning()) {
+                this.clip.stop();
+            }
+            this.clip.close();
+        }
     }
 
     public void playMusic(int i) {
+        stop();
         setFile(i);
         play();
         loop();
