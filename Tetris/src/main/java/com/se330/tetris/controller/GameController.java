@@ -155,12 +155,24 @@ public class GameController {
             for (int row : fullRows) {
                 particleSystem.emitRowBeams(leftBase, rightBase, row * cs, cs, pieceCol);
             }
-            // Clear rows instantly (sorted bottom-up so indices stay valid)
-            fullRows.sort(java.util.Collections.reverseOrder());
-            for (int row : fullRows) {
-                for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
-                board[0] = new int[Constants.BOARD_WIDTH];
+
+            // CLEAR ROWS
+            int[][] nextBoard = new int[Constants.BOARD_HEIGHT][Constants.BOARD_WIDTH];
+            int writeRow = Constants.BOARD_HEIGHT - 1; // Write from bottom of the board
+            // CHECK BOTTOM-UP
+            for (int readRow = Constants.BOARD_HEIGHT - 1; readRow >= 0; readRow--) {
+                if (!fullRows.contains(readRow)) {
+                    // write if it's not a full row
+                    nextBoard[writeRow] = board[readRow].clone();
+                    writeRow--;
+                }
+                // Skip full row
             }
+            // UPDATE NEW BOARD
+            for (int i = 0; i < Constants.BOARD_HEIGHT; i++) {
+                board[i] = nextBoard[i];
+            }
+
             addScore(cleared);
             addLines(cleared);
             updateLevel();
