@@ -5,23 +5,30 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ffe6569-419a-42ea-bc36-bf7a20a6e1f6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/gameplay_theme.mp3" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/gameplay_theme.wav" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Tetris.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/util/SoundType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/block_drop_sound.wav" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/button_click_sound.wav" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/game_over_sound.wav" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/score_sound.wav" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GameController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GameController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GamemodesController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GamemodesController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/core/TetrisApp.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/core/TetrisApp.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/game/Piece.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/game/Piece.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/service/SoundManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/service/SoundManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tetris/src/main/resources/sound/gameplay_theme.mp3" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />

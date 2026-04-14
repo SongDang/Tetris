@@ -1,6 +1,7 @@
 package com.se330.tetris.controller;
 
 import com.se330.tetris.service.SoundManager;
+import com.se330.tetris.util.SoundType;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.layout.AnchorPane;
@@ -35,8 +36,8 @@ public class GamemodesController {
 
     @FXML
     private void onStandardClicked() {
-        SoundManager.getInstance().playSE(1);
-        SoundManager.getInstance().playMusic(2); //gameplay theme
+        SoundManager.getInstance().playSE(SoundType.ENTER_MODE);
+        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
         gameContext.setGameMode(GameContext.GameMode.STANDARD);
         sceneManager.switchToScene(SceneManager.GAME_SCENE);
     }
