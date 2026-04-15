@@ -35,6 +35,8 @@ public class TetrisApp extends Application {
         sceneManager.switchToScene(initialScene);
 
         SoundManager.getInstance().playMusic(SoundType.MAIN_THEME); //theme music
+        SoundManager.getInstance().setMusicVolume(Constants.SOUND_VOLUME_DEFAULT);
+        SoundManager.getInstance().setSEVolume(Constants.SOUND_VOLUME_DEFAULT);
     }
 
     public static void main(String[] args) {

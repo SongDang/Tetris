@@ -33,7 +33,7 @@ public class Constants {
     public static final int LEVEL_UP_THRESHOLD = 1000;
 
     public static final boolean SOUND_ENABLED_DEFAULT = true;
-    public static final double SOUND_VOLUME_DEFAULT = 0.7;
+    public static final float SOUND_VOLUME_DEFAULT = 0.7f;
 
     public static final int WINDOW_WIDTH = 1440;
     public static final int WINDOW_HEIGHT = 1024;
