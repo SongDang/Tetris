@@ -20,7 +20,7 @@
 
         <!-- Hint bar nằm ngay dưới board, cùng chiều rộng -->
         <HBox style="-fx-alignment: center; -fx-padding: 8 0 0 0;">
-            <Label text="← → : Di chuyển  |  ↑ : Xoay  |  SPACE : Drop  |  P : Tạm dừng"
+            <Label text="← → : Di chuyển  |  ↑ : Xoay  |  SPACE : Drop  |  P : Tạm dừng  |  ESC : Thoát"
                    style="-fx-font-size: 11; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
         </HBox>
     </VBox>

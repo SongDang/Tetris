@@ -35,18 +35,24 @@ public class GamemodesController {
     @FXML
     private void onStandardClicked() {
         gameContext.setGameMode(GameContext.GameMode.STANDARD);
+        gameContext.reset();
+        sceneManager.clearSceneCache();
         sceneManager.switchToScene(SceneManager.GAME_SCENE);
     }
 
     @FXML
     private void onTimeAttackClicked() {
         gameContext.setGameMode(GameContext.GameMode.TIME_ATTACK);
+        gameContext.reset();
+        sceneManager.clearSceneCache();
         sceneManager.switchToScene(SceneManager.GAME_SCENE);
     }
 
     @FXML
     private void onHardModeClicked() {
         gameContext.setGameMode(GameContext.GameMode.HARD_MODE);
+        gameContext.reset();
+        sceneManager.clearSceneCache();
         sceneManager.switchToScene(SceneManager.GAME_SCENE);
     }
 
