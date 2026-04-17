@@ -2,6 +2,7 @@ module com.se330.tetris {
     requires javafx.controls;
     requires javafx.fxml;
     requires javafx.graphics;
+    requires java.desktop;
 
     exports com.se330.tetris.core;
     exports com.se330.tetris.controller;
