@@ -44,7 +44,7 @@ public class BorderPulseEffect {
         double alpha = pulseAlpha(localT);
 
         // Vignette: faint red fill bleeding inward from all four edges
-        double vig = 28;
+        double vig = 18;
         gc.setFill(Color.color(1, 0, 0, alpha * 0.10));
         gc.fillRect(0,        0,        cw,  vig);
         gc.fillRect(0,        ch - vig, cw,  vig);

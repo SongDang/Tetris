@@ -1,6 +1,7 @@
 package com.se330.tetris.controller;
 
 import com.se330.tetris.game.BorderPulseEffect;
+import com.se330.tetris.game.GlitchTearEffect;
 import com.se330.tetris.game.LevelUpEffect;
 import com.se330.tetris.game.ParticleSystem;
 import com.se330.tetris.game.Piece;
@@ -49,6 +50,7 @@ public class GameController {
     private final ParticleSystem particleSystem = new ParticleSystem();
     private LevelUpEffect     levelUpEffect     = null;
     private BorderPulseEffect borderPulseEffect = null;
+    private GlitchTearEffect  glitchTearEffect  = null;
 
     private AnimationTimer gameLoop;
     private boolean gamePaused  = false;
@@ -57,7 +59,9 @@ public class GameController {
     private long lastFallTime   = 0;
     private long lastFrameTime  = 0;
     private long fallIntervalNs = 500_000_000L;
-    private long freezeUntil    = 0;  // nanosecond timestamp; game logic frozen until this time
+    private long freezeUntil         = 0;  // nanosecond timestamp; game logic frozen until this time
+    private long   gameOverFreezeUntil = 0;   // 0.5s static pause before glitch fires
+    private double gameOverFlashAlpha  = 0;   // white flash on board at moment of game over
     private int[] frozenRowFlash = null;  // row indices to flash white during Tetris freeze
 
     private int    comboCount      = 0;
@@ -117,6 +121,15 @@ public class GameController {
                     lastFallTime   = now;  // don't let the piece instantly drop after freeze
                     freezeUntil    = 0;
                     frozenRowFlash = null;
+                }
+                if (glitchTearEffect != null) glitchTearEffect.update(dt);
+                if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
+                if (isGameOver && gameOverFreezeUntil > 0 && now >= gameOverFreezeUntil) {
+                    gameOverFreezeUntil = 0;
+                    glitchTearEffect = new GlitchTearEffect(board, Constants.BLOCK_SIZE, () -> {
+                        gameLoop.stop();
+                        sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+                    });
                 }
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     if (now - lastFallTime >= fallIntervalNs) {
@@ -239,9 +252,9 @@ public class GameController {
     private void spawnAndCheckGameOver() {
         spawnPiece();
         if (!canMove(0, 0, currentPiece.getRotation())) {
-            isGameOver = true;
-            gameLoop.stop();
-            sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+            isGameOver          = true;
+            gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
+            gameOverFlashAlpha  = 0.6;
         }
     }
 
@@ -461,12 +474,25 @@ public class GameController {
             gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
         }
         drawGameBoard();
-        if (levelUpEffect != null)
-            levelUpEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
-        particleSystem.render(gameGc);
-        particleSystem.renderBeams(vfxGc);
-        if (borderPulseEffect != null)
-            borderPulseEffect.render(gameGc, vfxGc, gameCanvas.getWidth(), gameCanvas.getHeight(), VFX_MARGIN);
+        if (glitchTearEffect != null) {
+            vfxGc.clearRect(0, 0, vfxCanvas.getWidth(), vfxCanvas.getHeight());
+            glitchTearEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
+            double wa = glitchTearEffect.getWhiteoutAlpha();
+            if (wa > 0) {
+                flashIntensity = wa;
+                vfxGc.setFill(Color.color(1, 1, 1, wa));
+                vfxGc.fillRect(0, 0, vfxCanvas.getWidth(), vfxCanvas.getHeight());
+                nextGc.setFill(Color.color(1, 1, 1, wa));
+                nextGc.fillRect(0, 0, nextBlockCanvas.getWidth(), nextBlockCanvas.getHeight());
+            }
+        } else {
+            if (levelUpEffect != null)
+                levelUpEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
+            particleSystem.render(gameGc);
+            particleSystem.renderBeams(vfxGc);
+            if (borderPulseEffect != null)
+                borderPulseEffect.render(gameGc, vfxGc, gameCanvas.getWidth(), gameCanvas.getHeight(), VFX_MARGIN);
+        }
         drawNextBlock();
     }
 
@@ -509,7 +535,16 @@ public class GameController {
             }
         }
 
-        // Ghost 
+        // White flash on board at moment of game over
+        if (gameOverFlashAlpha > 0) {
+            gc.setFill(Color.color(1, 1, 1, gameOverFlashAlpha));
+            gc.fillRect(0, 0, w, h);
+        }
+
+        // Ghost + current piece hidden during game over (glitch effect takes over)
+        if (isGameOver) return;
+
+        // Ghost
         if (freezeUntil == 0) {
             int drop = getDropDistance();
             int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
@@ -554,15 +589,6 @@ public class GameController {
             gc.setFill(drawColor);
             gc.fillText("COMBO x" + comboDisplay, cx, cy);
             gc.setGlobalAlpha(1.0);
-        }
-
-        // Game Over overlay
-        if (isGameOver) {
-            gc.setFill(Color.color(0, 0, 0, 0.6));
-            gc.fillRect(0, 0, w, h);
-            gc.setFill(Color.web("#ff4444"));
-            gc.setFont(Font.font("Courier New", 28));
-            gc.fillText("GAME OVER", w / 2 - 80, h / 2);
         }
 
         // Paused overlay
