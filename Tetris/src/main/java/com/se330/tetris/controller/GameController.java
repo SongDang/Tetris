@@ -1,5 +1,6 @@
 package com.se330.tetris.controller;
 
+import com.se330.tetris.game.BorderPulseEffect;
 import com.se330.tetris.game.LevelUpEffect;
 import com.se330.tetris.game.ParticleSystem;
 import com.se330.tetris.game.Piece;
@@ -46,7 +47,8 @@ public class GameController {
     private Piece nextPiece;
 
     private final ParticleSystem particleSystem = new ParticleSystem();
-    private LevelUpEffect levelUpEffect = null;
+    private LevelUpEffect     levelUpEffect     = null;
+    private BorderPulseEffect borderPulseEffect = null;
 
     private AnimationTimer gameLoop;
     private boolean gamePaused  = false;
@@ -128,6 +130,16 @@ public class GameController {
                     if (levelUpEffect != null) {
                         levelUpEffect.update(dt);
                         if (levelUpEffect.isDone()) levelUpEffect = null;
+                    }
+                    if (borderPulseEffect != null) {
+                        borderPulseEffect.update(dt);
+                        if (borderPulseEffect.isDone()) borderPulseEffect = null;
+                    } else {
+                        int dangerRow = (int)(Constants.BOARD_HEIGHT * 0.35); // top 35% = stack >= 65%
+                        outer:
+                        for (int y = 0; y <= dangerRow; y++)
+                            for (int x = 0; x < Constants.BOARD_WIDTH; x++)
+                                if (board[y][x] != 0) { borderPulseEffect = new BorderPulseEffect(); break outer; }
                     }
                     if (comboFloatAlpha > 0) {
                         comboFloatY      -= dt * 60;
@@ -349,7 +361,7 @@ public class GameController {
             levelLabel.setText(String.valueOf(newLevel));
             // Tăng tốc độ rơi
             fallIntervalNs = Math.max(100_000_000L, 500_000_000L - (newLevel - 1) * 40_000_000L);
-            levelUpEffect  = new LevelUpEffect(newLevel, () -> {
+            levelUpEffect = new LevelUpEffect(newLevel, () -> {
                 shakeIntensity    = 18;
                 shakeInitDuration = 0.25;
                 shakeDuration     = 0.25;
@@ -453,6 +465,8 @@ public class GameController {
             levelUpEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
         particleSystem.render(gameGc);
         particleSystem.renderBeams(vfxGc);
+        if (borderPulseEffect != null)
+            borderPulseEffect.render(gameGc, vfxGc, gameCanvas.getWidth(), gameCanvas.getHeight(), VFX_MARGIN);
         drawNextBlock();
     }
 
