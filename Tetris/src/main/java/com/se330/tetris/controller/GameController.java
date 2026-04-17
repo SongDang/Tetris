@@ -60,8 +60,9 @@ public class GameController {
     private long lastFrameTime  = 0;
     private long fallIntervalNs = 500_000_000L;
     private long freezeUntil         = 0;  // nanosecond timestamp; game logic frozen until this time
-    private long   gameOverFreezeUntil = 0;   // 0.5s static pause before glitch fires
-    private double gameOverFlashAlpha  = 0;   // white flash on board at moment of game over
+    private long   gameOverFreezeUntil  = 0;   // 0.5s static pause before glitch fires
+    private double gameOverFlashAlpha   = 0;   // white flash on board at moment of game over
+    private int[]  pendingTetrisClear   = null; // Tetris rows cleared after freeze ends
     private int[] frozenRowFlash = null;  // row indices to flash white during Tetris freeze
 
     private int    comboCount      = 0;
@@ -118,9 +119,21 @@ public class GameController {
                 lastFrameTime = now;
 
                 if (freezeUntil > 0 && now >= freezeUntil) {
-                    lastFallTime   = now;  // don't let the piece instantly drop after freeze
+                    lastFallTime   = now;
                     freezeUntil    = 0;
                     frozenRowFlash = null;
+                    if (pendingTetrisClear != null) {
+                        int[] rows = pendingTetrisClear;
+                        pendingTetrisClear = null;
+                        for (int row : rows) {
+                            for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
+                            board[0] = new int[Constants.BOARD_WIDTH];
+                        }
+                        addScore(4);
+                        addLines(4);
+                        updateLevel();
+                        spawnAndCheckGameOver();
+                    }
                 }
                 if (glitchTearEffect != null) glitchTearEffect.update(dt);
                 if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
@@ -200,26 +213,11 @@ public class GameController {
                 }
             }
             // Horizontal beams shooting out from each cleared row's left/right edges
-            double leftBase  = VFX_MARGIN;                               
-            double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs;  
+            double leftBase  = VFX_MARGIN;
+            double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs;
             Color pieceCol   = currentPiece.getType().getColor();
             for (int row : fullRows) {
                 particleSystem.emitRowBeams(leftBase, rightBase, row * cs, cs, pieceCol);
-            }
-            // Clear rows instantly 
-            fullRows.sort(java.util.Collections.reverseOrder());
-            for (int row : fullRows) {
-                for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
-                board[0] = new int[Constants.BOARD_WIDTH];
-            }
-            addScore(cleared);
-            addLines(cleared);
-            updateLevel();
-
-            // Freeze game logic briefly on Tetris
-            if (cleared == 4) {
-                freezeUntil   = System.nanoTime() + 300_000_000L;
-                frozenRowFlash = fullRows.stream().mapToInt(Integer::intValue).toArray();
             }
 
             // Scale shake + flash with lines cleared, Tetris gets extra violence
@@ -242,6 +240,25 @@ public class GameController {
                 TetrominoType[] types = TetrominoType.values();
                 comboColor = types[rng.nextInt(types.length)].getColor();
             }
+
+            if (cleared == 4) {
+                // Tetris: freeze BEFORE clearing so rows stay visible and flash white
+                fullRows.sort(java.util.Collections.reverseOrder());
+                frozenRowFlash     = fullRows.stream().mapToInt(Integer::intValue).toArray();
+                pendingTetrisClear = frozenRowFlash;
+                freezeUntil        = System.nanoTime() + 300_000_000L;
+                return; // score + clear + spawn deferred to freeze-end handler
+            }
+
+            // Non-Tetris: clear immediately
+            fullRows.sort(java.util.Collections.reverseOrder());
+            for (int row : fullRows) {
+                for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
+                board[0] = new int[Constants.BOARD_WIDTH];
+            }
+            addScore(cleared);
+            addLines(cleared);
+            updateLevel();
         } else {
             comboCount = 0;
         }
