@@ -1,8 +1,8 @@
 package com.se330.tetris.controller;
 
-import com.se330.tetris.core.TetrisApp;
 import com.se330.tetris.util.Constants;
 import javafx.animation.AnimationTimer;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
@@ -11,8 +11,10 @@ import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.util.Duration;
 
 import com.se330.tetris.game.Piece;
 import com.se330.tetris.game.TetrominoType;
@@ -28,6 +30,8 @@ public class GameController {
     @FXML private Label       scoreLabel;
     @FXML private Label       levelLabel;
     @FXML private Label       linesLabel;
+    @FXML private Label       bombsLabel;
+    @FXML private VBox        bombInventoryBox;
 
     private SceneManager sceneManager;
     private GameContext  gameContext;
@@ -41,6 +45,8 @@ public class GameController {
     private Piece nextPiece;
     private TetrominoType holdType;
     private boolean canHold = true;
+    private int bombsRemaining = 3;
+    private String bombInventoryBaseStyle = "";
 
     private AnimationTimer gameLoop;
     private boolean gamePaused  = false;
@@ -64,8 +70,14 @@ public class GameController {
         // Spawn hai mảnh đầu tiên
         holdType = null;
         canHold = true;
+        bombsRemaining = 3;
         nextPiece = randomPiece();
         spawnPiece();
+
+        if (bombInventoryBox != null) {
+            bombInventoryBaseStyle = bombInventoryBox.getStyle() == null ? "" : bombInventoryBox.getStyle();
+        }
+        updateBombInventoryUI();
 
         // Cập nhật labels ban đầu
         refreshLabels();
@@ -105,7 +117,13 @@ public class GameController {
     }
 
     private void lockAndSpawn() {
-        lockPiece();
+        if (currentPiece.getType() == TetrominoType.BOMB) {
+            int impactX = currentPiece.getX();
+            int impactY = getBombImpactY(impactX, currentPiece.getY());
+            detonateBomb(impactX, impactY);
+        } else {
+            lockPiece();
+        }
 
         int cleared = clearLines();
         if (cleared > 0) {
@@ -134,8 +152,44 @@ public class GameController {
     }
 
     private Piece randomPiece() {
-        TetrominoType[] types = TetrominoType.values();
+        TetrominoType[] types = {
+                TetrominoType.I,
+                TetrominoType.O,
+                TetrominoType.T,
+                TetrominoType.S,
+                TetrominoType.Z,
+                TetrominoType.J,
+                TetrominoType.L
+        };
         return new Piece(types[rng.nextInt(types.length)], 0, 0);
+    }
+
+    private void detonateBomb(int centerX, int centerY) {
+        for (int y = centerY - 1; y <= centerY + 1; y++) {
+            if (y < 0 || y >= Constants.BOARD_HEIGHT) {
+                continue;
+            }
+            for (int x = centerX - 1; x <= centerX + 1; x++) {
+                if (x < 0 || x >= Constants.BOARD_WIDTH) {
+                    continue;
+                }
+                board[y][x] = 0;
+            }
+        }
+    }
+
+    private int getBombImpactY(int bombX, int bombY) {
+        int candidateY = bombY + 1;
+
+        if (candidateY >= Constants.BOARD_HEIGHT) {
+            return Constants.BOARD_HEIGHT - 1;
+        }
+
+        if (bombX >= 0 && bombX < Constants.BOARD_WIDTH && board[candidateY][bombX] != 0) {
+            return candidateY;
+        }
+
+        return bombY;
     }
 
     private boolean canMove(int dx, int dy, int rotation) {
@@ -232,7 +286,7 @@ public class GameController {
     }
 
     private void holdCurrentPiece() {
-        if (!canHold || currentPiece == null || isGameOver) {
+        if (!canHold || currentPiece == null || isGameOver || currentPiece.getType() == TetrominoType.BOMB) {
             return;
         }
 
@@ -261,6 +315,42 @@ public class GameController {
         return distance;
     }
 
+    private void useBombSkill() {
+        if (isGameOver || gamePaused || bombsRemaining <= 0 || currentPiece == null) {
+            return;
+        }
+        if (currentPiece.getType() == TetrominoType.BOMB) {
+            return;
+        }
+
+        bombsRemaining--;
+        currentPiece = new Piece(TetrominoType.BOMB, currentPiece.getX(), currentPiece.getY());
+        updateBombInventoryUI();
+        flashBombInventory();
+    }
+
+    private void updateBombInventoryUI() {
+        if (bombsLabel != null) {
+            bombsLabel.setText("\uD83D\uDCA3 x" + bombsRemaining);
+        }
+    }
+
+    private void flashBombInventory() {
+        if (bombInventoryBox == null) {
+            return;
+        }
+
+        bombInventoryBox.setStyle(
+                bombInventoryBaseStyle
+                        + "; -fx-border-color: #ffcc00; -fx-border-width: 2;"
+                        + " -fx-effect: dropshadow(gaussian, #ffcc00, 10, 0.6, 0, 0);"
+        );
+
+        PauseTransition reset = new PauseTransition(Duration.millis(160));
+        reset.setOnFinished(e -> bombInventoryBox.setStyle(bombInventoryBaseStyle));
+        reset.play();
+    }
+
     @FXML
     private void handleKeyPressed(KeyEvent event) {
         KeyCode code = event.getCode();
@@ -272,6 +362,7 @@ public class GameController {
             case DOWN,  S     -> hardDrop();
             case UP,    W     -> { int nr = (currentPiece.getRotation() + 1) % 4;
                 if (canMove(0, 0, nr)) currentPiece.setRotation(nr); }
+            case B            -> useBombSkill();
             case C, SHIFT      -> holdCurrentPiece();
             case SPACE        -> hardDrop();
             case P            -> handlePause();
@@ -461,6 +552,7 @@ public class GameController {
         return switch (type) {
             case I -> 1; case O -> 2; case T -> 3;
             case S -> 4; case Z -> 5; case J -> 6; case L -> 7;
+            case BOMB -> 8;
         };
     }
 
@@ -469,7 +561,8 @@ public class GameController {
             case 1 -> TetrominoType.I; case 2 -> TetrominoType.O;
             case 3 -> TetrominoType.T; case 4 -> TetrominoType.S;
             case 5 -> TetrominoType.Z; case 6 -> TetrominoType.J;
-            case 7 -> TetrominoType.L; default -> null;
+            case 7 -> TetrominoType.L; case 8 -> TetrominoType.BOMB;
+            default -> null;
         };
     }
 

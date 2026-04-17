@@ -19,7 +19,7 @@
 
         <!-- Hint bar nằm ngay dưới board, cùng chiều rộng -->
         <HBox style="-fx-alignment: center; -fx-padding: 8 0 0 0;">
-                     <Label text="← → : Di chuyển  |  ↑ : Xoay  |  C/SHIFT : Hold  |  SPACE : Drop  |  P : Tạm dừng"
+                                                                       <Label text="← → : Di chuyển  |  ↑ : Xoay  |  B : Bom  |  C/SHIFT : Hold  |  SPACE : Drop  |  P : Tạm dừng"
                    style="-fx-font-size: 11; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
         </HBox>
     </VBox>
@@ -92,6 +92,20 @@
                             <Canvas fx:id="holdBlockCanvas" width="180" height="180"/>
                      </StackPane>
               </VBox>
+
+        <!-- Bomb inventory -->
+        <VBox fx:id="bombInventoryBox"
+              style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14;
+                     -fx-border-color: #aa3344; -fx-border-width: 1;
+                     -fx-background-color: #2a1620; -fx-background-radius: 4;
+                     -fx-border-radius: 4;">
+            <Label text="BOMB"
+                   style="-fx-font-size: 11; -fx-text-fill: #ff9aa8;
+                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Label fx:id="bombsLabel" text="💣 x3"
+                   style="-fx-font-size: 24; -fx-text-fill: #ff5566;
+                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+        </VBox>
 
     </VBox>
 </HBox>
