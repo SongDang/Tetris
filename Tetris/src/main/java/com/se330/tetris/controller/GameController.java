@@ -1,7 +1,9 @@
 package com.se330.tetris.controller;
 
 import com.se330.tetris.core.TetrisApp;
+import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.Constants;
+import com.se330.tetris.util.SoundType;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -180,6 +182,8 @@ public class GameController {
         spawnPiece();
         if (!canMove(0, 0, currentPiece.getRotation())) {
             isGameOver = true;
+            SoundManager.getInstance().playSE(SoundType.GAME_OVER);
+            SoundManager.getInstance().stopMusic();
             gameLoop.stop();
             sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
         }
@@ -214,6 +218,8 @@ public class GameController {
     }
 
     private void lockPiece() {
+        SoundManager.getInstance().playSE(SoundType.BLOCK_DROP);
+
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         int cs = Constants.BLOCK_SIZE;
 
@@ -285,6 +291,8 @@ public class GameController {
         int newScore = gameContext.getScore() + bonus;
         gameContext.setScore(newScore);
         scoreLabel.setText(String.valueOf(newScore));
+
+        SoundManager.getInstance().playSE(SoundType.SCORE);
     }
 
     private void addLines(int count) {

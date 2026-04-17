@@ -1,5 +1,7 @@
 package com.se330.tetris.core;
 
+import com.se330.tetris.service.SoundManager;
+import com.se330.tetris.util.SoundType;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import com.se330.tetris.service.SceneManager;
@@ -31,6 +33,10 @@ public class TetrisApp extends Application {
 
         System.out.println("Starting scene: " + initialScene);
         sceneManager.switchToScene(initialScene);
+
+        SoundManager.getInstance().playMusic(SoundType.MAIN_THEME); //theme music
+        SoundManager.getInstance().setMusicVolume(Constants.SOUND_VOLUME_DEFAULT);
+        SoundManager.getInstance().setSEVolume(Constants.SOUND_VOLUME_DEFAULT);
     }
 
     public static void main(String[] args) {
