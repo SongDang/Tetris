@@ -1,5 +1,6 @@
 package com.se330.tetris.controller;
 
+import com.se330.tetris.game.LevelUpEffect;
 import com.se330.tetris.game.ParticleSystem;
 import com.se330.tetris.game.Piece;
 import com.se330.tetris.game.TetrominoType;
@@ -45,6 +46,7 @@ public class GameController {
     private Piece nextPiece;
 
     private final ParticleSystem particleSystem = new ParticleSystem();
+    private LevelUpEffect levelUpEffect = null;
 
     private AnimationTimer gameLoop;
     private boolean gamePaused  = false;
@@ -123,6 +125,10 @@ public class GameController {
                     updateScreenShake(dt);
                     if (rotationPulse  > 0) rotationPulse  = Math.max(0, rotationPulse  - dt * 8.0);
                     if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
+                    if (levelUpEffect != null) {
+                        levelUpEffect.update(dt);
+                        if (levelUpEffect.isDone()) levelUpEffect = null;
+                    }
                     if (comboFloatAlpha > 0) {
                         comboFloatY      -= dt * 60;
                         comboFloatPhase  += dt * 5.0;
@@ -147,7 +153,7 @@ public class GameController {
     private void lockAndSpawn() {
         lockPiece();
 
-        // Detect full rows, emit burst VFX from each cell, then clear instantly
+        //emit burst VFX from each cell
         int cs = Constants.BLOCK_SIZE;
         java.util.List<Integer> fullRows = new java.util.ArrayList<>();
         for (int y = Constants.BOARD_HEIGHT - 1; y >= 0; y--) {
@@ -169,13 +175,13 @@ public class GameController {
                 }
             }
             // Horizontal beams shooting out from each cleared row's left/right edges
-            double leftBase  = VFX_MARGIN;                               // board left edge in vfxCanvas coords
-            double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs;  // board right edge in vfxCanvas coords
+            double leftBase  = VFX_MARGIN;                               
+            double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs;  
             Color pieceCol   = currentPiece.getType().getColor();
             for (int row : fullRows) {
                 particleSystem.emitRowBeams(leftBase, rightBase, row * cs, cs, pieceCol);
             }
-            // Clear rows instantly (sorted bottom-up so indices stay valid)
+            // Clear rows instantly 
             fullRows.sort(java.util.Collections.reverseOrder());
             for (int row : fullRows) {
                 for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
@@ -185,13 +191,13 @@ public class GameController {
             addLines(cleared);
             updateLevel();
 
-            // Freeze game logic briefly on Tetris to let the VFX land
+            // Freeze game logic briefly on Tetris
             if (cleared == 4) {
                 freezeUntil   = System.nanoTime() + 300_000_000L;
                 frozenRowFlash = fullRows.stream().mapToInt(Integer::intValue).toArray();
             }
 
-            // Scale shake + flash with lines cleared; Tetris gets extra violence
+            // Scale shake + flash with lines cleared, Tetris gets extra violence
             double t          = cleared / 4.0;
             flashIntensity    = 0.12 + t * 0.28;
             shakeIntensity    = 5.0  + t * 13.0  + (cleared == 4 ? 12.0 : 0);
@@ -343,6 +349,11 @@ public class GameController {
             levelLabel.setText(String.valueOf(newLevel));
             // Tăng tốc độ rơi
             fallIntervalNs = Math.max(100_000_000L, 500_000_000L - (newLevel - 1) * 40_000_000L);
+            levelUpEffect  = new LevelUpEffect(newLevel, () -> {
+                shakeIntensity    = 18;
+                shakeInitDuration = 0.25;
+                shakeDuration     = 0.25;
+            });
         }
     }
 
@@ -438,6 +449,8 @@ public class GameController {
             gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
         }
         drawGameBoard();
+        if (levelUpEffect != null)
+            levelUpEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
         particleSystem.render(gameGc);
         particleSystem.renderBeams(vfxGc);
         drawNextBlock();
@@ -482,7 +495,7 @@ public class GameController {
             }
         }
 
-        // Ghost (hidden during freeze so it doesn't show the next piece's drop position)
+        // Ghost 
         if (freezeUntil == 0) {
             int drop = getDropDistance();
             int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
@@ -499,7 +512,7 @@ public class GameController {
             }
         }
 
-        // Current piece — apply rotation pulse brightness
+        // Current piece - apply rotation pulse brightness
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         Color pieceColor = currentPiece.getType().getColor()
                 .deriveColor(0, 1, 1.0 + rotationPulse * 1.8, 1);
