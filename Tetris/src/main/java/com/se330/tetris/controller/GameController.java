@@ -24,6 +24,8 @@ import com.se330.tetris.game.TetrominoType;
 import com.se330.tetris.service.GameContext;
 import com.se330.tetris.service.SceneManager;
 
+import java.util.Collections;
+
 public class GameController {
 
     @FXML
@@ -73,6 +75,7 @@ public class GameController {
     private double rotationPulse = 0; // 1.0 = full brightness pulse, 0 = normal
     private double flashIntensity = 0; // 0 = none, >0 = bright background flash
 
+    private java.util.List<TetrominoType> bag = new java.util.ArrayList<>();
     private final java.util.Random rng = new java.util.Random();
 
     @FXML
@@ -171,13 +174,24 @@ public class GameController {
             for (int row : fullRows) {
                 particleSystem.emitRowBeams(leftBase, rightBase, row * cs, cs, pieceCol);
             }
-            // Clear rows instantly (sorted bottom-up so indices stay valid)
-            fullRows.sort(java.util.Collections.reverseOrder());
-            for (int row : fullRows) {
-                for (int r = row; r > 0; r--)
-                    board[r] = board[r - 1].clone();
-                board[0] = new int[Constants.BOARD_WIDTH];
+
+            // CLEAR ROWS
+            int[][] nextBoard = new int[Constants.BOARD_HEIGHT][Constants.BOARD_WIDTH];
+            int writeRow = Constants.BOARD_HEIGHT - 1; // Write from bottom of the board
+            // CHECK BOTTOM-UP
+            for (int readRow = Constants.BOARD_HEIGHT - 1; readRow >= 0; readRow--) {
+                if (!fullRows.contains(readRow)) {
+                    // write if it's not a full row
+                    nextBoard[writeRow] = board[readRow].clone();
+                    writeRow--;
+                }
+                // Skip full row
             }
+            // UPDATE NEW BOARD
+            for (int i = 0; i < Constants.BOARD_HEIGHT; i++) {
+                board[i] = nextBoard[i];
+            }
+
             addScore(cleared);
             addLines(cleared);
             updateLevel();
@@ -212,8 +226,15 @@ public class GameController {
     }
 
     private Piece randomPiece() {
-        TetrominoType[] types = TetrominoType.values();
-        return new Piece(types[rng.nextInt(types.length)], 0, 0);
+        // Refill bag
+        if (bag.isEmpty()) {
+            bag.addAll(java.util.Arrays.asList(TetrominoType.values()));
+            java.util.Collections.shuffle(bag);
+        }
+
+        // Pop the first piece
+        TetrominoType type = bag.remove(0);
+        return new Piece(type, 0, 0);
     }
 
     private boolean canMove(int dx, int dy, int rotation) {
