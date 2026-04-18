@@ -1,5 +1,8 @@
 package com.se330.tetris.game;
 
+import com.se330.tetris.service.SoundManager;
+import com.se330.tetris.util.SoundType;
+
 public class Piece {
     private final TetrominoType type;
     private int rotation;
@@ -29,7 +32,9 @@ public class Piece {
         return y;
     }
 
-    public void setRotation(int rotation) {
+    public void setRotation(int rotation)
+    {
+        SoundManager.getInstance().playSE(SoundType.BUTTON_CLICK);
         this.rotation = rotation;
     }
 

@@ -1,7 +1,9 @@
 package com.se330.tetris.controller;
 
 import com.se330.tetris.core.TetrisApp;
+import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.Constants;
+import com.se330.tetris.util.SoundType;
 import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -26,22 +28,30 @@ import java.util.Collections;
 
 public class GameController {
 
-    @FXML private HBox gamePane;
-    @FXML private Canvas      gameCanvas;
-    @FXML private Canvas      vfxCanvas;
-    @FXML private Canvas      nextBlockCanvas;
-    @FXML private Label       scoreLabel;
-    @FXML private Label       levelLabel;
-    @FXML private Label       linesLabel;
+    @FXML
+    private HBox gamePane;
+    @FXML
+    private Canvas gameCanvas;
+    @FXML
+    private Canvas vfxCanvas;
+    @FXML
+    private Canvas nextBlockCanvas;
+    @FXML
+    private Label scoreLabel;
+    @FXML
+    private Label levelLabel;
+    @FXML
+    private Label linesLabel;
 
     private SceneManager sceneManager;
-    private GameContext  gameContext;
+    private GameContext gameContext;
 
     private GraphicsContext gameGc;
     private GraphicsContext nextGc;
     private GraphicsContext vfxGc;
 
-    // vfxCanvas extends 150 px beyond each board edge (canvas width = 600, layoutX = -150)
+    // vfxCanvas extends 150 px beyond each board edge (canvas width = 600, layoutX
+    // = -150)
     private static final double VFX_MARGIN = 150.0;
 
     private final int[][] board = new int[Constants.BOARD_HEIGHT][Constants.BOARD_WIDTH];
@@ -51,19 +61,19 @@ public class GameController {
     private final ParticleSystem particleSystem = new ParticleSystem();
 
     private AnimationTimer gameLoop;
-    private boolean gamePaused  = false;
-    private boolean isGameOver  = false;
+    private boolean gamePaused = false;
+    private boolean isGameOver = false;
 
-    private long lastFallTime   = 0;
-    private long lastFrameTime  = 0;
+    private long lastFallTime = 0;
+    private long lastFrameTime = 0;
     private long fallIntervalNs = 500_000_000L;
 
-    private int    dropStartRow      = -1;
-    private double shakeIntensity    = 0;
-    private double shakeDuration     = 0;
+    private int dropStartRow = -1;
+    private double shakeIntensity = 0;
+    private double shakeDuration = 0;
     private double shakeInitDuration = 0.18;
-    private double rotationPulse     = 0;    // 1.0 = full brightness pulse, 0 = normal
-    private double flashIntensity    = 0;    // 0 = none, >0 = bright background flash
+    private double rotationPulse = 0; // 1.0 = full brightness pulse, 0 = normal
+    private double flashIntensity = 0; // 0 = none, >0 = bright background flash
 
     private java.util.List<TetrominoType> bag = new java.util.ArrayList<>();
     private final java.util.Random rng = new java.util.Random();
@@ -71,12 +81,12 @@ public class GameController {
     @FXML
     private void initialize() {
         sceneManager = SceneManager.getInstance();
-        gameContext  = GameContext.getInstance();
+        gameContext = GameContext.getInstance();
         gameContext.reset();
 
         gameGc = gameCanvas.getGraphicsContext2D();
         nextGc = nextBlockCanvas.getGraphicsContext2D();
-        vfxGc  = vfxCanvas.getGraphicsContext2D();
+        vfxGc = vfxCanvas.getGraphicsContext2D();
 
         // Spawn hai mảnh đầu tiên
         nextPiece = randomPiece();
@@ -95,7 +105,7 @@ public class GameController {
     }
 
     private void startGameLoop() {
-        lastFallTime  = System.nanoTime();
+        lastFallTime = System.nanoTime();
         lastFrameTime = System.nanoTime();
         gameLoop = new AnimationTimer() {
             @Override
@@ -110,8 +120,10 @@ public class GameController {
                     }
                     particleSystem.update(dt);
                     updateScreenShake(dt);
-                    if (rotationPulse  > 0) rotationPulse  = Math.max(0, rotationPulse  - dt * 8.0);
-                    if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
+                    if (rotationPulse > 0)
+                        rotationPulse = Math.max(0, rotationPulse - dt * 8.0);
+                    if (flashIntensity > 0)
+                        flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
                 }
                 render();
             }
@@ -136,9 +148,13 @@ public class GameController {
         for (int y = Constants.BOARD_HEIGHT - 1; y >= 0; y--) {
             boolean full = true;
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
-                if (board[y][x] == 0) { full = false; break; }
+                if (board[y][x] == 0) {
+                    full = false;
+                    break;
+                }
             }
-            if (full) fullRows.add(y);
+            if (full)
+                fullRows.add(y);
         }
 
         if (!fullRows.isEmpty()) {
@@ -152,9 +168,9 @@ public class GameController {
                 }
             }
             // Horizontal beams shooting out from each cleared row's left/right edges
-            double leftBase  = VFX_MARGIN;                               // board left edge in vfxCanvas coords
-            double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs;  // board right edge in vfxCanvas coords
-            Color pieceCol   = currentPiece.getType().getColor();
+            double leftBase = VFX_MARGIN; // board left edge in vfxCanvas coords
+            double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs; // board right edge in vfxCanvas coords
+            Color pieceCol = currentPiece.getType().getColor();
             for (int row : fullRows) {
                 particleSystem.emitRowBeams(leftBase, rightBase, row * cs, cs, pieceCol);
             }
@@ -181,11 +197,11 @@ public class GameController {
             updateLevel();
 
             // Scale shake + flash with lines cleared; Tetris gets extra violence
-            double t          = cleared / 4.0;
-            flashIntensity    = 0.12 + t * 0.28;
-            shakeIntensity    = 5.0  + t * 13.0  + (cleared == 4 ? 22.0 : 0);
-            shakeInitDuration = 0.18 + t * 0.17  + (cleared == 4 ? 0.20 : 0);
-            shakeDuration     = shakeInitDuration;
+            double t = cleared / 4.0;
+            flashIntensity = 0.12 + t * 0.28;
+            shakeIntensity = 5.0 + t * 13.0 + (cleared == 4 ? 22.0 : 0);
+            shakeInitDuration = 0.18 + t * 0.17 + (cleared == 4 ? 0.20 : 0);
+            shakeDuration = shakeInitDuration;
         }
 
         spawnAndCheckGameOver();
@@ -195,6 +211,8 @@ public class GameController {
         spawnPiece();
         if (!canMove(0, 0, currentPiece.getRotation())) {
             isGameOver = true;
+            SoundManager.getInstance().playSE(SoundType.GAME_OVER);
+            SoundManager.getInstance().stopMusic();
             gameLoop.stop();
             sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
         }
@@ -226,9 +244,12 @@ public class GameController {
                 if (shape[row][col] == 1) {
                     int nx = currentPiece.getX() + col + dx;
                     int ny = currentPiece.getY() + row + dy;
-                    if (nx < 0 || nx >= Constants.BOARD_WIDTH) return false;
-                    if (ny < 0 || ny >= Constants.BOARD_HEIGHT) return false;
-                    if (board[ny][nx] != 0) return false;
+                    if (nx < 0 || nx >= Constants.BOARD_WIDTH)
+                        return false;
+                    if (ny < 0 || ny >= Constants.BOARD_HEIGHT)
+                        return false;
+                    if (board[ny][nx] != 0)
+                        return false;
                 }
             }
         }
@@ -236,6 +257,8 @@ public class GameController {
     }
 
     private void lockPiece() {
+        SoundManager.getInstance().playSE(SoundType.BLOCK_DROP);
+
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         int cs = Constants.BLOCK_SIZE;
 
@@ -253,11 +276,14 @@ public class GameController {
                         board[y][x] = typeId(currentPiece.getType());
                         if (dropStartRow >= 0) {
                             particleSystem.emitLockParticles(
-                                x * cs, y * cs, currentPiece.getType().getColor(), 18);
+                                    x * cs, y * cs, currentPiece.getType().getColor(), 18);
                         }
-                        if (x < minCol) minCol = x;
-                        if (x > maxCol) maxCol = x;
-                        if (y > maxRow) maxRow = y;
+                        if (x < minCol)
+                            minCol = x;
+                        if (x > maxCol)
+                            maxCol = x;
+                        if (y > maxRow)
+                            maxRow = y;
                     }
                 }
             }
@@ -265,14 +291,13 @@ public class GameController {
 
         // Single wide light column on hard drop only
         if (dropStartRow >= 0 && minCol <= maxCol) {
-            double leftPixelX  = minCol * cs;
-            double spanWidth   = (maxCol - minCol + 1) * cs;
-            double fromPixelY  = dropStartRow * cs;
-            double toPixelY    = (maxRow + 1) * cs;
+            double leftPixelX = minCol * cs;
+            double spanWidth = (maxCol - minCol + 1) * cs;
+            double fromPixelY = dropStartRow * cs;
+            double toPixelY = (maxRow + 1) * cs;
             particleSystem.emitLightColumn(
-                leftPixelX, fromPixelY, toPixelY, spanWidth,
-                currentPiece.getType().getColor()
-            );
+                    leftPixelX, fromPixelY, toPixelY, spanWidth,
+                    currentPiece.getType().getColor());
             dropStartRow = -1;
         }
     }
@@ -282,7 +307,10 @@ public class GameController {
         for (int y = Constants.BOARD_HEIGHT - 1; y >= 0; y--) {
             boolean full = true;
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
-                if (board[y][x] == 0) { full = false; break; }
+                if (board[y][x] == 0) {
+                    full = false;
+                    break;
+                }
             }
             if (full) {
                 cleared++;
@@ -307,6 +335,8 @@ public class GameController {
         int newScore = gameContext.getScore() + bonus;
         gameContext.setScore(newScore);
         scoreLabel.setText(String.valueOf(newScore));
+
+        SoundManager.getInstance().playSE(SoundType.SCORE);
     }
 
     private void addLines(int count) {
@@ -334,17 +364,17 @@ public class GameController {
 
     private void emitRotationArc() {
         particleSystem.emitCornerSparks(
-            currentPiece.getX(),
-            currentPiece.getY(),
-            currentPiece.getType().getShape(currentPiece.getRotation()),
-            Constants.BLOCK_SIZE,
-            currentPiece.getType().getColor()
-        );
+                currentPiece.getX(),
+                currentPiece.getY(),
+                currentPiece.getType().getShape(currentPiece.getRotation()),
+                Constants.BLOCK_SIZE,
+                currentPiece.getType().getColor());
         rotationPulse = 1.0;
     }
 
     private void updateScreenShake(double dt) {
-        if (shakeDuration <= 0) return;
+        if (shakeDuration <= 0)
+            return;
         shakeDuration -= dt;
         if (shakeDuration <= 0) {
             gameCanvas.setTranslateX(0);
@@ -357,10 +387,10 @@ public class GameController {
     }
 
     private void hardDrop() {
-        dropStartRow      = currentPiece.getY();
-        shakeIntensity    = 4.0;
+        dropStartRow = currentPiece.getY();
+        shakeIntensity = 4.0;
         shakeInitDuration = 0.18;
-        shakeDuration     = 0.18;
+        shakeDuration = 0.18;
         int drop = getDropDistance();
         currentPiece.setY(currentPiece.getY() + drop);
         lockAndSpawn();
@@ -368,7 +398,8 @@ public class GameController {
 
     private int getDropDistance() {
         int distance = 0;
-        while (canMove(0, distance + 1, currentPiece.getRotation())) distance++;
+        while (canMove(0, distance + 1, currentPiece.getRotation()))
+            distance++;
         return distance;
     }
 
@@ -376,20 +407,28 @@ public class GameController {
     private void handleKeyPressed(KeyEvent event) {
         KeyCode code = event.getCode();
         switch (code) {
-            case LEFT,  A     -> { if (canMove(-1, 0, currentPiece.getRotation()))
-                currentPiece.setX(currentPiece.getX() - 1); }
-            case RIGHT, D     -> { if (canMove( 1, 0, currentPiece.getRotation()))
-                currentPiece.setX(currentPiece.getX() + 1); }
-            case DOWN,  S     -> hardDrop();
-            case UP,    W     -> { int nr = (currentPiece.getRotation() + 1) % 4;
+            case LEFT, A -> {
+                if (canMove(-1, 0, currentPiece.getRotation()))
+                    currentPiece.setX(currentPiece.getX() - 1);
+            }
+            case RIGHT, D -> {
+                if (canMove(1, 0, currentPiece.getRotation()))
+                    currentPiece.setX(currentPiece.getX() + 1);
+            }
+            case DOWN, S -> hardDrop();
+            case UP, W -> {
+                int nr = (currentPiece.getRotation() + 1) % 4;
                 if (canMove(0, 0, nr)) {
                     currentPiece.setRotation(nr);
                     emitRotationArc();
                 }
             }
-            case SPACE        -> hardDrop();
-            case P            -> handlePause();
-            default           -> { return; }
+            case SPACE -> hardDrop();
+            case P -> handlePause();
+            case ESCAPE -> handleExit();
+            default -> {
+                return;
+            }
         }
         event.consume();
     }
@@ -398,12 +437,21 @@ public class GameController {
         gamePaused = !gamePaused;
     }
 
+    private void handleExit() {
+        System.out.println("Exiting to main menu");
+        if (gameLoop != null) {
+            gameLoop.stop();
+        }
+        gameContext.reset();
+        sceneManager.clearSceneCache();
+        sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+    }
+
     // Base background color components for gamePane (#0f0d1a)
     private static final double BG_R = 0x0f / 255.0;
     private static final double BG_G = 0x0d / 255.0;
     private static final double BG_B = 0x1a / 255.0;
-    private static final String PANE_BASE_STYLE =
-        "-fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;";
+    private static final String PANE_BASE_STYLE = "-fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;";
 
     private void render() {
         // Flash outer background behind the board
@@ -412,7 +460,7 @@ public class GameController {
             double g = BG_G + flashIntensity * (1.0 - BG_G);
             double b = BG_B + flashIntensity * (1.0 - BG_B);
             String hex = String.format("#%02x%02x%02x",
-                (int)(r * 255), (int)(g * 255), (int)(b * 255));
+                    (int) (r * 255), (int) (g * 255), (int) (b * 255));
             gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
         } else {
             gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
@@ -427,7 +475,7 @@ public class GameController {
         GraphicsContext gc = gameGc;
         double w = gameCanvas.getWidth();
         double h = gameCanvas.getHeight();
-        int cs   = Constants.BLOCK_SIZE;
+        int cs = Constants.BLOCK_SIZE;
 
         // Background
         gc.setFill(Color.web("#0f0d1a"));
@@ -436,8 +484,10 @@ public class GameController {
         // Grid lines
         gc.setStroke(Color.web("#2b2740"));
         gc.setLineWidth(0.5);
-        for (int x = 0; x <= Constants.BOARD_WIDTH;  x++) gc.strokeLine(x * cs, 0, x * cs, h);
-        for (int y = 0; y <= Constants.BOARD_HEIGHT; y++) gc.strokeLine(0, y * cs, w, y * cs);
+        for (int x = 0; x <= Constants.BOARD_WIDTH; x++)
+            gc.strokeLine(x * cs, 0, x * cs, h);
+        for (int y = 0; y <= Constants.BOARD_HEIGHT; y++)
+            gc.strokeLine(0, y * cs, w, y * cs);
 
         // Border
         gc.setStroke(Color.web("#00ff00"));
@@ -449,7 +499,8 @@ public class GameController {
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                 if (board[y][x] != 0) {
                     TetrominoType t = idToType(board[y][x]);
-                    if (t != null) drawCell(gc, x, y, t.getColor(), 1.0);
+                    if (t != null)
+                        drawCell(gc, x, y, t.getColor(), 1.0);
                 }
             }
         }
@@ -533,7 +584,7 @@ public class GameController {
     }
 
     private void drawCell(GraphicsContext gc, int x, int y, Color color,
-                          double opacity, GraphicsContext target, int cs) {
+            double opacity, GraphicsContext target, int cs) {
         double px = x * cs;
         double py = y * cs;
         target.setFill(color.deriveColor(0, 1, 1, opacity));
@@ -545,22 +596,32 @@ public class GameController {
 
     private int typeId(TetrominoType type) {
         return switch (type) {
-            case I -> 1; case O -> 2; case T -> 3;
-            case S -> 4; case Z -> 5; case J -> 6; case L -> 7;
+            case I -> 1;
+            case O -> 2;
+            case T -> 3;
+            case S -> 4;
+            case Z -> 5;
+            case J -> 6;
+            case L -> 7;
         };
     }
 
     private TetrominoType idToType(int id) {
         return switch (id) {
-            case 1 -> TetrominoType.I; case 2 -> TetrominoType.O;
-            case 3 -> TetrominoType.T; case 4 -> TetrominoType.S;
-            case 5 -> TetrominoType.Z; case 6 -> TetrominoType.J;
-            case 7 -> TetrominoType.L; default -> null;
+            case 1 -> TetrominoType.I;
+            case 2 -> TetrominoType.O;
+            case 3 -> TetrominoType.T;
+            case 4 -> TetrominoType.S;
+            case 5 -> TetrominoType.Z;
+            case 6 -> TetrominoType.J;
+            case 7 -> TetrominoType.L;
+            default -> null;
         };
     }
 
     public void gameOver() {
-        if (gameLoop != null) gameLoop.stop();
+        if (gameLoop != null)
+            gameLoop.stop();
         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
     }
 }
