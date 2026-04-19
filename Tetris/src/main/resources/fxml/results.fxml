@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
 
 <AnchorPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:id="resultsPane" fx:controller="com.se330.tetris.controller.ResultsController"
@@ -19,6 +20,7 @@
         <Label fx:id="finalScoreLabel" text="366767" styleClass="results-score"
                maxWidth="Infinity" />
         <VBox alignment="CENTER" spacing="20">
+            <VBox.margin><Insets top="40" /></VBox.margin>
             <Button fx:id="saveBtn" text="Save score" onAction="#onSaveClicked"
                     prefWidth="320.0" prefHeight="114.0" styleClass="figma-button" />
             <Button fx:id="retryBtn" text="Retry" onAction="#onRetryClicked"

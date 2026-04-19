@@ -69,11 +69,12 @@ public class ResultsController {
         buildCharLabels();
 
         blackOverlay = new Region();
-        blackOverlay.setPrefSize(1440, 1024);
         blackOverlay.setStyle("-fx-background-color: black;");
         blackOverlay.setMouseTransparent(true);
         AnchorPane.setTopAnchor(blackOverlay, 0.0);
+        AnchorPane.setBottomAnchor(blackOverlay, 0.0);
         AnchorPane.setLeftAnchor(blackOverlay, 0.0);
+        AnchorPane.setRightAnchor(blackOverlay, 0.0);
         resultsPane.getChildren().add(blackOverlay);
 
         lastNano = System.nanoTime();
@@ -180,6 +181,9 @@ public class ResultsController {
         long demoTime = 332000;
 
         finalScoreLabel.setText(String.valueOf(demoScore));
+        noteLabel.setText(demoScore < 1000 ? "Really? That's it?" :
+                          demoScore >= 8000 ? "Impressive."        :
+                          "Not bad, but you can do better");
         gameModeLabel.setText(gameContext.getGameMode().getDisplayName());
         levelLabel.setText(String.valueOf(demoLevel));
         linesLabel.setText(String.valueOf(demoLines));
