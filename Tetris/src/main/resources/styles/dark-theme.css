@@ -44,7 +44,7 @@
 
 .figma-button {
     -fx-background-color: transparent;
-    -fx-background-image: url("../assets/rectangle-26.png");
+    -fx-background-image: url("../assets/main_button.png");
     -fx-background-repeat: no-repeat;
     -fx-background-position: center;
     -fx-background-size: 100% 100%;
@@ -180,7 +180,7 @@
 
 .results-title {
     -fx-font-family: "VT323";
-    -fx-font-size: 48;
+    -fx-font-size: 64;
     -fx-text-fill: #ffffff;
     -fx-alignment: center;
     -fx-text-alignment: center;
@@ -205,7 +205,7 @@
 
 .results-note-text {
     -fx-font-family: "VT323";
-    -fx-font-size: 32;
+    -fx-font-size: 42;
     -fx-text-fill: #ffffff;
 }
 

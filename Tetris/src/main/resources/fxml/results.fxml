@@ -9,23 +9,23 @@
     <Region layoutX="0.0" layoutY="0.0" prefWidth="1440.0" prefHeight="1024.0"
             styleClass="background-dim" mouseTransparent="true" />
 
-    <Label fx:id="titleLabel" layoutX="559.0" layoutY="215.0" prefWidth="337.0" prefHeight="76.0"
+    <Label fx:id="titleLabel" layoutX="480.0" layoutY="160.0" prefWidth="500.0" prefHeight="76.0"
            text="FINAL SCORE:" styleClass="results-title" />
 
-    <Label fx:id="finalScoreLabel" layoutX="559.0" layoutY="267.0" prefWidth="337.0" prefHeight="122.0"
+    <Label fx:id="finalScoreLabel" layoutX="420.0" layoutY="218.0" prefWidth="620.0" prefHeight="150.0"
            text="366767" styleClass="results-score" />
 
     <Button fx:id="saveBtn" onAction="#onSaveClicked" text="Save score"
-            layoutX="576.0" layoutY="467.0" prefWidth="291.0" prefHeight="74.0"
+            layoutX="560.0" layoutY="410.0" prefWidth="320.0" prefHeight="114.0"
             styleClass="figma-button" />
 
     <Button fx:id="retryBtn" onAction="#onRetryClicked" text="Retry"
-            layoutX="574.0" layoutY="599.0" prefWidth="291.0" prefHeight="74.0"
+            layoutX="560.0" layoutY="544.0" prefWidth="320.0" prefHeight="114.0"
             styleClass="figma-button" />
 
-    <Region layoutX="0.0" layoutY="848.0" prefWidth="1440.0" prefHeight="176.0" styleClass="bottom-glow" />
+    <Region layoutX="0.0" layoutY="820.0" prefWidth="1440.0" prefHeight="204.0" styleClass="bottom-glow" />
 
-    <StackPane fx:id="notePanel" layoutX="425.0" layoutY="893.0" prefWidth="605.0" prefHeight="86.0" styleClass="results-note-panel">
+    <StackPane fx:id="notePanel" layoutX="370.0" layoutY="850.0" prefWidth="700.0" prefHeight="112.0" styleClass="results-note-panel">
         <Label fx:id="noteLabel" text="Not bad, but you can do better" styleClass="results-note-text" />
     </StackPane>
 
