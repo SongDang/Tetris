@@ -10,112 +10,42 @@
       focusTraversable="true"
       style="-fx-background-color: #0f0d1a; -fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;">
 
-    <!-- ── Board ─────────────────────────────────────────────────────────── -->
-    <VBox style="-fx-alignment: center; -fx-spacing: 0;">
-        <!-- StackPane sizes to gameCanvas only; vfxCanvas is unmanaged so it renders outside without affecting layout -->
+    <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 150;">
+        <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
+            <Label text="SCORE" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Label fx:id="scoreLabel" text="0" style="-fx-font-size: 26; -fx-text-fill: #ffffff; -fx-font-family: 'Courier New';"/>
+        </VBox>
+        <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
+            <Label text="LEVEL" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Label fx:id="levelLabel" text="1" style="-fx-font-size: 26; -fx-text-fill: #00ff88; -fx-font-family: 'Courier New';"/>
+        </VBox>
+        <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
+            <Label text="LINES" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Label fx:id="linesLabel" text="0" style="-fx-font-size: 26; -fx-text-fill: #ffcc00; -fx-font-family: 'Courier New';"/>
+        </VBox>
+    </VBox>
+
+    <VBox style="-fx-alignment: center; -fx-spacing: 10;">
         <StackPane style="-fx-border-color: #00ff00; -fx-border-width: 2;">
             <Canvas fx:id="gameCanvas" width="300" height="600"/>
-            <Canvas fx:id="vfxCanvas"  width="600" height="600" managed="false" layoutX="-150" mouseTransparent="true"/>
+            <Canvas fx:id="vfxCanvas" width="600" height="600" managed="false" layoutX="-150" mouseTransparent="true"/>
         </StackPane>
 
-        <!-- Hint bar nằm ngay dưới board, cùng chiều rộng -->
-        <HBox style="-fx-alignment: center; -fx-padding: 8 0 0 0;">
-            <Label text="← → : Di chuyển  |  ↑ : Xoay  |  C/SHIFT : Hold  |  SPACE : Drop  |  P : Tạm dừng  |  ESC : Thoát"
-                   style="-fx-font-size: 11; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
-        </HBox>
+        <Label text="A/D: Di chuyển | W: Xoay | SPACE: Drop | C: Hold"
+               style="-fx-font-size: 10; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
     </VBox>
 
-    <!-- ── Left panel: score/info ────────────────────────────────────────── -->
-    <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 180;">
-
-        <!-- Score -->
-        <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14;
-                     -fx-border-color: #334455; -fx-border-width: 1;
-                     -fx-background-color: #1a1830; -fx-background-radius: 4;
-                     -fx-border-radius: 4;">
-            <Label text="SCORE"
-                   style="-fx-font-size: 11; -fx-text-fill: #8899aa;
-                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Label fx:id="scoreLabel" text="0"
-                   style="-fx-font-size: 26; -fx-text-fill: #ffffff;
-                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+    <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 150;">
+        <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
+            <Label text="NEXT" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Canvas fx:id="nextBlockCanvas1" width="100" height="100"/>
+            <Canvas fx:id="nextBlockCanvas2" width="100" height="100"/>
+            <Canvas fx:id="nextBlockCanvas3" width="100" height="100"/>
         </VBox>
 
-        <!-- Level -->
-        <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14;
-                     -fx-border-color: #334455; -fx-border-width: 1;
-                     -fx-background-color: #1a1830; -fx-background-radius: 4;
-                     -fx-border-radius: 4;">
-            <Label text="LEVEL"
-                   style="-fx-font-size: 11; -fx-text-fill: #8899aa;
-                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Label fx:id="levelLabel" text="1"
-                   style="-fx-font-size: 26; -fx-text-fill: #00ff88;
-                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+        <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
+            <Label text="HOLD" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Canvas fx:id="holdBlockCanvas" width="100" height="100"/>
         </VBox>
-
-        <!-- Lines -->
-        <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14;
-                     -fx-border-color: #334455; -fx-border-width: 1;
-                     -fx-background-color: #1a1830; -fx-background-radius: 4;
-                     -fx-border-radius: 4;">
-            <Label text="LINES"
-                   style="-fx-font-size: 11; -fx-text-fill: #8899aa;
-                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Label fx:id="linesLabel" text="0"
-                   style="-fx-font-size: 26; -fx-text-fill: #ffcc00;
-                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-        </VBox>
-
-    </VBox>
-
-    <!-- ── Board ─────────────────────────────────────────────────────────── -->
-    <VBox style="-fx-alignment: center; -fx-spacing: 0;">
-        <!-- Wrap Canvas trong StackPane để -fx-border-color hoạt động -->
-        <StackPane style="-fx-border-color: #00ff00; -fx-border-width: 2;">
-            <Canvas fx:id="gameCanvas" width="300" height="600"/>
-        </StackPane>
-
-        <!-- Hint bar nằm ngay dưới board, cùng chiều rộng -->
-        <HBox style="-fx-alignment: center; -fx-padding: 8 0 0 0;">
-                     <Label text="← →: Di chuyển  |  ↑: Xoay  |  SPACE: Drop  |  P: Tạm dừng  |  Chuột: Di chuyển cột, trái=Drop, phải=Xoay"
-                   style="-fx-font-size: 11; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
-        </HBox>
-    </VBox>
-
-    <!-- ── Right panel: next queue ───────────────────────────────────────── -->
-    <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 180;">
-        <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14;
-                     -fx-border-color: #334455; -fx-border-width: 1;
-                     -fx-background-color: #1a1830; -fx-background-radius: 4;
-                     -fx-border-radius: 4;">
-            <Label text="NEXT x3"
-                   style="-fx-font-size: 11; -fx-text-fill: #8899aa;
-                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-
-            <StackPane style="-fx-border-color: #334455; -fx-border-width: 1;">
-                <Canvas fx:id="nextBlockCanvas1" width="120" height="120"/>
-            </StackPane>
-            <StackPane style="-fx-border-color: #334455; -fx-border-width: 1;">
-                <Canvas fx:id="nextBlockCanvas2" width="120" height="120"/>
-            </StackPane>
-            <StackPane style="-fx-border-color: #334455; -fx-border-width: 1;">
-                <Canvas fx:id="nextBlockCanvas3" width="120" height="120"/>
-            </StackPane>
-        </VBox>
-
-              <!-- Hold piece preview -->
-              <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14;
-                                    -fx-border-color: #334455; -fx-border-width: 1;
-                                    -fx-background-color: #1a1830; -fx-background-radius: 4;
-                                    -fx-border-radius: 4;">
-                     <Label text="HOLD"
-                               style="-fx-font-size: 11; -fx-text-fill: #8899aa;
-                                            -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-                     <StackPane style="-fx-border-color: #334455; -fx-border-width: 1;">
-                            <Canvas fx:id="holdBlockCanvas" width="180" height="180"/>
-                     </StackPane>
-              </VBox>
-
     </VBox>
 </HBox>
