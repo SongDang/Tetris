@@ -31,8 +31,10 @@
             <Canvas fx:id="vfxCanvas" width="600" height="600" managed="false" layoutX="-150" mouseTransparent="true"/>
         </StackPane>
 
-        <Label text="A/D: Di chuyển | W: Xoay | SPACE: Drop | C: Hold"
-               style="-fx-font-size: 10; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
+        <HBox style="-fx-alignment: center; -fx-padding: 8 0 0 0;">
+            <Label text="← →: Move | ↑: Rotate | B: Bomb | C: Hold | SPACE: Drop | P: Pause"
+                   style="-fx-font-size: 10; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
+        </HBox>
     </VBox>
 
     <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 150;">
@@ -46,6 +48,18 @@
         <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
             <Label text="HOLD" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
             <Canvas fx:id="holdBlockCanvas" width="100" height="100"/>
+        </VBox>
+
+        <VBox fx:id="bombInventoryBox"
+              style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14;
+                     -fx-border-color: #aa3344; -fx-border-width: 1;
+                     -fx-background-color: #2a1620; -fx-background-radius: 4;">
+            <Label text="BOMB SKILL"
+                   style="-fx-font-size: 11; -fx-text-fill: #ff9aa8;
+                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Label fx:id="bombsLabel" text="💣 x3"
+                   style="-fx-font-size: 24; -fx-text-fill: #ff5566;
+                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
         </VBox>
     </VBox>
 </HBox>

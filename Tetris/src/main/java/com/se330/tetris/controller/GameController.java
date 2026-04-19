@@ -5,6 +5,7 @@ import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.Constants;
 import com.se330.tetris.util.SoundType;
 import javafx.animation.AnimationTimer;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
@@ -15,8 +16,10 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+import javafx.util.Duration;
 
 import com.se330.tetris.game.Particle;
 import com.se330.tetris.game.ParticleSystem;
@@ -52,6 +55,9 @@ public class GameController {
     @FXML
     private Canvas holdBlockCanvas;
 
+    @FXML private Label       bombsLabel;
+    @FXML private VBox        bombInventoryBox;
+
     private SceneManager sceneManager;
     private GameContext gameContext;
 
@@ -69,6 +75,8 @@ public class GameController {
     private Piece nextPiece;
     private TetrominoType holdType;
     private boolean canHold = true;
+    private int bombsRemaining = 3;
+    private String bombInventoryBaseStyle = "";
 
     private final ParticleSystem particleSystem = new ParticleSystem();
 
@@ -118,6 +126,8 @@ public class GameController {
         holdType = null;
         canHold = true;
 
+        bombsRemaining = 3;
+
         nextPiece = randomPiece();
         // Seed queue for current + 3 previews.
         nextQueue.clear();
@@ -125,6 +135,11 @@ public class GameController {
             nextQueue.addLast(randomPiece());
         }
         spawnPiece();
+
+        if (bombInventoryBox != null) {
+            bombInventoryBaseStyle = bombInventoryBox.getStyle() == null ? "" : bombInventoryBox.getStyle();
+        }
+        updateBombInventoryUI();
 
         // Cập nhật labels ban đầu
         refreshLabels();
@@ -181,7 +196,13 @@ public class GameController {
     }
 
     private void lockAndSpawn() {
-        lockPiece();
+        if (currentPiece.getType() == TetrominoType.BOMB) {
+            int impactX = currentPiece.getX();
+            int impactY = getBombImpactY(impactX, currentPiece.getY());
+            detonateBomb(impactX, impactY);
+        } else {
+            lockPiece();
+        }
 
         // Detect full rows, emit burst VFX from each cell, then clear instantly
         int cs = Constants.BLOCK_SIZE;
@@ -281,6 +302,34 @@ public class GameController {
         // Pop the first piece
         TetrominoType type = bag.remove(0);
         return new Piece(type, 0, 0);
+    }
+
+    private void detonateBomb(int centerX, int centerY) {
+        for (int y = centerY - 1; y <= centerY + 1; y++) {
+            if (y < 0 || y >= Constants.BOARD_HEIGHT) {
+                continue;
+            }
+            for (int x = centerX - 1; x <= centerX + 1; x++) {
+                if (x < 0 || x >= Constants.BOARD_WIDTH) {
+                    continue;
+                }
+                board[y][x] = 0;
+            }
+        }
+    }
+
+    private int getBombImpactY(int bombX, int bombY) {
+        int candidateY = bombY + 1;
+
+        if (candidateY >= Constants.BOARD_HEIGHT) {
+            return Constants.BOARD_HEIGHT - 1;
+        }
+
+        if (bombX >= 0 && bombX < Constants.BOARD_WIDTH && board[candidateY][bombX] != 0) {
+            return candidateY;
+        }
+
+        return bombY;
     }
 
     private boolean canMove(int dx, int dy, int rotation) {
@@ -443,7 +492,7 @@ public class GameController {
     }
 
     private void holdCurrentPiece() {
-        if (!canHold || currentPiece == null || isGameOver) {
+        if (!canHold || currentPiece == null || isGameOver || currentPiece.getType() == TetrominoType.BOMB) {
             return;
         }
 
@@ -473,6 +522,42 @@ public class GameController {
         return distance;
     }
 
+    private void useBombSkill() {
+        if (isGameOver || gamePaused || bombsRemaining <= 0 || currentPiece == null) {
+            return;
+        }
+        if (currentPiece.getType() == TetrominoType.BOMB) {
+            return;
+        }
+
+        bombsRemaining--;
+        currentPiece = new Piece(TetrominoType.BOMB, currentPiece.getX(), currentPiece.getY());
+        updateBombInventoryUI();
+        flashBombInventory();
+    }
+
+    private void updateBombInventoryUI() {
+        if (bombsLabel != null) {
+            bombsLabel.setText("\uD83D\uDCA3 x" + bombsRemaining);
+        }
+    }
+
+    private void flashBombInventory() {
+        if (bombInventoryBox == null) {
+            return;
+        }
+
+        bombInventoryBox.setStyle(
+                bombInventoryBaseStyle
+                        + "; -fx-border-color: #ffcc00; -fx-border-width: 2;"
+                        + " -fx-effect: dropshadow(gaussian, #ffcc00, 10, 0.6, 0, 0);"
+        );
+
+        PauseTransition reset = new PauseTransition(Duration.millis(160));
+        reset.setOnFinished(e -> bombInventoryBox.setStyle(bombInventoryBaseStyle));
+        reset.play();
+    }
+
     @FXML
     private void handleKeyPressed(KeyEvent event) {
         KeyCode code = event.getCode();
@@ -495,6 +580,7 @@ public class GameController {
             }
             case SPACE -> hardDrop();
             case P -> handlePause();
+            case B -> useBombSkill();
             case C, SHIFT      -> holdCurrentPiece();
             case ESCAPE -> handleExit();
             default -> {
@@ -814,6 +900,7 @@ public class GameController {
             case Z -> 5;
             case J -> 6;
             case L -> 7;
+            case BOMB -> 8;
         };
     }
 
@@ -826,6 +913,7 @@ public class GameController {
             case 5 -> TetrominoType.Z;
             case 6 -> TetrominoType.J;
             case 7 -> TetrominoType.L;
+            case 8 -> TetrominoType.BOMB;
             default -> null;
         };
     }
