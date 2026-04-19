@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4ef5aa4c-aaa8-4047-871e-c1513f66338f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/main/resources/fxml/game.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/fxml/game.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/se330/tetris/controller/ResultsController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/se330/tetris/controller/ResultsController.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

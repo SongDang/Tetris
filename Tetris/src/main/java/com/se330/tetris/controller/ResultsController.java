@@ -1,5 +1,7 @@
 package com.se330.tetris.controller;
 
+import com.se330.tetris.service.SoundManager;
+import com.se330.tetris.util.SoundType;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -92,6 +94,7 @@ public class ResultsController {
         // Clear cache to force GameController.initialize() to run again
         sceneManager.clearSceneCache();
         sceneManager.switchToScene(SceneManager.GAME_SCENE);
+        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
     }
 
     @FXML
