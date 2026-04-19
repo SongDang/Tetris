@@ -85,6 +85,8 @@ public class GameController {
     private BorderPulseEffect borderPulseEffect = null;
     private GlitchTearEffect  glitchTearEffect  = null;
 
+    private javafx.scene.image.Image bombSprite;
+
     private GraphicsContext nextGc1;
     private GraphicsContext nextGc2;
     private GraphicsContext nextGc3;
@@ -140,6 +142,7 @@ public class GameController {
 
         vfxGc = vfxCanvas.getGraphicsContext2D();
         holdGc = holdBlockCanvas.getGraphicsContext2D();
+        bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
 
         // Spawn hai mảnh đầu tiên
         holdType = null;
@@ -361,13 +364,11 @@ public class GameController {
     private void spawnAndCheckGameOver() {
         spawnPiece();
         if (!canMove(0, 0, currentPiece.getRotation())) {
-            isGameOver = true;
-            SoundManager.getInstance().playSE(SoundType.GAME_OVER);
-            SoundManager.getInstance().stopMusic();
-            gameLoop.stop();
-            sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+            isGameOver          = true;
             gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
             gameOverFlashAlpha  = 0.6;
+            SoundManager.getInstance().playSE(SoundType.GAME_OVER);
+            SoundManager.getInstance().stopMusic();
         }
     }
 
@@ -914,7 +915,10 @@ public class GameController {
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                 if (board[y][x] != 0) {
                     TetrominoType t = idToType(board[y][x]);
-                    if (t != null)
+                    if (t == null) continue;
+                    if (t == TetrominoType.BOMB)
+                        gc.drawImage(bombSprite, x * cs, y * cs, cs, cs);
+                    else
                         drawCell(gc, x, y, t.getColor(), 1.0);
                 }
             }
@@ -956,16 +960,18 @@ public class GameController {
 
         // Current piece - apply rotation pulse brightness
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+        boolean isBomb = currentPiece.getType() == TetrominoType.BOMB;
         Color pieceColor = currentPiece.getType().getColor()
                 .deriveColor(0, 1, 1.0 + rotationPulse * 1.8, 1);
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 if (shape[row][col] == 1) {
-                    drawCell(gc,
-                            currentPiece.getX() + col,
-                            currentPiece.getY() + row,
-                            pieceColor,
-                            1.0);
+                    int px = currentPiece.getX() + col;
+                    int py = currentPiece.getY() + row;
+                    if (isBomb)
+                        gc.drawImage(bombSprite, px * cs, py * cs, cs, cs);
+                    else
+                        drawCell(gc, px, py, pieceColor, 1.0);
                 }
             }
         }
