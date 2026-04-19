@@ -1,6 +1,5 @@
 package com.se330.tetris.controller;
 
-import com.se330.tetris.core.TetrisApp;
 import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.Constants;
 import com.se330.tetris.util.SoundType;
@@ -13,7 +12,6 @@ import com.se330.tetris.game.TetrominoType;
 import com.se330.tetris.service.GameContext;
 import com.se330.tetris.service.SceneManager;
 import javafx.animation.AnimationTimer;
-import javafx.animation.PauseTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
@@ -24,13 +22,9 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import javafx.util.Duration;
 import javafx.scene.text.FontWeight;
-
-import java.util.Collections;
 
 public class GameController {
 
@@ -57,9 +51,6 @@ public class GameController {
     @FXML
     private Canvas holdBlockCanvas;
 
-    @FXML private Label       bombsLabel;
-    @FXML private VBox        bombInventoryBox;
-
     private SceneManager sceneManager;
     private GameContext gameContext;
 
@@ -77,13 +68,11 @@ public class GameController {
     private Piece nextPiece;
     private TetrominoType holdType;
     private boolean canHold = true;
-    private int bombsRemaining = 3;
-    private String bombInventoryBaseStyle = "";
-
     private final ParticleSystem particleSystem = new ParticleSystem();
     private LevelUpEffect     levelUpEffect     = null;
     private BorderPulseEffect borderPulseEffect = null;
-    private GlitchTearEffect  glitchTearEffect  = null;
+    private GlitchTearEffect       glitchTearEffect       = null;
+    private com.se330.tetris.game.GlitchExplosionEffect glitchExplosionEffect = null;
 
     private javafx.scene.image.Image bombSprite;
 
@@ -148,8 +137,6 @@ public class GameController {
         holdType = null;
         canHold = true;
 
-        bombsRemaining = 3;
-
         nextPiece = randomPiece();
         // Seed queue for current + 3 previews.
         nextQueue.clear();
@@ -157,11 +144,6 @@ public class GameController {
             nextQueue.addLast(randomPiece());
         }
         spawnPiece();
-
-        if (bombInventoryBox != null) {
-            bombInventoryBaseStyle = bombInventoryBox.getStyle() == null ? "" : bombInventoryBox.getStyle();
-        }
-        updateBombInventoryUI();
 
         // Cập nhật labels ban đầu
         refreshLabels();
@@ -209,6 +191,10 @@ public class GameController {
                 }
 
                 if (glitchTearEffect != null) glitchTearEffect.update(dt);
+                if (glitchExplosionEffect != null) {
+                    glitchExplosionEffect.update(dt);
+                    if (glitchExplosionEffect.isDone()) glitchExplosionEffect = null;
+                }
                 if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
 
                 if (isGameOver && gameOverFreezeUntil > 0 && now >= gameOverFreezeUntil) {
@@ -396,17 +382,32 @@ public class GameController {
     }
 
     private void detonateBomb(int centerX, int centerY) {
+        int cs = Constants.BLOCK_SIZE;
+        double pixelCx = (centerX + 0.5) * cs;
+        double pixelCy = (centerY + 0.5) * cs;
+
+        // Snapshot destroyed cells before clearing (for glitch effect ghost rendering)
+        java.util.List<com.se330.tetris.game.GlitchExplosionEffect.CellSnap> snaps = new java.util.ArrayList<>();
         for (int y = centerY - 1; y <= centerY + 1; y++) {
-            if (y < 0 || y >= Constants.BOARD_HEIGHT) {
-                continue;
-            }
+            if (y < 0 || y >= Constants.BOARD_HEIGHT) continue;
             for (int x = centerX - 1; x <= centerX + 1; x++) {
-                if (x < 0 || x >= Constants.BOARD_WIDTH) {
-                    continue;
+                if (x < 0 || x >= Constants.BOARD_WIDTH) continue;
+                if (board[y][x] != 0) {
+                    TetrominoType t = idToType(board[y][x]);
+                    if (t != null && t != TetrominoType.BOMB)
+                        snaps.add(new com.se330.tetris.game.GlitchExplosionEffect.CellSnap(
+                            x * cs, y * cs, cs, t.getColor()));
                 }
                 board[y][x] = 0;
             }
         }
+
+        glitchExplosionEffect = new com.se330.tetris.game.GlitchExplosionEffect(pixelCx, pixelCy, cs, snaps);
+        flashIntensity    = 0.45;
+        shakeIntensity    = 18;
+        shakeInitDuration = 0.30;
+        shakeDuration     = 0.30;
+        SoundManager.getInstance().playSE(SoundType.BLOCK_DROP);
     }
 
     private int getBombImpactY(int bombX, int bombY) {
@@ -618,42 +619,6 @@ public class GameController {
         return distance;
     }
 
-    private void useBombSkill() {
-        if (isGameOver || gamePaused || bombsRemaining <= 0 || currentPiece == null) {
-            return;
-        }
-        if (currentPiece.getType() == TetrominoType.BOMB) {
-            return;
-        }
-
-        bombsRemaining--;
-        currentPiece = new Piece(TetrominoType.BOMB, currentPiece.getX(), currentPiece.getY());
-        updateBombInventoryUI();
-        flashBombInventory();
-    }
-
-    private void updateBombInventoryUI() {
-        if (bombsLabel != null) {
-            bombsLabel.setText("\uD83D\uDCA3 x" + bombsRemaining);
-        }
-    }
-
-    private void flashBombInventory() {
-        if (bombInventoryBox == null) {
-            return;
-        }
-
-        bombInventoryBox.setStyle(
-                bombInventoryBaseStyle
-                        + "; -fx-border-color: #ffcc00; -fx-border-width: 2;"
-                        + " -fx-effect: dropshadow(gaussian, #ffcc00, 10, 0.6, 0, 0);"
-        );
-
-        PauseTransition reset = new PauseTransition(Duration.millis(160));
-        reset.setOnFinished(e -> bombInventoryBox.setStyle(bombInventoryBaseStyle));
-        reset.play();
-    }
-
     @FXML
     private void handleKeyPressed(KeyEvent event) {
         KeyCode code = event.getCode();
@@ -672,8 +637,7 @@ public class GameController {
             }
             case SPACE -> hardDrop();
             case P -> handlePause();
-            case B -> useBombSkill();
-            case C, SHIFT      -> holdCurrentPiece();
+case C, SHIFT      -> holdCurrentPiece();
             case ESCAPE -> handleExit();
             default -> {
                 return;
@@ -862,6 +826,8 @@ public class GameController {
 
         drawGameBoard();
 
+        if (glitchExplosionEffect != null) glitchExplosionEffect.render(gameGc);
+
         // --- XỬ LÝ RENDER THEO THỨ TỰ LỚP (Layering) ---
         if (glitchTearEffect != null) {
             vfxGc.clearRect(0, 0, vfxCanvas.getWidth(), vfxCanvas.getHeight());
@@ -968,9 +934,15 @@ public class GameController {
                 if (shape[row][col] == 1) {
                     int px = currentPiece.getX() + col;
                     int py = currentPiece.getY() + row;
-                    if (isBomb)
-                        gc.drawImage(bombSprite, px * cs, py * cs, cs, cs);
-                    else
+                    if (isBomb) {
+                        double cx = px * cs + cs / 2.0;
+                        double cy = py * cs + cs / 2.0;
+                        gc.save();
+                        gc.translate(cx, cy);
+                        gc.rotate(currentPiece.getRotation() * 90.0);
+                        gc.drawImage(bombSprite, -cs / 2.0, -cs / 2.0, cs, cs);
+                        gc.restore();
+                    } else
                         drawCell(gc, px, py, pieceColor, 1.0);
                 }
             }
@@ -1045,7 +1017,10 @@ public class GameController {
                     if (shape[row][col] == 1) {
                         double px = offsetX + (col - minCol) * previewCellSize;
                         double py = offsetY + (row - minRow) * previewCellSize;
-                        drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
+                        if (type == TetrominoType.BOMB)
+                            gc.drawImage(bombSprite, px, py, previewCellSize, previewCellSize);
+                        else
+                            drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
                     }
                 }
             }

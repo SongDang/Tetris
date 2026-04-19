@@ -40,7 +40,7 @@
         </StackPane>
 
         <HBox style="-fx-alignment: center; -fx-padding: 8 0 0 0;">
-            <Label text="← →: Move | ↑: Rotate | B: Bomb | C: Hold | SPACE: Drop | P: Pause"
+            <Label text="← →: Move | ↑: Rotate | C: Hold | SPACE: Drop | P: Pause"
                    style="-fx-font-size: 10; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
         </HBox>
     </VBox>
@@ -53,16 +53,5 @@
             <Canvas fx:id="nextBlockCanvas3" width="100" height="100"/>
         </VBox>
 
-        <VBox fx:id="bombInventoryBox"
-              style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14;
-                     -fx-border-color: #aa3344; -fx-border-width: 1;
-                     -fx-background-color: #2a1620; -fx-background-radius: 4;">
-            <Label text="BOMB SKILL"
-                   style="-fx-font-size: 11; -fx-text-fill: #ff9aa8;
-                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Label fx:id="bombsLabel" text="💣 x3"
-                   style="-fx-font-size: 24; -fx-text-fill: #ff5566;
-                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-        </VBox>
     </VBox>
 </HBox>
