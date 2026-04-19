@@ -1,0 +1,23 @@
+package com.se330.tetris.util;
+
+public enum SoundType {
+    //music
+    MAIN_THEME("/sound/main_theme_music.wav"),
+    GAMEPLAY_THEME("/sound/gameplay_theme.wav"),
+    //sound effect
+    BUTTON_CLICK("/sound/button_click_sound.wav"),
+    ENTER_MODE("/sound/enter_mode_sound.wav"),
+    GAME_OVER("/sound/game_over_sound.wav"),
+    BLOCK_DROP("/sound/block_drop_sound.wav"),
+    SCORE("/sound/score_sound.wav");
+
+    private final String path;
+
+    SoundType(String path) {
+        this.path = path;
+    }
+
+    public String getPath() {
+        return path;
+    }
+}

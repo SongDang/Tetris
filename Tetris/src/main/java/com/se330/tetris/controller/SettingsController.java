@@ -1,5 +1,6 @@
 package com.se330.tetris.controller;
 
+import com.se330.tetris.service.SoundManager;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -94,12 +95,24 @@ public class SettingsController {
         musicVolume.setDisable(!enabled);
         syncAudioButtonState();
         System.out.println("Music: " + (enabled ? "enabled" : "disabled"));
+
+        if (enabled) {
+            SoundManager.getInstance().setMusicVolume((float) musicVolume.getValue() / 100.0f);
+        } else {
+            SoundManager.getInstance().setMusicVolume(0.0f);
+        }
     }
 
     private void onSfxToggled(boolean enabled) {
         sfxVolume.setDisable(!enabled);
         syncAudioButtonState();
         System.out.println("SFX: " + (enabled ? "enabled" : "disabled"));
+
+        if (enabled) {
+            SoundManager.getInstance().setSEVolume((float) sfxVolume.getValue() / 100.0f);
+        } else {
+            SoundManager.getInstance().setSEVolume(0.0f);
+        }
     }
 
     @FXML
@@ -115,11 +128,15 @@ public class SettingsController {
     private void onMusicVolumeChanged(int volume) {
         musicVolumeLabel.setText(volume + "%");
         System.out.println("Music volume changed to: " + volume + "%");
+
+        SoundManager.getInstance().setMusicVolume(volume / 100.0f);
     }
 
     private void onSfxVolumeChanged(int volume) {
         sfxVolumeLabel.setText(volume + "%");
         System.out.println("SFX volume changed to: " + volume + "%");
+
+        SoundManager.getInstance().setSEVolume(volume / 100.0f);
     }
 
     private void onHardModeToggled(boolean enabled) {

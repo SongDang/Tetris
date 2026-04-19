@@ -1,6 +1,8 @@
 package com.se330.tetris.controller;
 
 import javafx.animation.AnimationTimer;
+import com.se330.tetris.service.SoundManager;
+import com.se330.tetris.util.SoundType;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -174,7 +176,8 @@ public class ResultsController {
     }
 
     private void populateResults() {
-        int demoScore = gameContext.getScore();;
+        int demoScore = gameContext.getScore();
+        ;
         int demoLevel = gameContext.getLevel();
         int demoLines = gameContext.getLines();
         int demoBlocks = 156;
@@ -215,7 +218,10 @@ public class ResultsController {
     private void onRetryClicked() {
         System.out.println("Retrying with mode: " + gameContext.getGameMode().getDisplayName());
         gameContext.reset();
+        // Clear cache to force GameController.initialize() to run again
+        sceneManager.clearSceneCache();
         sceneManager.switchToScene(SceneManager.GAME_SCENE);
+        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
     }
 
     @FXML
