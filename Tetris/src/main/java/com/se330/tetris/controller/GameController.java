@@ -459,6 +459,7 @@ public class GameController {
             }
             case SPACE -> hardDrop();
             case P -> handlePause();
+            case C, SHIFT      -> holdCurrentPiece();
             case ESCAPE -> handleExit();
             default -> {
                 return;
