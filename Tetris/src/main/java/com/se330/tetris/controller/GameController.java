@@ -12,7 +12,6 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -42,6 +41,8 @@ public class GameController {
     private Label levelLabel;
     @FXML
     private Label linesLabel;
+    @FXML
+    private Canvas holdBlockCanvas;
 
     private SceneManager sceneManager;
     private GameContext gameContext;
@@ -49,14 +50,16 @@ public class GameController {
     private GraphicsContext gameGc;
     private GraphicsContext nextGc;
     private GraphicsContext vfxGc;
-
     // vfxCanvas extends 150 px beyond each board edge (canvas width = 600, layoutX
     // = -150)
     private static final double VFX_MARGIN = 150.0;
+    private GraphicsContext holdGc;
 
     private final int[][] board = new int[Constants.BOARD_HEIGHT][Constants.BOARD_WIDTH];
     private Piece currentPiece;
     private Piece nextPiece;
+    private TetrominoType holdType;
+    private boolean canHold = true;
 
     private final ParticleSystem particleSystem = new ParticleSystem();
 
@@ -86,9 +89,13 @@ public class GameController {
 
         gameGc = gameCanvas.getGraphicsContext2D();
         nextGc = nextBlockCanvas.getGraphicsContext2D();
+
         vfxGc = vfxCanvas.getGraphicsContext2D();
+        holdGc = holdBlockCanvas.getGraphicsContext2D();
 
         // Spawn hai mảnh đầu tiên
+        holdType = null;
+        canHold = true;
         nextPiece = randomPiece();
         spawnPiece();
 
@@ -204,6 +211,7 @@ public class GameController {
             shakeDuration = shakeInitDuration;
         }
 
+        canHold = true;
         spawnAndCheckGameOver();
     }
 
@@ -219,10 +227,12 @@ public class GameController {
     }
 
     private void spawnPiece() {
-        currentPiece = nextPiece;
-        currentPiece.setX(Constants.BOARD_WIDTH / 2 - 2);
-        currentPiece.setY(0);
+        currentPiece = createSpawnedPiece(nextPiece.getType());
         nextPiece = randomPiece();
+    }
+
+    private Piece createSpawnedPiece(TetrominoType type) {
+        return new Piece(type, Constants.BOARD_WIDTH / 2 - 2, 0);
     }
 
     private Piece randomPiece() {
@@ -396,6 +406,30 @@ public class GameController {
         lockAndSpawn();
     }
 
+    private void holdCurrentPiece() {
+        if (!canHold || currentPiece == null || isGameOver) {
+            return;
+        }
+
+        canHold = false;
+        TetrominoType currentType = currentPiece.getType();
+
+        if (holdType == null) {
+            holdType = currentType;
+            spawnPiece();
+        } else {
+            TetrominoType swapped = holdType;
+            holdType = currentType;
+            currentPiece = createSpawnedPiece(swapped);
+        }
+
+        if (!canMove(0, 0, currentPiece.getRotation())) {
+            isGameOver = true;
+            gameLoop.stop();
+            sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+        }
+    }
+
     private int getDropDistance() {
         int distance = 0;
         while (canMove(0, distance + 1, currentPiece.getRotation()))
@@ -469,6 +503,7 @@ public class GameController {
         particleSystem.render(gameGc);
         particleSystem.renderBeams(vfxGc);
         drawNextBlock();
+        drawHoldBlock();
     }
 
     public void drawGameBoard() {
@@ -556,9 +591,18 @@ public class GameController {
     }
 
     public void drawNextBlock() {
-        GraphicsContext gc = nextGc;
-        double w = nextBlockCanvas.getWidth();
-        double h = nextBlockCanvas.getHeight();
+        drawPreviewBlock(nextGc, nextBlockCanvas,
+                nextPiece == null ? null : nextPiece.getType(),
+                nextPiece == null ? 0 : nextPiece.getRotation());
+    }
+
+    public void drawHoldBlock() {
+        drawPreviewBlock(holdGc, holdBlockCanvas, holdType, 0);
+    }
+
+    private void drawPreviewBlock(GraphicsContext gc, Canvas canvas, TetrominoType type, int rotation) {
+        double w = canvas.getWidth();
+        double h = canvas.getHeight();
 
         gc.setFill(Color.web("#0f0d1a"));
         gc.fillRect(0, 0, w, h);
@@ -567,12 +611,43 @@ public class GameController {
         gc.setLineWidth(2);
         gc.strokeRect(0, 0, w, h);
 
-        int[][] shape = nextPiece.getType().getShape(nextPiece.getRotation());
-        int cs = Constants.BLOCK_SIZE;
+        if (type == null) {
+            return;
+        }
+
+        int[][] shape = type.getShape(rotation);
+        int minRow = 4;
+        int maxRow = -1;
+        int minCol = 4;
+        int maxCol = -1;
+
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 if (shape[row][col] == 1) {
-                    drawCell(gc, col + 1, row + 1, nextPiece.getType().getColor(), 1.0, nextGc, cs);
+                    minRow = Math.min(minRow, row);
+                    maxRow = Math.max(maxRow, row);
+                    minCol = Math.min(minCol, col);
+                    maxCol = Math.max(maxCol, col);
+                }
+            }
+        }
+
+        if (maxRow < 0 || maxCol < 0) {
+            return;
+        }
+
+        int cs = Constants.BLOCK_SIZE;
+        int pieceWidth = (maxCol - minCol + 1) * cs;
+        int pieceHeight = (maxRow - minRow + 1) * cs;
+        double offsetX = (w - pieceWidth) / 2.0;
+        double offsetY = (h - pieceHeight) / 2.0;
+
+        for (int row = minRow; row <= maxRow; row++) {
+            for (int col = minCol; col <= maxCol; col++) {
+                if (shape[row][col] == 1) {
+                    double px = offsetX + (col - minCol) * cs;
+                    double py = offsetY + (row - minRow) * cs;
+                    drawCellAtPixel(gc, px, py, cs, type.getColor(), 1.0);
                 }
             }
         }
@@ -592,6 +667,15 @@ public class GameController {
         target.setStroke(Color.web("#111111"));
         target.setLineWidth(1);
         target.strokeRect(px, py, cs, cs);
+    }
+
+    private void drawCellAtPixel(GraphicsContext target, double px, double py,
+                                 int size, Color color, double opacity) {
+        target.setFill(color.deriveColor(0, 1, 1, opacity));
+        target.fillRect(px, py, size, size);
+        target.setStroke(Color.web("#111111"));
+        target.setLineWidth(1);
+        target.strokeRect(px, py, size, size);
     }
 
     private int typeId(TetrominoType type) {
