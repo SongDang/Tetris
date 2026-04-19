@@ -4,6 +4,14 @@ import com.se330.tetris.core.TetrisApp;
 import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.Constants;
 import com.se330.tetris.util.SoundType;
+import com.se330.tetris.game.BorderPulseEffect;
+import com.se330.tetris.game.GlitchTearEffect;
+import com.se330.tetris.game.LevelUpEffect;
+import com.se330.tetris.game.ParticleSystem;
+import com.se330.tetris.game.Piece;
+import com.se330.tetris.game.TetrominoType;
+import com.se330.tetris.service.GameContext;
+import com.se330.tetris.service.SceneManager;
 import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
 import javafx.application.Platform;
@@ -20,13 +28,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.util.Duration;
-
-import com.se330.tetris.game.Particle;
-import com.se330.tetris.game.ParticleSystem;
-import com.se330.tetris.game.Piece;
-import com.se330.tetris.game.TetrominoType;
-import com.se330.tetris.service.GameContext;
-import com.se330.tetris.service.SceneManager;
+import javafx.scene.text.FontWeight;
 
 import java.util.Collections;
 
@@ -79,6 +81,9 @@ public class GameController {
     private String bombInventoryBaseStyle = "";
 
     private final ParticleSystem particleSystem = new ParticleSystem();
+    private LevelUpEffect     levelUpEffect     = null;
+    private BorderPulseEffect borderPulseEffect = null;
+    private GlitchTearEffect  glitchTearEffect  = null;
 
     private GraphicsContext nextGc1;
     private GraphicsContext nextGc2;
@@ -94,6 +99,20 @@ public class GameController {
 
     private long lastFrameTime = 0;
     private long fallIntervalNs = 500_000_000L;
+    private long freezeUntil         = 0;  // nanosecond timestamp; game logic frozen until this time
+    private long   gameOverFreezeUntil  = 0;   // 0.5s static pause before glitch fires
+    private double gameOverFlashAlpha   = 0;   // white flash on board at moment of game over
+    private int[]  pendingTetrisClear   = null; // Tetris rows cleared after freeze ends
+    private int[] frozenRowFlash = null;  // row indices to flash white during Tetris freeze
+
+    private int    comboCount      = 0;
+    private int    comboDisplay    = 0;
+    private double comboFloatX     = 0;
+    private double comboFloatY     = 0;
+    private double comboFloatAlpha  = 0;
+    private double comboFloatPhase  = 0;
+    private double comboShakeAmount = 0;
+    private Color  comboColor       = Color.WHITE;
 
     private int dropStartRow = -1;
     private double shakeIntensity = 0;
@@ -164,22 +183,73 @@ public class GameController {
                 double dt = (now - lastFrameTime) / 1_000_000_000.0;
                 lastFrameTime = now;
 
-                if (gamePaused || isGameOver)
-                    return;
+                if (freezeUntil > 0 && now >= freezeUntil) {
+                    lastFallTime   = now;
+                    freezeUntil    = 0;
+                    frozenRowFlash = null;
+                    if (pendingTetrisClear != null) {
+                        int[] rows = pendingTetrisClear;
+                        pendingTetrisClear = null;
+                        for (int row : rows) {
+                            for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
+                            board[0] = new int[Constants.BOARD_WIDTH];
+                        }
+                        addScore(4);
+                        addLines(4);
+                        updateLevel();
+                        spawnAndCheckGameOver();
+                    }
+                }
 
-                applyMouseTarget(now);
+                if (glitchTearEffect != null) glitchTearEffect.update(dt);
+                if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
 
-                if (!gamePaused && !isGameOver) {
+                if (isGameOver && gameOverFreezeUntil > 0 && now >= gameOverFreezeUntil) {
+                    gameOverFreezeUntil = 0;
+                    glitchTearEffect = new GlitchTearEffect(board, Constants.BLOCK_SIZE, () -> {
+                        gameLoop.stop();
+                        sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+                    });
+                }
+
+                // --- LOGIC GAME CHÍNH ---
+                if (!gamePaused && !isGameOver && freezeUntil == 0) {
+                    applyMouseTarget(now); // Giữ logic Mouse từ bản cũ
+
                     if (now - lastFallTime >= fallIntervalNs) {
                         updateFall();
                         lastFallTime = now;
                     }
+
                     particleSystem.update(dt);
                     updateScreenShake(dt);
-                    if (rotationPulse > 0)
-                        rotationPulse = Math.max(0, rotationPulse - dt * 8.0);
-                    if (flashIntensity > 0)
-                        flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
+
+                    // Cập nhật các hiệu ứng VFX mới
+                    if (rotationPulse  > 0) rotationPulse  = Math.max(0, rotationPulse  - dt * 8.0);
+                    if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
+
+                    if (levelUpEffect != null) {
+                        levelUpEffect.update(dt);
+                        if (levelUpEffect.isDone()) levelUpEffect = null;
+                    }
+                    if (borderPulseEffect != null) {
+                        borderPulseEffect.update(dt);
+                        if (borderPulseEffect.isDone()) borderPulseEffect = null;
+                    } else {
+                        // Check cảnh báo nguy hiểm (stack cao)
+                        int dangerRow = (int)(Constants.BOARD_HEIGHT * 0.35);
+                        outer:
+                        for (int y = 0; y <= dangerRow; y++)
+                            for (int x = 0; x < Constants.BOARD_WIDTH; x++)
+                                if (board[y][x] != 0) { borderPulseEffect = new BorderPulseEffect(); break outer; }
+                    }
+
+                    if (comboFloatAlpha > 0) {
+                        comboFloatY      -= dt * 60;
+                        comboFloatPhase  += dt * 5.0;
+                        comboShakeAmount  = Math.max(0, comboShakeAmount - dt * 100);
+                        comboFloatAlpha   = Math.max(0, comboFloatAlpha - dt * 1.1);
+                    }
                 }
                 render();
             }
@@ -196,6 +266,7 @@ public class GameController {
     }
 
     private void lockAndSpawn() {
+        // --- GIỮ LOGIC BOMB TỪ HEAD ---
         if (currentPiece.getType() == TetrominoType.BOMB) {
             int impactX = currentPiece.getX();
             int impactY = getBombImpactY(impactX, currentPiece.getY());
@@ -204,66 +275,70 @@ public class GameController {
             lockPiece();
         }
 
-        // Detect full rows, emit burst VFX from each cell, then clear instantly
         int cs = Constants.BLOCK_SIZE;
         java.util.List<Integer> fullRows = new java.util.ArrayList<>();
         for (int y = Constants.BOARD_HEIGHT - 1; y >= 0; y--) {
             boolean full = true;
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
-                if (board[y][x] == 0) {
-                    full = false;
-                    break;
-                }
+                if (board[y][x] == 0) { full = false; break; }
             }
-            if (full)
-                fullRows.add(y);
+            if (full) fullRows.add(y);
         }
 
         if (!fullRows.isEmpty()) {
             int cleared = fullRows.size();
-            // Emit particle burst from every cell in the cleared rows
             for (int row : fullRows) {
                 for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                     TetrominoType t = idToType(board[row][x]);
-                    if (t != null)
-                        particleSystem.emitRowBurst(x * cs, row * cs, t.getColor(), 8);
+                    if (t != null) particleSystem.emitRowBurst(x * cs, row * cs, t.getColor(), 8);
                 }
             }
-            // Horizontal beams shooting out from each cleared row's left/right edges
-            double leftBase = VFX_MARGIN; // board left edge in vfxCanvas coords
-            double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs; // board right edge in vfxCanvas coords
-            Color pieceCol = currentPiece.getType().getColor();
+
+            double leftBase  = VFX_MARGIN;
+            double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs;
+            Color pieceCol   = currentPiece.getType().getColor();
             for (int row : fullRows) {
                 particleSystem.emitRowBeams(leftBase, rightBase, row * cs, cs, pieceCol);
             }
 
-            // CLEAR ROWS
-            int[][] nextBoard = new int[Constants.BOARD_HEIGHT][Constants.BOARD_WIDTH];
-            int writeRow = Constants.BOARD_HEIGHT - 1; // Write from bottom of the board
-            // CHECK BOTTOM-UP
-            for (int readRow = Constants.BOARD_HEIGHT - 1; readRow >= 0; readRow--) {
-                if (!fullRows.contains(readRow)) {
-                    // write if it's not a full row
-                    nextBoard[writeRow] = board[readRow].clone();
-                    writeRow--;
-                }
-                // Skip full row
+            // --- LOGIC COMBO & SHAKE MỚI ---
+            double t = cleared / 4.0;
+            flashIntensity    = 0.12 + t * 0.28;
+            shakeIntensity    = 5.0  + t * 13.0  + (cleared == 4 ? 12.0 : 0);
+            shakeInitDuration = 0.18 + t * 0.17  + (cleared == 4 ? 0.10 : 0);
+            shakeDuration     = shakeInitDuration;
+
+            comboCount++;
+            if (comboCount >= 2) {
+                int avgRow = fullRows.stream().mapToInt(Integer::intValue).sum() / fullRows.size();
+                comboDisplay    = comboCount;
+                comboFloatX     = gameCanvas.getWidth() / 2.0 - 50;
+                comboFloatY     = avgRow * cs;
+                comboFloatAlpha  = 1.0;
+                comboFloatPhase  = 0;
+                comboShakeAmount = 10 + comboDisplay * 5;
+                comboColor = TetrominoType.values()[rng.nextInt(7)].getColor();
             }
-            // UPDATE NEW BOARD
-            for (int i = 0; i < Constants.BOARD_HEIGHT; i++) {
-                board[i] = nextBoard[i];
+
+            if (cleared == 4) {
+                fullRows.sort(java.util.Collections.reverseOrder());
+                frozenRowFlash     = fullRows.stream().mapToInt(Integer::intValue).toArray();
+                pendingTetrisClear = frozenRowFlash;
+                freezeUntil        = System.nanoTime() + 300_000_000L;
+                return;
+            }
+
+            fullRows.sort(java.util.Collections.reverseOrder());
+            for (int row : fullRows) {
+                for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
+                board[0] = new int[Constants.BOARD_WIDTH];
             }
 
             addScore(cleared);
             addLines(cleared);
             updateLevel();
-
-            // Scale shake + flash with lines cleared; Tetris gets extra violence
-            double t = cleared / 4.0;
-            flashIntensity = 0.12 + t * 0.28;
-            shakeIntensity = 5.0 + t * 13.0 + (cleared == 4 ? 22.0 : 0);
-            shakeInitDuration = 0.18 + t * 0.17 + (cleared == 4 ? 0.20 : 0);
-            shakeDuration = shakeInitDuration;
+        } else {
+            comboCount = 0;
         }
 
         canHold = true;
@@ -278,6 +353,8 @@ public class GameController {
             SoundManager.getInstance().stopMusic();
             gameLoop.stop();
             sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+            gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
+            gameOverFlashAlpha  = 0.6;
         }
     }
 
@@ -448,6 +525,11 @@ public class GameController {
             levelLabel.setText(String.valueOf(newLevel));
             // Tăng tốc độ rơi
             fallIntervalNs = Math.max(100_000_000L, 500_000_000L - (newLevel - 1) * 40_000_000L);
+            levelUpEffect = new LevelUpEffect(newLevel, () -> {
+                shakeIntensity    = 18;
+                shakeInitDuration = 0.25;
+                shakeDuration     = 0.25;
+            });
         }
     }
 
@@ -698,21 +780,39 @@ public class GameController {
     private static final String PANE_BASE_STYLE = "-fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;";
 
     private void render() {
-        // Flash outer background behind the board
         if (flashIntensity > 0) {
             double r = BG_R + flashIntensity * (1.0 - BG_R);
             double g = BG_G + flashIntensity * (1.0 - BG_G);
             double b = BG_B + flashIntensity * (1.0 - BG_B);
-            String hex = String.format("#%02x%02x%02x",
-                    (int) (r * 255), (int) (g * 255), (int) (b * 255));
+            String hex = String.format("#%02x%02x%02x", (int)(r*255), (int)(g*255), (int)(b*255));
             gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
         } else {
             gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
         }
+
         drawGameBoard();
 
-        particleSystem.render(gameGc);
-        particleSystem.renderBeams(vfxGc);
+        // --- XỬ LÝ RENDER THEO THỨ TỰ LỚP (Layering) ---
+        if (glitchTearEffect != null) {
+            vfxGc.clearRect(0, 0, vfxCanvas.getWidth(), vfxCanvas.getHeight());
+            glitchTearEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
+            double wa = glitchTearEffect.getWhiteoutAlpha();
+            if (wa > 0) {
+                flashIntensity = wa;
+                vfxGc.setFill(Color.color(1, 1, 1, wa));
+                vfxGc.fillRect(0, 0, vfxCanvas.getWidth(), vfxCanvas.getHeight());
+            }
+        } else {
+            if (levelUpEffect != null)
+                levelUpEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
+
+            particleSystem.render(gameGc);
+            particleSystem.renderBeams(vfxGc);
+
+            if (borderPulseEffect != null)
+                borderPulseEffect.render(gameGc, vfxGc, gameCanvas.getWidth(), gameCanvas.getHeight(), VFX_MARGIN);
+        }
+
         drawHoldBlock();
         drawNextBlocks();
     }
@@ -751,22 +851,41 @@ public class GameController {
             }
         }
 
+        // Flash cleared rows white during Tetris freeze
+        if (frozenRowFlash != null && freezeUntil > 0) {
+            gc.setFill(Color.WHITE);
+            for (int row : frozenRowFlash) {
+                gc.fillRect(0, row * cs, w, cs);
+            }
+        }
+
+        // White flash on board at moment of game over
+        if (gameOverFlashAlpha > 0) {
+            gc.setFill(Color.color(1, 1, 1, gameOverFlashAlpha));
+            gc.fillRect(0, 0, w, h);
+        }
+
+        // Ghost + current piece hidden during game over (glitch effect takes over)
+        if (isGameOver) return;
+
         // Ghost
-        int drop = getDropDistance();
-        int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 4; col++) {
-                if (ghostShape[row][col] == 1) {
-                    drawCell(gc,
-                            currentPiece.getX() + col,
-                            currentPiece.getY() + row + drop,
-                            currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25),
-                            1.0);
+        if (freezeUntil == 0) {
+            int drop = getDropDistance();
+            int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (ghostShape[row][col] == 1) {
+                        drawCell(gc,
+                                currentPiece.getX() + col,
+                                currentPiece.getY() + row + drop,
+                                currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25),
+                                1.0);
+                    }
                 }
             }
         }
 
-        // Current piece — apply rotation pulse brightness
+        // Current piece - apply rotation pulse brightness
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         Color pieceColor = currentPiece.getType().getColor()
                 .deriveColor(0, 1, 1.0 + rotationPulse * 1.8, 1);
@@ -782,13 +901,18 @@ public class GameController {
             }
         }
 
-        // Game Over overlay
-        if (isGameOver) {
-            gc.setFill(Color.color(0, 0, 0, 0.6));
-            gc.fillRect(0, 0, w, h);
-            gc.setFill(Color.web("#ff4444"));
-            gc.setFont(Font.font("Courier New", 28));
-            gc.fillText("GAME OVER", w / 2 - 80, h / 2);
+        // Floating combo text
+        if (comboFloatAlpha > 0) {
+            double cx = comboFloatX + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount;
+            double cy = comboFloatY + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount * 0.4;
+            double flash = (Math.sin(comboFloatPhase * 3.0) + 1.0) / 2.0;  // 0..1
+            Color drawColor = comboColor.interpolate(Color.WHITE, flash);
+            int fontSize = (int) Math.min(75, 32 + comboDisplay * 7);
+            gc.setGlobalAlpha(comboFloatAlpha);
+            gc.setFont(Font.font("VT323", FontWeight.BOLD, fontSize));
+            gc.setFill(drawColor);
+            gc.fillText("COMBO x" + comboDisplay, cx, cy);
+            gc.setGlobalAlpha(1.0);
         }
 
         // Paused overlay
