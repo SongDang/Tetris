@@ -11,14 +11,22 @@
       style="-fx-background-color: #0f0d1a; -fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;">
 
     <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 150;">
+
+        <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
+            <Label text="HOLD" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Canvas fx:id="holdBlockCanvas" width="100" height="100"/>
+        </VBox>
+
         <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
             <Label text="SCORE" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
             <Label fx:id="scoreLabel" text="0" style="-fx-font-size: 26; -fx-text-fill: #ffffff; -fx-font-family: 'Courier New';"/>
         </VBox>
+
         <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
             <Label text="LEVEL" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
             <Label fx:id="levelLabel" text="1" style="-fx-font-size: 26; -fx-text-fill: #00ff88; -fx-font-family: 'Courier New';"/>
         </VBox>
+
         <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
             <Label text="LINES" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
             <Label fx:id="linesLabel" text="0" style="-fx-font-size: 26; -fx-text-fill: #ffcc00; -fx-font-family: 'Courier New';"/>
@@ -43,11 +51,6 @@
             <Canvas fx:id="nextBlockCanvas1" width="100" height="100"/>
             <Canvas fx:id="nextBlockCanvas2" width="100" height="100"/>
             <Canvas fx:id="nextBlockCanvas3" width="100" height="100"/>
-        </VBox>
-
-        <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
-            <Label text="HOLD" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Canvas fx:id="holdBlockCanvas" width="100" height="100"/>
         </VBox>
 
         <VBox fx:id="bombInventoryBox"
