@@ -12,6 +12,8 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -36,6 +38,12 @@ public class GameController {
     @FXML
     private Canvas nextBlockCanvas;
     @FXML
+    private Canvas nextBlockCanvas1;
+    @FXML
+    private Canvas nextBlockCanvas2;
+    @FXML
+    private Canvas nextBlockCanvas3;
+    @FXML
     private Label scoreLabel;
     @FXML
     private Label levelLabel;
@@ -48,6 +56,7 @@ public class GameController {
     private GameContext gameContext;
 
     private GraphicsContext gameGc;
+
     private GraphicsContext nextGc;
     private GraphicsContext vfxGc;
     // vfxCanvas extends 150 px beyond each board edge (canvas width = 600, layoutX
@@ -63,11 +72,18 @@ public class GameController {
 
     private final ParticleSystem particleSystem = new ParticleSystem();
 
+    private GraphicsContext nextGc1;
+    private GraphicsContext nextGc2;
+    private GraphicsContext nextGc3;
+
+    private final java.util.ArrayDeque<Piece> nextQueue = new java.util.ArrayDeque<>();
+
     private AnimationTimer gameLoop;
     private boolean gamePaused = false;
     private boolean isGameOver = false;
 
     private long lastFallTime = 0;
+
     private long lastFrameTime = 0;
     private long fallIntervalNs = 500_000_000L;
 
@@ -79,6 +95,9 @@ public class GameController {
     private double flashIntensity = 0; // 0 = none, >0 = bright background flash
 
     private java.util.List<TetrominoType> bag = new java.util.ArrayList<>();
+
+    private int mouseTargetColumn = -1;
+
     private final java.util.Random rng = new java.util.Random();
 
     @FXML
@@ -88,7 +107,9 @@ public class GameController {
         gameContext.reset();
 
         gameGc = gameCanvas.getGraphicsContext2D();
-        nextGc = nextBlockCanvas.getGraphicsContext2D();
+        nextGc1 = nextBlockCanvas1.getGraphicsContext2D();
+        nextGc2 = nextBlockCanvas2.getGraphicsContext2D();
+        nextGc3 = nextBlockCanvas3.getGraphicsContext2D();
 
         vfxGc = vfxCanvas.getGraphicsContext2D();
         holdGc = holdBlockCanvas.getGraphicsContext2D();
@@ -96,7 +117,13 @@ public class GameController {
         // Spawn hai mảnh đầu tiên
         holdType = null;
         canHold = true;
+
         nextPiece = randomPiece();
+        // Seed queue for current + 3 previews.
+        nextQueue.clear();
+        for (int i = 0; i < 4; i++) {
+            nextQueue.addLast(randomPiece());
+        }
         spawnPiece();
 
         // Cập nhật labels ban đầu
@@ -104,6 +131,8 @@ public class GameController {
 
         // Key handler
         gamePane.setOnKeyPressed(this::handleKeyPressed);
+        gameCanvas.setOnMouseMoved(this::handleMouseMoved);
+        gameCanvas.setOnMouseClicked(this::handleMouseClicked);
         Platform.runLater(() -> {
             gamePane.requestFocus();
         });
@@ -119,6 +148,11 @@ public class GameController {
             public void handle(long now) {
                 double dt = (now - lastFrameTime) / 1_000_000_000.0;
                 lastFrameTime = now;
+
+                if (gamePaused || isGameOver)
+                    return;
+
+                applyMouseTarget(now);
 
                 if (!gamePaused && !isGameOver) {
                     if (now - lastFallTime >= fallIntervalNs) {
@@ -227,8 +261,10 @@ public class GameController {
     }
 
     private void spawnPiece() {
-        currentPiece = createSpawnedPiece(nextPiece.getType());
-        nextPiece = randomPiece();
+        currentPiece = nextQueue.removeFirst();
+        currentPiece.setX(Constants.BOARD_WIDTH / 2 - 2);
+        currentPiece.setY(0);
+        nextQueue.addLast(randomPiece());
     }
 
     private Piece createSpawnedPiece(TetrominoType type) {
@@ -468,6 +504,93 @@ public class GameController {
         event.consume();
     }
 
+    private void handleMouseMoved(MouseEvent event) {
+        if (gamePaused || isGameOver)
+            return;
+
+        // Only update target; movement is applied in the game loop.
+        mouseTargetColumn = (int) (event.getX() / Constants.BLOCK_SIZE);
+        event.consume();
+    }
+
+    private void applyMouseTarget(long now) {
+        if (mouseTargetColumn < 0)
+            return;
+
+        int targetX = getTargetPieceX(mouseTargetColumn);
+        int currentX = currentPiece.getX();
+        if (targetX == currentX)
+            return;
+
+        // Limit horizontal speed to 1 column per frame to avoid jitter.
+        int step = Integer.compare(targetX, currentX);
+        if (canMove(step, 0, currentPiece.getRotation())) {
+            currentPiece.setX(currentX + step);
+        }
+    }
+
+    private void handleMouseClicked(MouseEvent event) {
+        if (gamePaused || isGameOver)
+            return;
+
+        // Keep keyboard control active after interacting with the canvas.
+        gamePane.requestFocus();
+
+        if (event.getButton() == MouseButton.PRIMARY) {
+            hardDrop();
+            event.consume();
+            return;
+        }
+
+        if (event.getButton() == MouseButton.SECONDARY) {
+            tryRotateWithWallKick();
+            event.consume();
+        }
+    }
+
+    private boolean tryRotateWithWallKick() {
+        int nextRotation = (currentPiece.getRotation() + 1) % 4;
+
+        // Basic wall-kick offsets to allow rotation when touching side walls.
+        int[] kickOffsets = { 0, -1, 1, -2, 2 };
+        for (int dx : kickOffsets) {
+            if (canMove(dx, 0, nextRotation)) {
+                currentPiece.setX(currentPiece.getX() + dx);
+                currentPiece.setRotation(nextRotation);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private int getTargetPieceX(int targetColumn) {
+        int clampedTarget = Math.max(0, Math.min(Constants.BOARD_WIDTH - 1, targetColumn));
+        int rotation = currentPiece.getRotation();
+        int[][] shape = currentPiece.getType().getShape(rotation);
+
+        int minCol = 4;
+        int maxCol = -1;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    minCol = Math.min(minCol, col);
+                    maxCol = Math.max(maxCol, col);
+                }
+            }
+        }
+
+        if (maxCol < 0)
+            return currentPiece.getX();
+
+        int centerCol = (minCol + maxCol) / 2;
+        int desiredX = clampedTarget - centerCol;
+
+        int minX = -minCol;
+        int maxX = Constants.BOARD_WIDTH - 1 - maxCol;
+        return Math.max(minX, Math.min(maxX, desiredX));
+    }
+
     private void handlePause() {
         gamePaused = !gamePaused;
     }
@@ -501,10 +624,11 @@ public class GameController {
             gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
         }
         drawGameBoard();
+
         particleSystem.render(gameGc);
         particleSystem.renderBeams(vfxGc);
-        drawNextBlock();
         drawHoldBlock();
+        drawNextBlocks();
     }
 
     public void drawGameBoard() {
@@ -591,67 +715,69 @@ public class GameController {
         }
     }
 
-    public void drawNextBlock() {
-        drawPreviewBlock(nextGc, nextBlockCanvas,
-                nextPiece == null ? null : nextPiece.getType(),
-                nextPiece == null ? 0 : nextPiece.getRotation());
-    }
-
     public void drawHoldBlock() {
-        drawPreviewBlock(holdGc, holdBlockCanvas, holdType, 0);
+        if (holdType != null) {
+            drawPreview(holdGc, holdBlockCanvas, new Piece(holdType, 0, 0));
+        } else {
+            drawPreview(holdGc, holdBlockCanvas, null);
+        }
     }
 
-    private void drawPreviewBlock(GraphicsContext gc, Canvas canvas, TetrominoType type, int rotation) {
-        double w = canvas.getWidth();
-        double h = canvas.getHeight();
+    public void drawNextBlocks() {
+        java.util.Iterator<Piece> it = nextQueue.iterator();
+        drawPreview(nextGc1, nextBlockCanvas1, it.hasNext() ? it.next() : null);
+        drawPreview(nextGc2, nextBlockCanvas2, it.hasNext() ? it.next() : null);
+        drawPreview(nextGc3, nextBlockCanvas3, it.hasNext() ? it.next() : null);
+    }
 
-        gc.setFill(Color.web("#0f0d1a"));
-        gc.fillRect(0, 0, w, h);
+    private void drawPreview(GraphicsContext gc, Canvas canvas, Piece piece) {
+            double w = canvas.getWidth();
+            double h = canvas.getHeight();
 
-        gc.setStroke(Color.web("#00ff00"));
-        gc.setLineWidth(2);
-        gc.strokeRect(0, 0, w, h);
+            // Xóa nền và vẽ viền
+            gc.setFill(Color.web("#0f0d1a"));
+            gc.fillRect(0, 0, w, h);
+            gc.setStroke(Color.web("#00ff00"));
+            gc.setLineWidth(2);
+            gc.strokeRect(0, 0, w, h);
 
-        if (type == null) {
-            return;
-        }
+            if (piece == null) return;
 
-        int[][] shape = type.getShape(rotation);
-        int minRow = 4;
-        int maxRow = -1;
-        int minCol = 4;
-        int maxCol = -1;
+            TetrominoType type = piece.getType();
+            int[][] shape = type.getShape(0); // Luôn vẽ ở góc xoay mặc định
 
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 4; col++) {
-                if (shape[row][col] == 1) {
-                    minRow = Math.min(minRow, row);
-                    maxRow = Math.max(maxRow, row);
-                    minCol = Math.min(minCol, col);
-                    maxCol = Math.max(maxCol, col);
+            // 1. Tính toán vùng bao (Bounding Box) để căn giữa khối gạch
+            int minRow = 4, maxRow = -1, minCol = 4, maxCol = -1;
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (shape[row][col] == 1) {
+                        minRow = Math.min(minRow, row);
+                        maxRow = Math.max(maxRow, row);
+                        minCol = Math.min(minCol, col);
+                        maxCol = Math.max(maxCol, col);
+                    }
                 }
             }
-        }
 
-        if (maxRow < 0 || maxCol < 0) {
-            return;
-        }
+            if (maxRow < 0 || maxCol < 0) return;
 
-        int cs = Constants.BLOCK_SIZE;
-        int pieceWidth = (maxCol - minCol + 1) * cs;
-        int pieceHeight = (maxRow - minRow + 1) * cs;
-        double offsetX = (w - pieceWidth) / 2.0;
-        double offsetY = (h - pieceHeight) / 2.0;
+            // 2. Tính toán vị trí vẽ để khối luôn nằm chính giữa Canvas
+            int previewCellSize = 24; // Kích thước ô nhỏ hơn cho vùng Preview
+            int pieceWidth = (maxCol - minCol + 1) * previewCellSize;
+            int pieceHeight = (maxRow - minRow + 1) * previewCellSize;
+            double offsetX = (w - pieceWidth) / 2.0;
+            double offsetY = (h - pieceHeight) / 2.0;
 
-        for (int row = minRow; row <= maxRow; row++) {
-            for (int col = minCol; col <= maxCol; col++) {
-                if (shape[row][col] == 1) {
-                    double px = offsetX + (col - minCol) * cs;
-                    double py = offsetY + (row - minRow) * cs;
-                    drawCellAtPixel(gc, px, py, cs, type.getColor(), 1.0);
+            // 3. Vẽ từng ô của khối
+            for (int row = minRow; row <= maxRow; row++) {
+                for (int col = minCol; col <= maxCol; col++) {
+                    if (shape[row][col] == 1) {
+                        double px = offsetX + (col - minCol) * previewCellSize;
+                        double py = offsetY + (row - minRow) * previewCellSize;
+                        drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
+                    }
                 }
             }
-        }
     }
 
     // Helper: vẽ 1 ô trên gameGc
