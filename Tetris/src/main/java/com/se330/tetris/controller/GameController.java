@@ -489,6 +489,25 @@ public class GameController {
     }
     private final java.util.List<ScorePopup> scorePopups = new java.util.ArrayList<>();
 
+    private void renderTopLayer() {
+        GraphicsContext gc = gameGc;
+        // Combo float text
+        if (comboFloatAlpha > 0) {
+            double cx = comboFloatX + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount;
+            double cy = comboFloatY + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount * 0.4;
+            double flash = (Math.sin(comboFloatPhase * 3.0) + 1.0) / 2.0;
+            Color drawColor = comboColor.interpolate(Color.WHITE, flash);
+            int fontSize = (int) Math.min(75, 32 + comboDisplay * 7);
+            gc.setGlobalAlpha(comboFloatAlpha);
+            gc.setFont(Font.font("VT323", FontWeight.BOLD, fontSize));
+            gc.setFill(drawColor);
+            gc.fillText("COMBO x" + comboDisplay, cx, cy);
+            gc.setGlobalAlpha(1.0);
+        }
+        // Score popups
+        renderScorePopups();
+    }
+
     private void renderScorePopups() {
         if (scorePopups.isEmpty()) return;
         GraphicsContext gc = gameGc;
@@ -507,13 +526,13 @@ public class GameController {
             case 1 -> 100; case 2 -> 300; case 3 -> 500; case 4 -> 800; default -> 0;
         };
         if (bonus == 0) return;
-        double speed = 110;
-        double rad   = Math.toRadians(60);
+        double speed = 90 + rng.nextDouble() * 40;
+        double rad   = Math.toRadians(30 + rng.nextDouble() * 120); // 30°–150° (always upward)
         ScorePopup p = new ScorePopup();
         p.text     = "+" + bonus;
         p.x        = 8;
         p.y        = avgRow * Constants.BLOCK_SIZE - 4;
-        p.vx       = -Math.cos(rad) * speed;
+        p.vx       = Math.cos(rad) * speed;
         p.vy       = -Math.sin(rad) * speed;
         p.life     = 1.0;
         p.fontSize = 20 + cleared * 3;
@@ -545,7 +564,6 @@ public class GameController {
             gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
         }
         drawGameBoard();
-        renderScorePopups();
         if (glitchTearEffect != null) {
             vfxGc.clearRect(0, 0, vfxCanvas.getWidth(), vfxCanvas.getHeight());
             glitchTearEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
@@ -565,6 +583,7 @@ public class GameController {
             if (borderPulseEffect != null)
                 borderPulseEffect.render(gameGc, vfxGc, gameCanvas.getWidth(), gameCanvas.getHeight(), VFX_MARGIN);
         }
+        renderTopLayer();
         drawNextBlock();
     }
 
@@ -647,20 +666,6 @@ public class GameController {
                             1.0);
                 }
             }
-        }
-
-        // Floating combo text
-        if (comboFloatAlpha > 0) {
-            double cx = comboFloatX + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount;
-            double cy = comboFloatY + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount * 0.4;
-            double flash = (Math.sin(comboFloatPhase * 3.0) + 1.0) / 2.0;  // 0..1
-            Color drawColor = comboColor.interpolate(Color.WHITE, flash);
-            int fontSize = (int) Math.min(75, 32 + comboDisplay * 7);
-            gc.setGlobalAlpha(comboFloatAlpha);
-            gc.setFont(Font.font("VT323", FontWeight.BOLD, fontSize));
-            gc.setFill(drawColor);
-            gc.fillText("COMBO x" + comboDisplay, cx, cy);
-            gc.setGlobalAlpha(1.0);
         }
 
         // Paused overlay
