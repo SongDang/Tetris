@@ -125,6 +125,8 @@ public class GameController {
                     if (pendingTetrisClear != null) {
                         int[] rows = pendingTetrisClear;
                         pendingTetrisClear = null;
+                        int sum = 0; for (int r : rows) sum += r;
+                        int avgRow = sum / rows.length;
                         for (int row : rows) {
                             for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
                             board[0] = new int[Constants.BOARD_WIDTH];
@@ -132,6 +134,7 @@ public class GameController {
                         addScore(4);
                         addLines(4);
                         updateLevel();
+                        emitScorePopup(4, avgRow);
                         spawnAndCheckGameOver();
                     }
                 }
@@ -150,6 +153,12 @@ public class GameController {
                         lastFallTime = now;
                     }
                     particleSystem.update(dt);
+                    scorePopups.removeIf(p -> p.life <= 0);
+                    for (ScorePopup p : scorePopups) {
+                        p.x    += p.vx * dt;
+                        p.y    += p.vy * dt;
+                        p.life -= dt / 0.7;
+                    }
                     updateScreenShake(dt);
                     if (rotationPulse  > 0) rotationPulse  = Math.max(0, rotationPulse  - dt * 8.0);
                     if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
@@ -251,6 +260,7 @@ public class GameController {
             }
 
             // Non-Tetris: clear immediately
+            int avgRow = fullRows.stream().mapToInt(Integer::intValue).sum() / fullRows.size();
             fullRows.sort(java.util.Collections.reverseOrder());
             for (int row : fullRows) {
                 for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
@@ -259,6 +269,7 @@ public class GameController {
             addScore(cleared);
             addLines(cleared);
             updateLevel();
+            emitScorePopup(cleared, avgRow);
         } else {
             comboCount = 0;
         }
@@ -471,6 +482,49 @@ public class GameController {
         gamePaused = !gamePaused;
     }
 
+    // ── Score popups ──────────────────────────────────────────────────────────
+
+    private static class ScorePopup {
+        String text; double x, y, vx, vy, life; Color color; int fontSize;
+    }
+    private final java.util.List<ScorePopup> scorePopups = new java.util.ArrayList<>();
+
+    private void renderScorePopups() {
+        if (scorePopups.isEmpty()) return;
+        GraphicsContext gc = gameGc;
+        for (ScorePopup p : scorePopups) {
+            gc.save();
+            gc.setGlobalAlpha(Math.max(0, p.life));
+            gc.setFont(Font.font("VT323", FontWeight.BOLD, p.fontSize));
+            gc.setFill(p.color);
+            gc.fillText(p.text, p.x, p.y);
+            gc.restore();
+        }
+    }
+
+    private void emitScorePopup(int cleared, int avgRow) {
+        int bonus = switch (cleared) {
+            case 1 -> 100; case 2 -> 300; case 3 -> 500; case 4 -> 800; default -> 0;
+        };
+        if (bonus == 0) return;
+        double speed = 110;
+        double rad   = Math.toRadians(60);
+        ScorePopup p = new ScorePopup();
+        p.text     = "+" + bonus;
+        p.x        = 8;
+        p.y        = avgRow * Constants.BLOCK_SIZE - 4;
+        p.vx       = -Math.cos(rad) * speed;
+        p.vy       = -Math.sin(rad) * speed;
+        p.life     = 1.0;
+        p.fontSize = 20 + cleared * 3;
+        p.color    = switch (cleared) {
+            case 4  -> Color.web("#00ffff");
+            case 3  -> Color.web("#ffaa00");
+            default -> Color.web("#ffffff");
+        };
+        scorePopups.add(p);
+    }
+
     // Base background color components for gamePane (#0f0d1a)
     private static final double BG_R = 0x0f / 255.0;
     private static final double BG_G = 0x0d / 255.0;
@@ -491,6 +545,7 @@ public class GameController {
             gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
         }
         drawGameBoard();
+        renderScorePopups();
         if (glitchTearEffect != null) {
             vfxGc.clearRect(0, 0, vfxCanvas.getWidth(), vfxCanvas.getHeight());
             glitchTearEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());

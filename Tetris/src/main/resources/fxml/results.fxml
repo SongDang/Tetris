@@ -9,7 +9,7 @@
     <Region layoutX="0.0" layoutY="0.0" prefWidth="1440.0" prefHeight="1024.0"
             styleClass="background-dim" mouseTransparent="true" />
 
-    <Label layoutX="559.0" layoutY="215.0" prefWidth="337.0" prefHeight="76.0"
+    <Label fx:id="titleLabel" layoutX="559.0" layoutY="215.0" prefWidth="337.0" prefHeight="76.0"
            text="FINAL SCORE:" styleClass="results-title" />
 
     <Label fx:id="finalScoreLabel" layoutX="559.0" layoutY="267.0" prefWidth="337.0" prefHeight="122.0"
@@ -25,8 +25,8 @@
 
     <Region layoutX="0.0" layoutY="848.0" prefWidth="1440.0" prefHeight="176.0" styleClass="bottom-glow" />
 
-    <StackPane layoutX="425.0" layoutY="893.0" prefWidth="605.0" prefHeight="86.0" styleClass="results-note-panel">
-        <Label text="Not bad, but you can do better" styleClass="results-note-text" />
+    <StackPane fx:id="notePanel" layoutX="425.0" layoutY="893.0" prefWidth="605.0" prefHeight="86.0" styleClass="results-note-panel">
+        <Label fx:id="noteLabel" text="Not bad, but you can do better" styleClass="results-note-text" />
     </StackPane>
 
     <Button fx:id="menuBtn" text="Back" onAction="#onMenuClicked" visible="false" managed="false" />
