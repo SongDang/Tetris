@@ -6,31 +6,40 @@
             fx:id="resultsPane" fx:controller="com.se330.tetris.controller.ResultsController"
             prefWidth="1440.0" prefHeight="1024.0" styleClass="screen-results">
 
-    <Region layoutX="0.0" layoutY="0.0" prefWidth="1440.0" prefHeight="1024.0"
-            styleClass="background-dim" mouseTransparent="true" />
+    <!-- full-screen background -->
+    <Region styleClass="background-dim" mouseTransparent="true"
+            AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
+            AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
 
-    <Label fx:id="titleLabel" layoutX="480.0" layoutY="160.0" prefWidth="500.0" prefHeight="76.0"
-           text="FINAL SCORE:" styleClass="results-title" />
+    <!-- main content: title + score + buttons, centered horizontally -->
+    <VBox alignment="CENTER" spacing="30"
+          AnchorPane.topAnchor="120" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+        <Label fx:id="titleLabel" text="FINAL SCORE:" styleClass="results-title"
+               maxWidth="Infinity" />
+        <Label fx:id="finalScoreLabel" text="366767" styleClass="results-score"
+               maxWidth="Infinity" />
+        <VBox alignment="CENTER" spacing="20">
+            <Button fx:id="saveBtn" text="Save score" onAction="#onSaveClicked"
+                    prefWidth="320.0" prefHeight="114.0" styleClass="figma-button" />
+            <Button fx:id="retryBtn" text="Retry" onAction="#onRetryClicked"
+                    prefWidth="320.0" prefHeight="114.0" styleClass="figma-button" />
+        </VBox>
+    </VBox>
 
-    <Label fx:id="finalScoreLabel" layoutX="420.0" layoutY="218.0" prefWidth="620.0" prefHeight="150.0"
-           text="366767" styleClass="results-score" />
+    <!-- bottom gradient bar -->
+    <Region styleClass="bottom-glow" prefHeight="204.0"
+            AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" />
 
-    <Button fx:id="saveBtn" onAction="#onSaveClicked" text="Save score"
-            layoutX="560.0" layoutY="410.0" prefWidth="320.0" prefHeight="114.0"
-            styleClass="figma-button" />
+    <!-- flavour text, centered inside the gradient bar -->
+    <HBox alignment="CENTER" prefHeight="112.0"
+          AnchorPane.bottomAnchor="46" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+        <StackPane fx:id="notePanel" prefWidth="700.0" prefHeight="112.0" styleClass="results-note-panel">
+            <Label fx:id="noteLabel" text="Not bad, but you can do better" styleClass="results-note-text" />
+        </StackPane>
+    </HBox>
 
-    <Button fx:id="retryBtn" onAction="#onRetryClicked" text="Retry"
-            layoutX="560.0" layoutY="544.0" prefWidth="320.0" prefHeight="114.0"
-            styleClass="figma-button" />
-
-    <Region layoutX="0.0" layoutY="820.0" prefWidth="1440.0" prefHeight="204.0" styleClass="bottom-glow" />
-
-    <StackPane fx:id="notePanel" layoutX="370.0" layoutY="850.0" prefWidth="700.0" prefHeight="112.0" styleClass="results-note-panel">
-        <Label fx:id="noteLabel" text="Not bad, but you can do better" styleClass="results-note-text" />
-    </StackPane>
-
+    <!-- hidden / off-screen elements -->
     <Button fx:id="menuBtn" text="Back" onAction="#onMenuClicked" visible="false" managed="false" />
-
     <Label fx:id="gameModeLabel" visible="false" managed="false" text="Mode" />
     <Label fx:id="timeLabel" visible="false" managed="false" text="Time: 0:00" />
     <Label fx:id="linesLabel" visible="false" managed="false" text="0" />

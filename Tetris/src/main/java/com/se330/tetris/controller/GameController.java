@@ -56,9 +56,10 @@ public class GameController {
     private boolean gamePaused  = false;
     private boolean isGameOver  = false;
 
-    private long lastFallTime   = 0;
-    private long lastFrameTime  = 0;
-    private long fallIntervalNs = 500_000_000L;
+    private long    lastFallTime    = 0;
+    private long    lastFrameTime   = 0;
+    private long    fallIntervalNs  = 500_000_000L;
+    private boolean softDropping    = false;
     private long freezeUntil         = 0;  // nanosecond timestamp; game logic frozen until this time
     private long   gameOverFreezeUntil  = 0;   // 0.5s static pause before glitch fires
     private double gameOverFlashAlpha   = 0;   // white flash on board at moment of game over
@@ -102,6 +103,7 @@ public class GameController {
 
         // Key handler
         gamePane.setOnKeyPressed(this::handleKeyPressed);
+        gamePane.setOnKeyReleased(e -> { if (e.getCode() == javafx.scene.input.KeyCode.S) softDropping = false; });
         Platform.runLater(() -> {
             gamePane.requestFocus();
         });
@@ -148,7 +150,8 @@ public class GameController {
                     });
                 }
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
-                    if (now - lastFallTime >= fallIntervalNs) {
+                    long effectiveInterval = softDropping ? 50_000_000L : fallIntervalNs;
+                    if (now - lastFallTime >= effectiveInterval) {
                         updateFall();
                         lastFallTime = now;
                     }
@@ -464,7 +467,8 @@ public class GameController {
                 currentPiece.setX(currentPiece.getX() - 1); }
             case RIGHT, D     -> { if (canMove( 1, 0, currentPiece.getRotation()))
                 currentPiece.setX(currentPiece.getX() + 1); }
-            case DOWN,  S     -> hardDrop();
+            case DOWN         -> hardDrop();
+            case S            -> softDropping = true;
             case UP,    W     -> { int nr = (currentPiece.getRotation() + 1) % 4;
                 if (canMove(0, 0, nr)) {
                     currentPiece.setRotation(nr);
