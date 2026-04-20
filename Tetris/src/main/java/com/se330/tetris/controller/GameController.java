@@ -12,6 +12,8 @@ import com.se330.tetris.game.TetrominoType;
 import com.se330.tetris.service.GameContext;
 import com.se330.tetris.service.SceneManager;
 import javafx.animation.AnimationTimer;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
@@ -90,6 +92,7 @@ public class GameController {
     private long    lastFrameTime  = 0;
     private long    fallIntervalNs = 500_000_000L;
     private boolean softDropping   = false;
+    private boolean fuseLoopPlaying = false;
     private long freezeUntil         = 0;  // nanosecond timestamp; game logic frozen until this time
     private long   gameOverFreezeUntil  = 0;   // 0.5s static pause before glitch fires
     private double gameOverFlashAlpha   = 0;   // white flash on board at moment of game over
@@ -224,7 +227,16 @@ public class GameController {
                     }
                     updateScreenShake(dt);
 
-                    // Fuse sparks while bomb is falling
+                    // Fuse sound + sparks while bomb is falling
+                    if (currentPiece.getType() == TetrominoType.BOMB) {
+                        if (!fuseLoopPlaying) {
+                            SoundManager.getInstance().playLooping(SoundType.FUSE);
+                            fuseLoopPlaying = true;
+                        }
+                    } else if (fuseLoopPlaying) {
+                        SoundManager.getInstance().stopLooping();
+                        fuseLoopPlaying = false;
+                    }
                     if (currentPiece.getType() == TetrominoType.BOMB) {
                         int cs = Constants.BLOCK_SIZE;
                         double bx = (currentPiece.getX() + 0.5) * cs;
@@ -331,6 +343,10 @@ public class GameController {
                 frozenRowFlash     = fullRows.stream().mapToInt(Integer::intValue).toArray();
                 pendingTetrisClear = frozenRowFlash;
                 freezeUntil        = System.nanoTime() + 300_000_000L;
+                SoundManager.getInstance().playSE(SoundType.TETRIS);
+                PauseTransition delay = new PauseTransition(Duration.millis(300));
+                delay.setOnFinished(e -> SoundManager.getInstance().playSE(SoundType.TETRIS2));
+                delay.play();
                 return;
             }
 
@@ -408,12 +424,14 @@ public class GameController {
             }
         }
 
+        SoundManager.getInstance().stopLooping();
+        fuseLoopPlaying = false;
         glitchExplosionEffect = new com.se330.tetris.game.GlitchExplosionEffect(pixelCx, pixelCy, cs, snaps);
         flashIntensity    = 0.45;
         shakeIntensity    = 18;
         shakeInitDuration = 0.30;
         shakeDuration     = 0.30;
-        SoundManager.getInstance().playSE(SoundType.BLOCK_DROP);
+        SoundManager.getInstance().playSE(SoundType.BOMB_EXPLODE);
     }
 
 
@@ -732,6 +750,7 @@ case C, SHIFT      -> holdCurrentPiece();
 
     private void handleExit() {
         System.out.println("Exiting to main menu");
+        SoundManager.getInstance().stopLooping();
         if (gameLoop != null) {
             gameLoop.stop();
         }

@@ -9,7 +9,12 @@ public enum SoundType {
     ENTER_MODE("/sound/enter_mode_sound.wav"),
     GAME_OVER("/sound/game_over_sound.wav"),
     BLOCK_DROP("/sound/block_drop_sound.wav"),
-    SCORE("/sound/score_sound.wav");
+    SCORE("/sound/score_sound.wav"),
+    BOMB_EXPLODE("/sound/boom17.wav"),
+    TETRIS("/sound/tetris.wav"),
+    TETRIS2("/sound/tetris2.wav"),
+    FUSE("/sound/fuse.wav"),
+    RESULT_GLITCH("/sound/result_glitch.wav");
 
     private final String path;
 

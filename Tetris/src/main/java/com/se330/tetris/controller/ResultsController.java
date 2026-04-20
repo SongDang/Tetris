@@ -1,6 +1,8 @@
 package com.se330.tetris.controller;
 
 import javafx.animation.AnimationTimer;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.SoundType;
 import javafx.fxml.FXML;
@@ -63,6 +65,9 @@ public class ResultsController {
         sceneManager = SceneManager.getInstance();
         gameContext  = GameContext.getInstance();
         populateResults();
+        PauseTransition glitchDelay = new PauseTransition(Duration.millis(300));
+        glitchDelay.setOnFinished(e -> SoundManager.getInstance().playSE(SoundType.RESULT_GLITCH));
+        glitchDelay.play();
         startGlitchIntro();
     }
 
