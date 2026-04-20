@@ -224,6 +224,14 @@ public class GameController {
                     }
                     updateScreenShake(dt);
 
+                    // Fuse sparks while bomb is falling
+                    if (currentPiece.getType() == TetrominoType.BOMB) {
+                        int cs = Constants.BLOCK_SIZE;
+                        double bx = (currentPiece.getX() + 0.5) * cs;
+                        double by = (currentPiece.getY() + 0.5) * cs;
+                        particleSystem.emitFuseSparks(bx, by, cs, currentPiece.getRotation());
+                    }
+
                     // Cập nhật các hiệu ứng VFX mới
                     if (rotationPulse  > 0) rotationPulse  = Math.max(0, rotationPulse  - dt * 8.0);
                     if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
@@ -268,9 +276,7 @@ public class GameController {
     private void lockAndSpawn() {
         // --- GIỮ LOGIC BOMB TỪ HEAD ---
         if (currentPiece.getType() == TetrominoType.BOMB) {
-            int impactX = currentPiece.getX();
-            int impactY = getBombImpactY(impactX, currentPiece.getY());
-            detonateBomb(impactX, impactY);
+            detonateBomb(currentPiece.getX(), currentPiece.getY());
         } else {
             lockPiece();
         }
@@ -410,19 +416,6 @@ public class GameController {
         SoundManager.getInstance().playSE(SoundType.BLOCK_DROP);
     }
 
-    private int getBombImpactY(int bombX, int bombY) {
-        int candidateY = bombY + 1;
-
-        if (candidateY >= Constants.BOARD_HEIGHT) {
-            return Constants.BOARD_HEIGHT - 1;
-        }
-
-        if (bombX >= 0 && bombX < Constants.BOARD_WIDTH && board[candidateY][bombX] != 0) {
-            return candidateY;
-        }
-
-        return bombY;
-    }
 
     private boolean canMove(int dx, int dy, int rotation) {
         int[][] shape = currentPiece.getType().getShape(rotation);

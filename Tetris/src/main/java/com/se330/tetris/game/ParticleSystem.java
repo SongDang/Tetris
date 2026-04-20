@@ -116,6 +116,33 @@ public class ParticleSystem {
         }
     }
 
+    private static final Color[] FUSE_COLORS = {
+        Color.WHITE, Color.web("#ffee88"), Color.web("#ffaa00"), Color.web("#ff6600")
+    };
+
+    public void emitFuseSparks(double cx, double cy, double blockSize, int rotation) {
+        double half = blockSize / 2.0;
+        double tipX, tipY, baseAngleDeg;
+        switch (rotation % 4) {
+            case 1  -> { tipX = cx + half; tipY = cy;        baseAngleDeg =   0; }
+            case 2  -> { tipX = cx;        tipY = cy + half;  baseAngleDeg =  90; }
+            case 3  -> { tipX = cx - half; tipY = cy;        baseAngleDeg = 180; }
+            default -> { tipX = cx;        tipY = cy - half;  baseAngleDeg = -90; }
+        }
+        Color[] palette = FUSE_COLORS;
+        int count = 3 + rng.nextInt(3);
+        for (int i = 0; i < count; i++) {
+            double angle = Math.toRadians(baseAngleDeg + (rng.nextDouble() - 0.5) * 110);
+            double speed = rng.nextDouble() * 85 + 30;
+            double px    = tipX + (rng.nextDouble() - 0.5) * 5;
+            double py    = tipY + (rng.nextDouble() - 0.5) * 5;
+            double decay = rng.nextDouble() * 3.5 + 5.0;
+            double size  = rng.nextDouble() * 2.0 + 1.0;
+            particles.add(new Particle(px, py, Math.cos(angle) * speed, Math.sin(angle) * speed,
+                                       decay, palette[rng.nextInt(palette.length)], size));
+        }
+    }
+
     public void emitRowBeams(double leftBaseX, double rightBaseX,
                               double rowY, double rowH, Color color) {
         double flashW = 120.0;
