@@ -65,6 +65,8 @@ public class ResultsController {
         sceneManager = SceneManager.getInstance();
         gameContext  = GameContext.getInstance();
         populateResults();
+        for (Button btn : new Button[]{saveBtn, retryBtn, menuBtn})
+            if (btn != null) btn.setOnMouseEntered(e -> SoundManager.getInstance().playSE(SoundType.HOVER));
         PauseTransition glitchDelay = new PauseTransition(Duration.millis(300));
         glitchDelay.setOnFinished(e -> SoundManager.getInstance().playSE(SoundType.RESULT_GLITCH));
         glitchDelay.play();
@@ -212,6 +214,7 @@ public class ResultsController {
 
     @FXML
     private void onSaveClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         int score = Integer.parseInt(finalScoreLabel.getText());
         System.out.println("Saving score: " + score + " (" + gameModeLabel.getText() + ")");
         System.out.println("Save completed, returning to main menu");
@@ -221,6 +224,7 @@ public class ResultsController {
 
     @FXML
     private void onRetryClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         System.out.println("Retrying with mode: " + gameContext.getGameMode().getDisplayName());
         gameContext.reset();
         // Clear cache to force GameController.initialize() to run again
@@ -231,6 +235,7 @@ public class ResultsController {
 
     @FXML
     private void onMenuClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         System.out.println("Returning to main menu");
         gameContext.reset();
         sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);

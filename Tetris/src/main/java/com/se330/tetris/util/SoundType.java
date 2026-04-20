@@ -6,6 +6,8 @@ public enum SoundType {
     GAMEPLAY_THEME("/sound/gameplay_theme.wav"),
     //sound effect
     BUTTON_CLICK("/sound/button_click_sound.wav"),
+    CLICK("/sound/click.wav"),
+    HOVER("/sound/hover.wav"),
     ENTER_MODE("/sound/enter_mode_sound.wav"),
     GAME_OVER("/sound/game_over_sound.wav"),
     BLOCK_DROP("/sound/block_drop_sound.wav"),
