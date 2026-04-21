@@ -8,6 +8,7 @@ import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
@@ -73,6 +74,9 @@ public class GameController {
 
     private final java.util.Random rng = new java.util.Random();
 
+
+    Image frameSprite;
+
     @FXML
     private void initialize() {
         sceneManager = SceneManager.getInstance();
@@ -97,6 +101,8 @@ public class GameController {
         });
 
         startGameLoop();
+
+        frameSprite = new Image(getClass().getResourceAsStream("/assets/gamepanel_border.png"));
     }
 
     private void startGameLoop() {
@@ -155,20 +161,22 @@ public class GameController {
         if (!fullRows.isEmpty()) {
             int cleared = fullRows.size();
             // Emit particle burst from every cell in the cleared rows
-            for (int row : fullRows) {
+            /*for (int row : fullRows) {
                 for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                     TetrominoType t = idToType(board[row][x]);
                     if (t != null)
                         particleSystem.emitRowBurst(x * cs, row * cs, t.getColor(), 8);
                 }
-            }
+            }*/
+
             // Horizontal beams shooting out from each cleared row's left/right edges
             double leftBase = VFX_MARGIN; // board left edge in vfxCanvas coords
             double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs; // board right edge in vfxCanvas coords
             Color pieceCol = currentPiece.getType().getColor();
-            for (int row : fullRows) {
+            /*for (int row : fullRows) {
                 particleSystem.emitRowBeams(leftBase, rightBase, row * cs, cs, pieceCol);
-            }
+            }*/
+
             // Clear rows instantly (sorted bottom-up so indices stay valid)
             fullRows.sort(java.util.Collections.reverseOrder());
             for (int row : fullRows) {
@@ -247,10 +255,9 @@ public class GameController {
                     if (y >= 0 && y < Constants.BOARD_HEIGHT
                             && x >= 0 && x < Constants.BOARD_WIDTH) {
                         board[y][x] = typeId(currentPiece.getType());
-                        if (dropStartRow >= 0) {
-                            particleSystem.emitLockParticles(
-                                    x * cs, y * cs, currentPiece.getType().getColor(), 18);
-                        }
+                        /*if (dropStartRow >= 0) {
+                            particleSystem.emitLockParticles(x * cs, y * cs, currentPiece.getType().getColor(), 18);
+                        }*/
                         if (x < minCol)
                             minCol = x;
                         if (x > maxCol)
@@ -268,9 +275,9 @@ public class GameController {
             double spanWidth = (maxCol - minCol + 1) * cs;
             double fromPixelY = dropStartRow * cs;
             double toPixelY = (maxRow + 1) * cs;
-            particleSystem.emitLightColumn(
+            /*particleSystem.emitLightColumn(
                     leftPixelX, fromPixelY, toPixelY, spanWidth,
-                    currentPiece.getType().getColor());
+                    currentPiece.getType().getColor());*/
             dropStartRow = -1;
         }
     }
@@ -334,17 +341,17 @@ public class GameController {
     }
 
     private void emitRotationArc() {
-        particleSystem.emitCornerSparks(
+        /*particleSystem.emitCornerSparks(
                 currentPiece.getX(),
                 currentPiece.getY(),
                 currentPiece.getType().getShape(currentPiece.getRotation()),
                 Constants.BLOCK_SIZE,
-                currentPiece.getType().getColor());
+                currentPiece.getType().getColor());*/
         rotationPulse = 1.0;
     }
 
     private void updateScreenShake(double dt) {
-        if (shakeDuration <= 0)
+        /*if (shakeDuration <= 0)
             return;
         shakeDuration -= dt;
         if (shakeDuration <= 0) {
@@ -354,7 +361,7 @@ public class GameController {
             double factor = shakeDuration / shakeInitDuration; // eases out as duration drops
             gameCanvas.setTranslateX((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor);
             gameCanvas.setTranslateY((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor);
-        }
+        }*/
     }
 
     private void hardDrop() {
@@ -524,6 +531,10 @@ public class GameController {
             gc.setFont(Font.font("Courier New", 28));
             gc.fillText("PAUSED", w / 2 - 55, h / 2);
         }
+
+        gameGc.setImageSmoothing(false);
+        //gc.drawImage(frameSprite, 0, 0, gameCanvas.getWidth(), gameCanvas.getHeight());
+
     }
 
     public void drawNextBlock() {
