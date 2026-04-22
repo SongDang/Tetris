@@ -1,6 +1,7 @@
 package com.se330.tetris.controller;
 
 import javafx.animation.AnimationTimer;
+import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 import com.se330.tetris.service.SoundManager;
@@ -175,6 +176,19 @@ public class ResultsController {
         }
     }
 
+    private void fadeToBlack(Runnable onDone) {
+        if (glitchTimer != null) glitchTimer.stop();
+        resultsPane.setMouseTransparent(true);
+        blackOverlay.setOpacity(0);
+        blackOverlay.setVisible(true);
+        blackOverlay.setMouseTransparent(false);
+        FadeTransition ft = new FadeTransition(Duration.millis((long)(FADE_DUR * 1000)), blackOverlay);
+        ft.setFromValue(0);
+        ft.setToValue(1);
+        ft.setOnFinished(e -> onDone.run());
+        ft.play();
+    }
+
     private String scrambleDigits(String original) {
         StringBuilder sb = new StringBuilder();
         for (char c : original.toCharArray())
@@ -215,29 +229,34 @@ public class ResultsController {
     @FXML
     private void onSaveClicked() {
         SoundManager.getInstance().playSE(SoundType.CLICK);
-        int score = Integer.parseInt(finalScoreLabel.getText());
-        System.out.println("Saving score: " + score + " (" + gameModeLabel.getText() + ")");
-        System.out.println("Save completed, returning to main menu");
-        gameContext.reset();
-        sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        fadeToBlack(() -> {
+            int score = Integer.parseInt(finalScoreLabel.getText());
+            System.out.println("Saving score: " + score + " (" + gameModeLabel.getText() + ")");
+            System.out.println("Save completed, returning to main menu");
+            gameContext.reset();
+            sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        });
     }
 
     @FXML
     private void onRetryClicked() {
         SoundManager.getInstance().playSE(SoundType.CLICK);
-        System.out.println("Retrying with mode: " + gameContext.getGameMode().getDisplayName());
-        gameContext.reset();
-        // Clear cache to force GameController.initialize() to run again
-        sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.GAME_SCENE);
-        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
+        fadeToBlack(() -> {
+            System.out.println("Retrying with mode: " + gameContext.getGameMode().getDisplayName());
+            gameContext.reset();
+            sceneManager.clearSceneCache();
+            sceneManager.switchToScene(SceneManager.GAME_SCENE);
+            SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
+        });
     }
 
     @FXML
     private void onMenuClicked() {
         SoundManager.getInstance().playSE(SoundType.CLICK);
-        System.out.println("Returning to main menu");
-        gameContext.reset();
-        sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        fadeToBlack(() -> {
+            System.out.println("Returning to main menu");
+            gameContext.reset();
+            sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        });
     }
 }

@@ -114,6 +114,10 @@ public class GameController {
     private double shakeInitDuration = 0.18;
     private double rotationPulse = 0; // 1.0 = full brightness pulse, 0 = normal
     private double flashIntensity = 0; // 0 = none, >0 = bright background flash
+    private double startupGlitchElapsed = 0;
+    private static final double STARTUP_GLITCH_DUR = 0.75;
+    private Canvas startupCanvas;
+    private GraphicsContext startupGc;
 
     private java.util.List<TetrominoType> bag = new java.util.ArrayList<>();
 
@@ -158,6 +162,17 @@ public class GameController {
         gameCanvas.setOnMouseClicked(this::handleMouseClicked);
         Platform.runLater(() -> {
             gamePane.requestFocus();
+            startupCanvas = new Canvas(gamePane.getWidth(), gamePane.getHeight());
+            startupCanvas.setManaged(false);
+            startupCanvas.setMouseTransparent(true);
+            startupGc = startupCanvas.getGraphicsContext2D();
+            gamePane.getChildren().add(startupCanvas);
+            gamePane.layoutBoundsProperty().addListener((obs, o, n) -> {
+                if (startupGlitchElapsed < STARTUP_GLITCH_DUR) {
+                    startupCanvas.setWidth(n.getWidth());
+                    startupCanvas.setHeight(n.getHeight());
+                }
+            });
         });
 
         startGameLoop();
@@ -193,6 +208,7 @@ public class GameController {
                     }
                 }
 
+                if (startupGlitchElapsed < STARTUP_GLITCH_DUR) startupGlitchElapsed += dt;
                 if (glitchTearEffect != null) glitchTearEffect.update(dt);
                 if (glitchExplosionEffect != null) {
                     glitchExplosionEffect.update(dt);
@@ -863,6 +879,52 @@ case C, SHIFT      -> holdCurrentPiece();
         renderTopLayer();
         drawHoldBlock();
         drawNextBlocks();
+        renderStartupGlitch();
+    }
+
+    private void renderStartupGlitch() {
+        if (startupGlitchElapsed >= STARTUP_GLITCH_DUR || startupGc == null) return;
+        double t     = startupGlitchElapsed / STARTUP_GLITCH_DUR;
+        double alpha = (1.0 - t * t) * 0.55;
+        double w     = startupCanvas.getWidth();
+        double h     = startupCanvas.getHeight();
+
+        startupGc.clearRect(0, 0, w, h);
+
+        // sparse horizontal scanline bands
+        int bands = 6 + rng.nextInt(5);
+        for (int i = 0; i < bands; i++) {
+            double by  = rng.nextDouble() * h;
+            double bh  = rng.nextDouble() * (h * 0.06) + 1;
+            int pick   = rng.nextInt(3);
+            Color c    = pick == 0 ? Color.color(0, 1, 1, alpha * 0.5)
+                       : pick == 1 ? Color.color(1, 1, 1, alpha * 0.4)
+                       :             Color.color(0, 1, 0, alpha * 0.3);
+            startupGc.setFill(c);
+            startupGc.fillRect(0, by, w, bh);
+        }
+        // light pixel scatter
+        int pixels = (int)(250 * (1.0 - t));
+        for (int i = 0; i < pixels; i++) {
+            double px = rng.nextDouble() * w;
+            double py = rng.nextDouble() * h;
+            startupGc.setFill(Color.color(1, 1, 1, alpha * (rng.nextDouble() * 0.6 + 0.2)));
+            startupGc.fillRect(px, py, 2, 2);
+        }
+        // white flashes at t=0.0, 0.22, 0.48 — sharp spike then fast decay
+        double[] flashTimes  = {0.0,  0.14, 0.28};
+        double[] flashPeaks  = {0.90, 0.42, 0.42};
+        double flashHalf = 0.07;
+        double totalFlash = 0;
+        for (int fi = 0; fi < flashTimes.length; fi++) {
+            double d = Math.abs(t - flashTimes[fi]);
+            if (d < flashHalf)
+                totalFlash = Math.max(totalFlash, (1.0 - d / flashHalf) * flashPeaks[fi]);
+        }
+        if (totalFlash > 0) {
+            startupGc.setFill(Color.color(1, 1, 1, totalFlash));
+            startupGc.fillRect(0, 0, w, h);
+        }
     }
 
     public void drawGameBoard() {
