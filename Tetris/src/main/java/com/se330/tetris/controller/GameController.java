@@ -19,6 +19,7 @@ import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -143,10 +144,6 @@ public class GameController {
 
         //HARD MODE
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
-            //Hide hint
-            nextBlockCanvas1.setVisible(false);
-            nextBlockCanvas2.setVisible(false);
-            nextBlockCanvas3.setVisible(false);
             //Increase speed
             fallIntervalNs = 300_000_000L;
         }
@@ -965,6 +962,12 @@ public class GameController {
             gc.setLineWidth(2);
             gc.strokeRect(0, 0, w, h);
 
+        //HARD MODE
+         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            drawQuestionMark(gc, canvas);
+            return;
+         }
+
             if (piece == null) return;
 
             TetrominoType type = piece.getType();
@@ -1060,5 +1063,19 @@ public class GameController {
         if (gameLoop != null)
             gameLoop.stop();
         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+    }
+
+    private void drawQuestionMark(GraphicsContext gc, Canvas canvas) {
+        double w = canvas.getWidth();
+        double h = canvas.getHeight();
+
+        gc.setFill(Color.web("#00ff00")); // cùng màu viền cho đồng bộ
+        gc.setFont(Font.font("VT323", FontWeight.BOLD, 40));
+
+        String text = "?";
+
+        // canh giữa tương đối
+        gc.fillText(text, w / 2 - 8, h / 2 + 12);
+        gc.setEffect(new DropShadow(10, Color.web("#00ff00")));
     }
 }
