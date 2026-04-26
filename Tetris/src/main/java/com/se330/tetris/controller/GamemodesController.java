@@ -49,6 +49,7 @@ public class GamemodesController {
     @FXML
     private void onTimeAttackClicked() {
         SoundManager.getInstance().playSE(SoundType.CLICK);
+        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
         gameContext.setGameMode(GameContext.GameMode.TIME_ATTACK);
         gameContext.reset();
         sceneManager.clearSceneCache();
@@ -58,6 +59,7 @@ public class GamemodesController {
     @FXML
     private void onHardModeClicked() {
         SoundManager.getInstance().playSE(SoundType.CLICK);
+        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
         gameContext.setGameMode(GameContext.GameMode.HARD_MODE);
         gameContext.reset();
         sceneManager.clearSceneCache();

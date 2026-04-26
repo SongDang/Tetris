@@ -107,6 +107,19 @@ public class SoundManager {
         }
     }
 
+    public void pauseMusic() {
+        if (musicClip != null && musicClip.isRunning()) {
+            musicClip.stop();
+        }
+    }
+
+    public void resumeMusic() {
+        if (musicClip != null && musicClip.isOpen() && !musicClip.isRunning()) {
+            musicClip.loop(Clip.LOOP_CONTINUOUSLY);
+            musicClip.start();
+        }
+    }
+
     public void setMusicVolume(float volume) {
         this.musicVolume = volume;
         if (musicClip != null && musicClip.isOpen()) {

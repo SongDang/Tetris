@@ -117,6 +117,8 @@ public class GameController {
     private double flashIntensity = 0; // 0 = none, >0 = bright background flash
     private double startupGlitchElapsed = 0;
     private static final double STARTUP_GLITCH_DUR = 0.75;
+    private double blackoutDropTimer = 0;
+    private static final double BLACKOUT_AUTO_DROP = 1.5;
     private Canvas startupCanvas;
     private GraphicsContext startupGc;
 
@@ -126,8 +128,10 @@ public class GameController {
     private double blackoutFlickerTimer = 0;
     private enum BlackoutState {
         NORMAL,
-        FLICKER,   // chớp
-        BLACKOUT   // tắt
+        FLICKER,      // warning flicker before blackout
+        PRE_BLACKOUT, // calm gap before blackout
+        BLACKOUT,     // screen goes dark
+        POST_FLICKER  // flicker as light comes back on
     }
     private BlackoutState blackoutState = BlackoutState.NORMAL;
 
@@ -246,10 +250,18 @@ public class GameController {
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     applyMouseTarget(now);
 
-                    long effectiveInterval = softDropping ? 50_000_000L : fallIntervalNs;
-                    if (now - lastFallTime >= effectiveInterval) {
-                        updateFall();
-                        lastFallTime = now;
+                    if (blackoutState == BlackoutState.BLACKOUT) {
+                        blackoutDropTimer += dt;
+                        if (blackoutDropTimer >= BLACKOUT_AUTO_DROP) {
+                            blackoutDropTimer = 0;
+                            hardDrop();
+                        }
+                    } else {
+                        long effectiveInterval = softDropping ? 50_000_000L : fallIntervalNs;
+                        if (now - lastFallTime >= effectiveInterval) {
+                            updateFall();
+                            lastFallTime = now;
+                        }
                     }
 
                     particleSystem.update(dt);
@@ -421,20 +433,22 @@ public class GameController {
 
     private void spawnPiece() {
         currentPiece = nextQueue.removeFirst();
+        // No bombs during blackout — push it to the back and take the next non-bomb
+        if (blackoutState == BlackoutState.BLACKOUT && currentPiece.getType() == TetrominoType.BOMB) {
+            nextQueue.addLast(currentPiece);
+            int qSize = nextQueue.size();
+            for (int i = 0; i < qSize; i++) {
+                Piece candidate = nextQueue.removeFirst();
+                if (candidate.getType() != TetrominoType.BOMB) {
+                    currentPiece = candidate;
+                    break;
+                }
+                nextQueue.addLast(candidate);
+            }
+        }
         currentPiece.setX(Constants.BOARD_WIDTH / 2 - 2);
         currentPiece.setY(0);
         nextQueue.addLast(randomPiece());
-
-        // --- RESET BLACKOUT ---
-        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
-            if (blackoutState != BlackoutState.NORMAL) {
-                blackoutState = BlackoutState.NORMAL;
-
-                // reset
-                blackoutDuration = 0;
-                blackoutFlickerTimer = 0;
-            }
-        }
     }
 
     private Piece createSpawnedPiece(TetrominoType type) {
@@ -692,15 +706,15 @@ public class GameController {
                 currentPiece.setX(currentPiece.getX() - 1); }
             case RIGHT, D -> { if (canMove( 1, 0, currentPiece.getRotation()))
                 currentPiece.setX(currentPiece.getX() + 1); }
-            case DOWN -> hardDrop();
-            case S    -> softDropping = true;
+            case DOWN -> { if (blackoutState != BlackoutState.BLACKOUT) hardDrop(); }
+            case S    -> { if (blackoutState != BlackoutState.BLACKOUT) softDropping = true; }
             case UP, W -> { int nr = (currentPiece.getRotation() + 1) % 4;
                 if (canMove(0, 0, nr)) {
                     currentPiece.setRotation(nr);
                     emitRotationArc();
                 }
             }
-            case SPACE -> hardDrop();
+            case SPACE -> { if (blackoutState != BlackoutState.BLACKOUT) hardDrop(); }
             case P -> handlePause();
 case C, SHIFT      -> holdCurrentPiece();
             case ESCAPE -> handleExit();
@@ -744,7 +758,7 @@ case C, SHIFT      -> holdCurrentPiece();
         gamePane.requestFocus();
 
         if (event.getButton() == MouseButton.PRIMARY) {
-            hardDrop();
+            if (blackoutState != BlackoutState.BLACKOUT) hardDrop();
             event.consume();
             return;
         }
@@ -988,26 +1002,16 @@ case C, SHIFT      -> holdCurrentPiece();
         gc.setLineWidth(2);
         gc.strokeRect(0, 0, w, h);
 
-        //HARD MODE
-        boolean isDark = false;
-        if (blackoutState == BlackoutState.FLICKER) {
-            isDark = ((int)(blackoutFlickerTimer * 10)) % 2 == 0;
-        }
-        if (blackoutState == BlackoutState.BLACKOUT) {
-            isDark = true;
-        }
-        if (!isDark) {
-            // Locked cells
-            for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
-                for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
-                    if (board[y][x] != 0) {
-                        TetrominoType t = idToType(board[y][x]);
-                        if (t == null) continue;
-                        if (t == TetrominoType.BOMB)
-                            gc.drawImage(bombSprite, x * cs, y * cs, cs, cs);
-                        else
-                            drawCell(gc, x, y, t.getColor(), 1.0);
-                    }
+        // Locked cells
+        for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
+            for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+                if (board[y][x] != 0) {
+                    TetrominoType t = idToType(board[y][x]);
+                    if (t == null) continue;
+                    if (t == TetrominoType.BOMB)
+                        gc.drawImage(bombSprite, x * cs, y * cs, cs, cs);
+                    else
+                        drawCell(gc, x, y, t.getColor(), 1.0);
                 }
             }
         }
@@ -1046,30 +1050,6 @@ case C, SHIFT      -> holdCurrentPiece();
             }
         }
 
-        // Current piece - apply rotation pulse brightness
-        int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
-        boolean isBomb = currentPiece.getType() == TetrominoType.BOMB;
-        Color pieceColor = currentPiece.getType().getColor()
-                .deriveColor(0, 1, 1.0 + rotationPulse * 1.8, 1);
-        for (int row = 0; row < 4; row++) {
-            for (int col = 0; col < 4; col++) {
-                if (shape[row][col] == 1) {
-                    int px = currentPiece.getX() + col;
-                    int py = currentPiece.getY() + row;
-                    if (isBomb) {
-                        double cx = px * cs + cs / 2.0;
-                        double cy = py * cs + cs / 2.0;
-                        gc.save();
-                        gc.translate(cx, cy);
-                        gc.rotate(currentPiece.getRotation() * 90.0);
-                        gc.drawImage(bombSprite, -cs / 2.0, -cs / 2.0, cs, cs);
-                        gc.restore();
-                    } else
-                        drawCell(gc, px, py, pieceColor, 1.0);
-                }
-            }
-        }
-
         // Floating combo text
         if (comboFloatAlpha > 0) {
             double cx = comboFloatX + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount;
@@ -1083,6 +1063,81 @@ case C, SHIFT      -> holdCurrentPiece();
             gc.fillText("COMBO x" + comboDisplay, cx, cy);
             gc.setGlobalAlpha(1.0);
         }
+        // Hard mode blackout overlays
+        if (blackoutState == BlackoutState.BLACKOUT) {
+            gc.setFill(Color.BLACK);
+            gc.fillRect(0, 0, w, h);
+        } else if (blackoutState == BlackoutState.FLICKER || blackoutState == BlackoutState.POST_FLICKER) {
+            if (((int) blackoutFlickerTimer) % 2 == 0) {
+                gc.setFill(Color.BLACK);
+                gc.fillRect(0, 0, w, h);
+            }
+        }
+
+        // Current piece - always drawn on top, visible even during blackout
+        int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+        boolean isBomb = currentPiece.getType() == TetrominoType.BOMB;
+
+        double chargeOffsetX = 0, chargeOffsetY = 0, charge = 0;
+        Color pieceColor;
+        if (blackoutState == BlackoutState.BLACKOUT && !isBomb) {
+            charge = blackoutDropTimer / BLACKOUT_AUTO_DROP;
+            double freq = 6.0 + charge * 10.0;
+            chargeOffsetY = Math.sin(blackoutDropTimer * Math.PI * freq) * charge * 5.0;
+            chargeOffsetX = (rng.nextDouble() - 0.5) * charge * 4.0;
+            Color base = currentPiece.getType().getColor();
+            double bright = charge * 0.75;
+            pieceColor = Color.color(
+                Math.min(1.0, base.getRed()   + bright),
+                Math.min(1.0, base.getGreen() + bright),
+                Math.min(1.0, base.getBlue()  + bright)
+            );
+        } else {
+            pieceColor = currentPiece.getType().getColor()
+                    .deriveColor(0, 1, 1.0 + rotationPulse * 1.8, 1);
+        }
+
+        gc.save();
+        gc.translate(chargeOffsetX, chargeOffsetY);
+
+        // Expanding aura glow as charge builds
+        if (blackoutState == BlackoutState.BLACKOUT && !isBomb && charge > 0) {
+            double expansion = charge * 5.0;
+            gc.setGlobalAlpha(charge * 0.35);
+            gc.setFill(pieceColor);
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (shape[row][col] == 1) {
+                        int px = currentPiece.getX() + col;
+                        int py = currentPiece.getY() + row;
+                        gc.fillRect(px * cs - expansion, py * cs - expansion,
+                                    cs + expansion * 2, cs + expansion * 2);
+                    }
+                }
+            }
+            gc.setGlobalAlpha(1.0);
+        }
+
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int px = currentPiece.getX() + col;
+                    int py = currentPiece.getY() + row;
+                    if (isBomb) {
+                        double bcx = px * cs + cs / 2.0;
+                        double bcy = py * cs + cs / 2.0;
+                        gc.save();
+                        gc.translate(bcx, bcy);
+                        gc.rotate(currentPiece.getRotation() * 90.0);
+                        gc.drawImage(bombSprite, -cs / 2.0, -cs / 2.0, cs, cs);
+                        gc.restore();
+                    } else
+                        drawCell(gc, px, py, pieceColor, 1.0);
+                }
+            }
+        }
+        gc.restore();
+
         // Paused overlay
         if (gamePaused) {
             gc.setFill(Color.color(0, 0, 0, 0.5));
@@ -1245,27 +1300,46 @@ case C, SHIFT      -> holdCurrentPiece();
         switch (blackoutState) {
 
             case NORMAL -> {
-                if (blackoutTimer >= 5.0) {
+                if (blackoutTimer >= 20.0) {
                     blackoutTimer = 0;
                     blackoutState = BlackoutState.FLICKER;
-                    blackoutDuration = 0.5;
+                    blackoutDuration = 0.3;
                     blackoutFlickerTimer = 0;
                 }
             }
 
             case FLICKER -> {
                 blackoutDuration -= dt;
-                blackoutFlickerTimer += dt;
+                blackoutFlickerTimer += dt * 10.0;
+                if (blackoutDuration <= 0) {
+                    blackoutState = BlackoutState.PRE_BLACKOUT;
+                    blackoutDuration = 5.0;
+                }
+            }
 
+            case PRE_BLACKOUT -> {
+                blackoutDuration -= dt;
                 if (blackoutDuration <= 0) {
                     blackoutState = BlackoutState.BLACKOUT;
-                    blackoutDuration = 5;
+                    blackoutDuration = 5.0;
+                    blackoutDropTimer = 0;
+                    SoundManager.getInstance().pauseMusic();
                 }
             }
 
             case BLACKOUT -> {
                 blackoutDuration -= dt;
+                if (blackoutDuration <= 0) {
+                    blackoutState = BlackoutState.POST_FLICKER;
+                    blackoutDuration = 0.3;
+                    blackoutFlickerTimer = 0;
+                    SoundManager.getInstance().resumeMusic();
+                }
+            }
 
+            case POST_FLICKER -> {
+                blackoutDuration -= dt;
+                blackoutFlickerTimer += dt * 10.0;
                 if (blackoutDuration <= 0) {
                     blackoutState = BlackoutState.NORMAL;
                     blackoutTimer = 0;
