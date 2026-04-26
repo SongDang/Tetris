@@ -161,13 +161,13 @@ public class GameController {
         if (!fullRows.isEmpty()) {
             int cleared = fullRows.size();
             // Emit particle burst from every cell in the cleared rows
-            /*for (int row : fullRows) {
+            for (int row : fullRows) {
                 for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                     TetrominoType t = idToType(board[row][x]);
-                    if (t != null)
-                        particleSystem.emitRowBurst(x * cs, row * cs, t.getColor(), 8);
+                    /*if (t != null)
+                        particleSystem.emitRowBurst(x * cs, row * cs, t.getColor(), 8);*/
                 }
-            }*/
+            }
 
             // Horizontal beams shooting out from each cleared row's left/right edges
             double leftBase = VFX_MARGIN; // board left edge in vfxCanvas coords
@@ -359,8 +359,8 @@ public class GameController {
             gameCanvas.setTranslateY(0);
         } else {
             double factor = shakeDuration / shakeInitDuration; // eases out as duration drops
-            gameCanvas.setTranslateX((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor);
-            gameCanvas.setTranslateY((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor);
+            gameCanvas.setTranslateX((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor *10);
+            gameCanvas.setTranslateY((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor *10);
         }*/
     }
 

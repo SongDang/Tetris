@@ -118,7 +118,7 @@ public class ParticleSystem {
                         double bvy    = dirX * sin + dirY * cos;
                         double speed  = rng.nextDouble() * 100 + 70;
                         double decay  = rng.nextDouble() * 2.0 + 4.0;
-                        double size   = rng.nextDouble() * 1.5 + 1.0;
+                        double size   = rng.nextDouble() * 6 + 1.0;
                         Color c2      = (i % 2 == 0) ? color.brighter() : Color.WHITE;
                         particles.add(new Particle(px, py, bvx * speed, bvy * speed, decay, c2, size));
                     }
