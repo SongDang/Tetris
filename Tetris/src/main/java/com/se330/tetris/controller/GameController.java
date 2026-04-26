@@ -141,6 +141,16 @@ public class GameController {
         vfxGc = vfxCanvas.getGraphicsContext2D();
         holdGc = holdBlockCanvas.getGraphicsContext2D();
 
+        //HARD MODE
+        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            //Hide hint
+            nextBlockCanvas1.setVisible(false);
+            nextBlockCanvas2.setVisible(false);
+            nextBlockCanvas3.setVisible(false);
+            //Increase speed
+            fallIntervalNs = 300_000_000L;
+        }
+
         // Spawn hai mảnh đầu tiên
         holdType = null;
         canHold = true;
@@ -524,7 +534,11 @@ public class GameController {
             gameContext.setLevel(newLevel);
             levelLabel.setText(String.valueOf(newLevel));
             // Tăng tốc độ rơi
-            fallIntervalNs = Math.max(100_000_000L, 500_000_000L - (newLevel - 1) * 40_000_000L);
+            long base = (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE)
+                    ? 300_000_000L
+                    : 500_000_000L;
+
+            fallIntervalNs = Math.max(100_000_000L, base - (newLevel - 1) * 40_000_000L);
             levelUpEffect = new LevelUpEffect(newLevel, () -> {
                 shakeIntensity    = 18;
                 shakeInitDuration = 0.25;
