@@ -19,6 +19,7 @@ import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -121,6 +122,17 @@ public class GameController {
     private double rotationPulse = 0; // 1.0 = full brightness pulse, 0 = normal
     private double flashIntensity = 0; // 0 = none, >0 = bright background flash
 
+    // --- HARD MODE BLACKOUT ---
+    private double blackoutTimer = 0;
+    private double blackoutDuration = 0;
+    private double blackoutFlickerTimer = 0;
+    private enum BlackoutState {
+        NORMAL,
+        FLICKER,   // chớp
+        BLACKOUT   // tắt
+    }
+    private BlackoutState blackoutState = BlackoutState.NORMAL;
+
     private java.util.List<TetrominoType> bag = new java.util.ArrayList<>();
 
     private int mouseTargetColumn = -1;
@@ -140,6 +152,12 @@ public class GameController {
 
         vfxGc = vfxCanvas.getGraphicsContext2D();
         holdGc = holdBlockCanvas.getGraphicsContext2D();
+
+        //HARD MODE
+        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            //Increase speed
+            fallIntervalNs = 300_000_000L;
+        }
 
         // Spawn hai mảnh đầu tiên
         holdType = null;
@@ -251,6 +269,11 @@ public class GameController {
                         comboFloatAlpha   = Math.max(0, comboFloatAlpha - dt * 1.1);
                     }
                 }
+
+                if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE && !isGameOver && !gamePaused) {
+                    updateBlackout(dt);
+                }
+
                 render();
             }
         };
@@ -363,6 +386,17 @@ public class GameController {
         currentPiece.setX(Constants.BOARD_WIDTH / 2 - 2);
         currentPiece.setY(0);
         nextQueue.addLast(randomPiece());
+
+        // --- RESET BLACKOUT ---
+        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            if (blackoutState != BlackoutState.NORMAL) {
+                blackoutState = BlackoutState.NORMAL;
+
+                // reset
+                blackoutDuration = 0;
+                blackoutFlickerTimer = 0;
+            }
+        }
     }
 
     private Piece createSpawnedPiece(TetrominoType type) {
@@ -524,7 +558,11 @@ public class GameController {
             gameContext.setLevel(newLevel);
             levelLabel.setText(String.valueOf(newLevel));
             // Tăng tốc độ rơi
-            fallIntervalNs = Math.max(100_000_000L, 500_000_000L - (newLevel - 1) * 40_000_000L);
+            long base = (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE)
+                    ? 300_000_000L
+                    : 500_000_000L;
+
+            fallIntervalNs = Math.max(100_000_000L, base - (newLevel - 1) * 40_000_000L);
             levelUpEffect = new LevelUpEffect(newLevel, () -> {
                 shakeIntensity    = 18;
                 shakeInitDuration = 0.25;
@@ -840,13 +878,24 @@ public class GameController {
         gc.setLineWidth(2);
         gc.strokeRect(0, 0, w, h);
 
-        // Locked cells
-        for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
-            for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
-                if (board[y][x] != 0) {
-                    TetrominoType t = idToType(board[y][x]);
+          //HARD MODE
+        boolean isDark = false;
+        if (blackoutState == BlackoutState.FLICKER) {
+            // chớp nhanh: 10 lần / giây
+            isDark = ((int)(blackoutFlickerTimer * 10)) % 2 == 0;
+        }
+        if (blackoutState == BlackoutState.BLACKOUT) {
+            isDark = true;
+        }
+        if (!isDark) {
+            // Locked cells
+            for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
+                for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+                    if (board[y][x] != 0) {
+                        TetrominoType t = idToType(board[y][x]);
                     if (t != null)
                         drawCell(gc, x, y, t.getColor(), 1.0);
+                    }
                 }
             }
         }
@@ -915,6 +964,8 @@ public class GameController {
             gc.setGlobalAlpha(1.0);
         }
 
+
+
         // Paused overlay
         if (gamePaused) {
             gc.setFill(Color.color(0, 0, 0, 0.5));
@@ -950,6 +1001,12 @@ public class GameController {
             gc.setStroke(Color.web("#00ff00"));
             gc.setLineWidth(2);
             gc.strokeRect(0, 0, w, h);
+
+        //HARD MODE
+         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            drawQuestionMark(gc, canvas);
+            return;
+         }
 
             if (piece == null) return;
 
@@ -1046,5 +1103,54 @@ public class GameController {
         if (gameLoop != null)
             gameLoop.stop();
         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+    }
+
+    private void drawQuestionMark(GraphicsContext gc, Canvas canvas) {
+        double w = canvas.getWidth();
+        double h = canvas.getHeight();
+
+        gc.setFill(Color.web("#00ff00")); // cùng màu viền cho đồng bộ
+        gc.setFont(Font.font("VT323", FontWeight.BOLD, 40));
+
+        String text = "?";
+
+        // canh giữa tương đối
+        gc.fillText(text, w / 2 - 8, h / 2 + 12);
+        gc.setEffect(new DropShadow(10, Color.web("#00ff00")));
+    }
+
+    private void updateBlackout(double dt) {
+        blackoutTimer += dt;
+
+        switch (blackoutState) {
+
+            case NORMAL -> {
+                if (blackoutTimer >= 5.0) {
+                    blackoutTimer = 0;
+                    blackoutState = BlackoutState.FLICKER;
+                    blackoutDuration = 0.5;
+                    blackoutFlickerTimer = 0;
+                }
+            }
+
+            case FLICKER -> {
+                blackoutDuration -= dt;
+                blackoutFlickerTimer += dt;
+
+                if (blackoutDuration <= 0) {
+                    blackoutState = BlackoutState.BLACKOUT;
+                    blackoutDuration = 5;
+                }
+            }
+
+            case BLACKOUT -> {
+                blackoutDuration -= dt;
+
+                if (blackoutDuration <= 0) {
+                    blackoutState = BlackoutState.NORMAL;
+                    blackoutTimer = 0;
+                }
+            }
+        }
     }
 }
