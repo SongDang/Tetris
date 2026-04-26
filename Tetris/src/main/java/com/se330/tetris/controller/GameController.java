@@ -236,6 +236,7 @@ public class GameController {
                     glitchExplosionEffect.update(dt);
                     if (glitchExplosionEffect.isDone()) glitchExplosionEffect = null;
                 }
+
                 if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
 
                 if (isGameOver && gameOverFreezeUntil > 0 && now >= gameOverFreezeUntil) {
@@ -526,6 +527,7 @@ public class GameController {
 
         int minCol = Integer.MAX_VALUE;
         int maxCol = Integer.MIN_VALUE;
+        int minRow = Integer.MAX_VALUE;
         int maxRow = Integer.MIN_VALUE;
 
         for (int row = 0; row < 4; row++) {
@@ -540,16 +542,15 @@ public class GameController {
                             particleSystem.emitLockParticles(
                                     x * cs, y * cs, currentPiece.getType().getColor(), 18);
                         }
-                        if (x < minCol)
-                            minCol = x;
-                        if (x > maxCol)
-                            maxCol = x;
-                        if (y > maxRow)
-                            maxRow = y;
+                        if (x < minCol) minCol = x;
+                        if (x > maxCol) maxCol = x;
+                        if (y < minRow) minRow = y;
+                        if (y > maxRow) maxRow = y;
                     }
                 }
             }
         }
+
 
         // Single wide light column on hard drop only
         if (dropStartRow >= 0 && minCol <= maxCol) {
@@ -1115,6 +1116,27 @@ case C, SHIFT      -> holdCurrentPiece();
                     }
                 }
             }
+            gc.setGlobalAlpha(1.0);
+        }
+
+        // Chromatic aberration during blackout — red left, cyan right, grows with charge
+        if (blackoutState == BlackoutState.BLACKOUT && !isBomb) {
+            double caOffset = 3.0 + charge * 7.0;
+            Color base = currentPiece.getType().getColor();
+            gc.setGlobalAlpha(0.50);
+            gc.setFill(Color.color(Math.min(1.0, base.getRed() + 0.4), 0, 0));
+            for (int row = 0; row < 4; row++)
+                for (int col = 0; col < 4; col++)
+                    if (shape[row][col] == 1)
+                        gc.fillRect((currentPiece.getX() + col) * cs - caOffset,
+                                    (currentPiece.getY() + row) * cs, cs, cs);
+            gc.setFill(Color.color(0, Math.min(1.0, base.getGreen() * 0.2 + 0.6),
+                                      Math.min(1.0, base.getBlue()  + 0.4)));
+            for (int row = 0; row < 4; row++)
+                for (int col = 0; col < 4; col++)
+                    if (shape[row][col] == 1)
+                        gc.fillRect((currentPiece.getX() + col) * cs + caOffset,
+                                    (currentPiece.getY() + row) * cs, cs, cs);
             gc.setGlobalAlpha(1.0);
         }
 
