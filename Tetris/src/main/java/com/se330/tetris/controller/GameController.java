@@ -189,6 +189,7 @@ public class GameController {
             startupCanvas.setMouseTransparent(true);
             startupGc = startupCanvas.getGraphicsContext2D();
             gamePane.getChildren().add(startupCanvas);
+            startupGlitchElapsed = 0; // restart so flashes begin once the canvas is ready
             gamePane.layoutBoundsProperty().addListener((obs, o, n) -> {
                 if (startupGlitchElapsed < STARTUP_GLITCH_DUR) {
                     startupCanvas.setWidth(n.getWidth());
@@ -701,6 +702,7 @@ public class GameController {
 
     @FXML
     private void handleKeyPressed(KeyEvent event) {
+        if (isGameOver) return;
         KeyCode code = event.getCode();
         switch (code) {
             case LEFT, A -> { if (canMove(-1, 0, currentPiece.getRotation()))
@@ -944,17 +946,26 @@ case C, SHIFT      -> holdCurrentPiece();
 
         startupGc.clearRect(0, 0, w, h);
 
-        // sparse horizontal scanline bands
+        // clean scanline bands — each drifts sideways at its own phase
         int bands = 6 + rng.nextInt(5);
         for (int i = 0; i < bands; i++) {
-            double by  = rng.nextDouble() * h;
-            double bh  = rng.nextDouble() * (h * 0.06) + 1;
-            int pick   = rng.nextInt(3);
-            Color c    = pick == 0 ? Color.color(0, 1, 1, alpha * 0.5)
-                       : pick == 1 ? Color.color(1, 1, 1, alpha * 0.4)
-                       :             Color.color(0, 1, 0, alpha * 0.3);
-            startupGc.setFill(c);
-            startupGc.fillRect(0, by, w, bh);
+            double by      = rng.nextDouble() * h;
+            double bh      = rng.nextDouble() * (h * 0.05) + 1;
+            int pick       = rng.nextInt(3);
+            double cr      = pick == 0 ? 0 : 1;
+            double cg      = pick == 0 ? 1 : 1;
+            double cb      = pick == 0 ? 1 : 0;
+            double baseA   = pick == 0 ? 0.5 : pick == 1 ? 0.4 : 0.3;
+            double xOffset = Math.sin(t * Math.PI * 5 + i * 1.9) * w * 0.18;
+            double pad     = Math.abs(xOffset);
+            startupGc.setFill(Color.color(cr, cg, cb, Math.min(1, alpha * baseA)));
+            startupGc.fillRect(xOffset - pad, by, w + pad * 2, bh);
+            // a couple of bright accent pixels on the band
+            for (int j = 0; j < 3; j++) {
+                double hx = rng.nextDouble() * w + xOffset;
+                startupGc.setFill(Color.color(1, 1, 1, alpha * (0.6 + rng.nextDouble() * 0.4)));
+                startupGc.fillRect(hx, by, rng.nextDouble() * 6 + 2, bh);
+            }
         }
         // light pixel scatter
         int pixels = (int)(250 * (1.0 - t));
