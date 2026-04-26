@@ -2,6 +2,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.canvas.*?>
+<?import javafx.scene.image.ImageView?>
 
 <HBox xmlns="http://javafx.com/javafx/17"
       xmlns:fx="http://javafx.com/fxml/1"
@@ -45,7 +46,7 @@
         </HBox>
     </VBox>
 
-    <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 150;">
+    <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 200;">
         <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
             <Label text="NEXT" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
             <Canvas fx:id="nextBlockCanvas1" width="100" height="100"/>
@@ -53,5 +54,6 @@
             <Canvas fx:id="nextBlockCanvas3" width="100" height="100"/>
         </VBox>
 
+        <ImageView fx:id="lightBulbView" fitWidth="180" fitHeight="180" preserveRatio="true" visible="false"/>
     </VBox>
 </HBox>

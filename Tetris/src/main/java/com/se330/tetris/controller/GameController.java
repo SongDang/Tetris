@@ -53,6 +53,11 @@ public class GameController {
     private Label linesLabel;
     @FXML
     private Canvas holdBlockCanvas;
+    @FXML
+    private javafx.scene.image.ImageView lightBulbView;
+
+    private javafx.scene.image.Image lightOnImage;
+    private javafx.scene.image.Image lightOffImage;
 
     private SceneManager sceneManager;
     private GameContext gameContext;
@@ -156,10 +161,14 @@ public class GameController {
         holdGc = holdBlockCanvas.getGraphicsContext2D();
         bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
 
+        lightOnImage  = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
+        lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
+
         //HARD MODE
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
-            //Increase speed
             fallIntervalNs = 300_000_000L;
+            lightBulbView.setImage(lightOnImage);
+            lightBulbView.setVisible(true);
         }
 
         // Spawn hai mảnh đầu tiên
@@ -934,6 +943,7 @@ case C, SHIFT      -> holdCurrentPiece();
         renderTopLayer();
         drawHoldBlock();
         drawNextBlocks();
+        updateLightBulb();
         renderStartupGlitch();
     }
 
@@ -1092,12 +1102,12 @@ case C, SHIFT      -> holdCurrentPiece();
 
         double chargeOffsetX = 0, chargeOffsetY = 0, charge = 0;
         Color pieceColor;
-        if (blackoutState == BlackoutState.BLACKOUT && !isBomb) {
+        if (blackoutState == BlackoutState.BLACKOUT) {
             charge = blackoutDropTimer / BLACKOUT_AUTO_DROP;
             double freq = 6.0 + charge * 10.0;
             chargeOffsetY = Math.sin(blackoutDropTimer * Math.PI * freq) * charge * 5.0;
             chargeOffsetX = (rng.nextDouble() - 0.5) * charge * 4.0;
-            Color base = currentPiece.getType().getColor();
+            Color base = isBomb ? Color.color(1.0, 0.15, 0.15) : currentPiece.getType().getColor();
             double bright = charge * 0.75;
             pieceColor = Color.color(
                 Math.min(1.0, base.getRed()   + bright),
@@ -1113,7 +1123,7 @@ case C, SHIFT      -> holdCurrentPiece();
         gc.translate(chargeOffsetX, chargeOffsetY);
 
         // Expanding aura glow as charge builds
-        if (blackoutState == BlackoutState.BLACKOUT && !isBomb && charge > 0) {
+        if (blackoutState == BlackoutState.BLACKOUT && charge > 0) {
             double expansion = charge * 5.0;
             gc.setGlobalAlpha(charge * 0.35);
             gc.setFill(pieceColor);
@@ -1131,7 +1141,7 @@ case C, SHIFT      -> holdCurrentPiece();
         }
 
         // Chromatic aberration during blackout — red left, cyan right, grows with charge
-        if (blackoutState == BlackoutState.BLACKOUT && !isBomb) {
+        if (blackoutState == BlackoutState.BLACKOUT) {
             double caOffset = 3.0 + charge * 7.0;
             Color base = currentPiece.getType().getColor();
             gc.setGlobalAlpha(0.50);
@@ -1156,7 +1166,7 @@ case C, SHIFT      -> holdCurrentPiece();
                 if (shape[row][col] == 1) {
                     int px = currentPiece.getX() + col;
                     int py = currentPiece.getY() + row;
-                    if (isBomb) {
+                    if (isBomb && blackoutState != BlackoutState.BLACKOUT) {
                         double bcx = px * cs + cs / 2.0;
                         double bcy = py * cs + cs / 2.0;
                         gc.save();
@@ -1325,6 +1335,16 @@ case C, SHIFT      -> holdCurrentPiece();
         // canh giữa tương đối
         gc.fillText(text, w / 2 - 8, h / 2 + 12);
         gc.setEffect(new DropShadow(10, Color.web("#00ff00")));
+    }
+
+    private void updateLightBulb() {
+        if (!lightBulbView.isVisible()) return;
+        boolean off = switch (blackoutState) {
+            case BLACKOUT     -> true;
+            case FLICKER, POST_FLICKER -> ((int) blackoutFlickerTimer) % 2 == 0;
+            default           -> false;
+        };
+        lightBulbView.setImage(off ? lightOffImage : lightOnImage);
     }
 
     private void updateBlackout(double dt) {
