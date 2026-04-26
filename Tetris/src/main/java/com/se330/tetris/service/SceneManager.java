@@ -15,6 +15,7 @@ public class SceneManager {
     public static final String MAIN_MENU_SCENE = "main";
     public static final String GAMEMODES_SCENE = "gamemodes";
     public static final String GAME_SCENE = "game";
+    public static final String HARD_GAME_SCENE = "hardgame";
     public static final String RESULTS_SCENE = "results";
     public static final String SETTINGS_SCENE = "settings";
 
@@ -75,6 +76,7 @@ public class SceneManager {
             case MAIN_MENU_SCENE -> Constants.FXML_MAIN;
             case GAMEMODES_SCENE -> Constants.FXML_GAMEMODES;
             case GAME_SCENE -> Constants.FXML_GAME;
+            case HARD_GAME_SCENE -> Constants.FXML_HARDGAME;
             case RESULTS_SCENE -> Constants.FXML_RESULTS;
             case SETTINGS_SCENE -> Constants.FXML_SETTINGS;
             default -> throw new IllegalArgumentException("Unknown scene name: " + sceneName);

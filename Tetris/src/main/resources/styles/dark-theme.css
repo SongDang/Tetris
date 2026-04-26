@@ -209,6 +209,69 @@
     -fx-text-fill: #ffffff;
 }
 
+/* ── Hard Mode UI ─────────────────────────────────────────────── */
+
+.screen-hard-game {
+    -fx-background-color: #1a0a06;
+    -fx-background-image: url("../assets/hardbg.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: cover;
+    -fx-background-position: center;
+}
+
+.hard-bar {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardbar.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-dash-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/harddash.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-hold-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardhold.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-main-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardmain.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-flavour-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardflavour.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-label-header {
+    -fx-font-family: "Courier New";
+    -fx-font-weight: bold;
+    -fx-font-size: 13;
+    -fx-text-fill: #c4883a;
+}
+
+.hard-flavour-text {
+    -fx-font-family: "Courier New";
+    -fx-font-weight: bold;
+    -fx-font-size: 18;
+    -fx-text-fill: #c4883a;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* ──────────────────────────────────────────────────────────────── */
+
 .button:hover,
 .figma-button:hover,
 .mode-card-button:hover {

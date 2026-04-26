@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.geometry.Insets?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="gamePane"
+            fx:controller="com.se330.tetris.controller.GameController"
+            focusTraversable="true"
+            styleClass="screen-hard-game"
+            prefWidth="1440" prefHeight="1024">
+
+    <HBox alignment="CENTER" spacing="30"
+          AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
+          AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="176">
+
+        <VBox alignment="CENTER" spacing="8">
+
+            <StackPane prefWidth="270" prefHeight="430" styleClass="hard-dash-panel">
+                <VBox StackPane.alignment="TOP_LEFT"
+                      style="-fx-padding: 45 20 20 30;" spacing="4">
+
+                    <Label text="SCORE" styleClass="hard-label-header"/>
+                    <Label fx:id="scoreLabel" text="0"
+                           style="-fx-font-size: 26; -fx-text-fill: #ffffff; -fx-font-family: 'Courier New';"/>
+
+                    <Label text="LEVEL" styleClass="hard-label-header">
+                        <VBox.margin><Insets top="18"/></VBox.margin>
+                    </Label>
+                    <Label fx:id="levelLabel" text="1"
+                           style="-fx-font-size: 26; -fx-text-fill: #00ff88; -fx-font-family: 'Courier New';"/>
+
+                    <Label text="LINES" styleClass="hard-label-header">
+                        <VBox.margin><Insets top="18"/></VBox.margin>
+                    </Label>
+                    <Label fx:id="linesLabel" text="0"
+                           style="-fx-font-size: 26; -fx-text-fill: #ffcc00; -fx-font-family: 'Courier New';"/>
+
+                </VBox>
+            </StackPane>
+
+            <!-- Hold frame -->
+            <StackPane prefWidth="270" prefHeight="220" styleClass="hard-hold-panel">
+                <VBox alignment="CENTER" spacing="6">
+                    <Label text="HOLD" styleClass="hard-label-header"/>
+                    <Canvas fx:id="holdBlockCanvas" width="100" height="100"/>
+                </VBox>
+            </StackPane>
+
+        </VBox>
+
+
+        <StackPane prefWidth="352" prefHeight="652">
+            <ImageView fitWidth="352" fitHeight="652" preserveRatio="false"
+                       mouseTransparent="true">
+                <image><Image url="@../assets/hardmain.png"/></image>
+            </ImageView>
+            <Canvas fx:id="gameCanvas" width="300" height="600"/>
+            <Canvas fx:id="vfxCanvas" width="600" height="600"
+                    managed="false" layoutX="-119" layoutY="31" mouseTransparent="true"/>
+        </StackPane>
+
+        <!-- Lightbulb -->
+        <VBox alignment="CENTER">
+            <ImageView fx:id="lightBulbView" fitWidth="220" fitHeight="220"
+                       preserveRatio="true" visible="false"/>
+        </VBox>
+
+    </HBox>
+
+    <!-- Bottom bar -->
+    <Region styleClass="hard-bar" prefHeight="176"
+            AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"/>
+
+    <!-- Flavour panel centred inside the bar -->
+    <HBox alignment="CENTER" prefHeight="127"
+          AnchorPane.bottomAnchor="24" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+        <StackPane prefWidth="646" prefHeight="127" styleClass="hard-flavour-panel">
+            <Label fx:id="flavourLabel" text="You feel darkness looming"
+                   maxWidth="Infinity" styleClass="hard-flavour-text"/>
+        </StackPane>
+    </HBox>
+
+</AnchorPane>

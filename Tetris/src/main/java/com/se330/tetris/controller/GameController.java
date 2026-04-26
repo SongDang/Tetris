@@ -24,7 +24,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -32,7 +32,7 @@ import javafx.scene.text.FontWeight;
 public class GameController {
 
     @FXML
-    private HBox gamePane;
+    private Pane gamePane;
     @FXML
     private Canvas gameCanvas;
     @FXML
@@ -55,6 +55,8 @@ public class GameController {
     private Canvas holdBlockCanvas;
     @FXML
     private javafx.scene.image.ImageView lightBulbView;
+    @FXML
+    private javafx.scene.control.Label flavourLabel;
 
     private javafx.scene.image.Image lightOnImage;
     private javafx.scene.image.Image lightOffImage;
@@ -153,9 +155,9 @@ public class GameController {
         gameContext.reset();
 
         gameGc = gameCanvas.getGraphicsContext2D();
-        nextGc1 = nextBlockCanvas1.getGraphicsContext2D();
-        nextGc2 = nextBlockCanvas2.getGraphicsContext2D();
-        nextGc3 = nextBlockCanvas3.getGraphicsContext2D();
+        nextGc1 = nextBlockCanvas1 != null ? nextBlockCanvas1.getGraphicsContext2D() : null;
+        nextGc2 = nextBlockCanvas2 != null ? nextBlockCanvas2.getGraphicsContext2D() : null;
+        nextGc3 = nextBlockCanvas3 != null ? nextBlockCanvas3.getGraphicsContext2D() : null;
 
         vfxGc = vfxCanvas.getGraphicsContext2D();
         holdGc = holdBlockCanvas.getGraphicsContext2D();
@@ -906,14 +908,16 @@ case C, SHIFT      -> holdCurrentPiece();
     private static final String PANE_BASE_STYLE = "-fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;";
 
     private void render() {
-        if (flashIntensity > 0) {
-            double r = BG_R + flashIntensity * (1.0 - BG_R);
-            double g = BG_G + flashIntensity * (1.0 - BG_G);
-            double b = BG_B + flashIntensity * (1.0 - BG_B);
-            String hex = String.format("#%02x%02x%02x", (int)(r*255), (int)(g*255), (int)(b*255));
-            gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
-        } else {
-            gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
+        if (gameContext.getGameMode() != GameContext.GameMode.HARD_MODE) {
+            if (flashIntensity > 0) {
+                double r = BG_R + flashIntensity * (1.0 - BG_R);
+                double g = BG_G + flashIntensity * (1.0 - BG_G);
+                double b = BG_B + flashIntensity * (1.0 - BG_B);
+                String hex = String.format("#%02x%02x%02x", (int)(r*255), (int)(g*255), (int)(b*255));
+                gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
+            } else {
+                gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
+            }
         }
 
         drawGameBoard();
@@ -1019,10 +1023,12 @@ case C, SHIFT      -> holdCurrentPiece();
         for (int y = 0; y <= Constants.BOARD_HEIGHT; y++)
             gc.strokeLine(0, y * cs, w, y * cs);
 
-        // Border
-        gc.setStroke(Color.web("#00ff00"));
-        gc.setLineWidth(2);
-        gc.strokeRect(0, 0, w, h);
+        // Border — hidden in hard mode (wooden frame provides it)
+        if (gameContext.getGameMode() != GameContext.GameMode.HARD_MODE) {
+            gc.setStroke(Color.web("#00ff00"));
+            gc.setLineWidth(2);
+            gc.strokeRect(0, 0, w, h);
+        }
 
         // Locked cells
         for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
@@ -1201,9 +1207,12 @@ case C, SHIFT      -> holdCurrentPiece();
 
     public void drawNextBlocks() {
         java.util.Iterator<Piece> it = nextQueue.iterator();
-        drawPreview(nextGc1, nextBlockCanvas1, it.hasNext() ? it.next() : null);
-        drawPreview(nextGc2, nextBlockCanvas2, it.hasNext() ? it.next() : null);
-        drawPreview(nextGc3, nextBlockCanvas3, it.hasNext() ? it.next() : null);
+        if (nextGc1 != null) drawPreview(nextGc1, nextBlockCanvas1, it.hasNext() ? it.next() : null);
+        else if (it.hasNext()) it.next();
+        if (nextGc2 != null) drawPreview(nextGc2, nextBlockCanvas2, it.hasNext() ? it.next() : null);
+        else if (it.hasNext()) it.next();
+        if (nextGc3 != null) drawPreview(nextGc3, nextBlockCanvas3, it.hasNext() ? it.next() : null);
+        else if (it.hasNext()) it.next();
     }
 
     private void drawPreview(GraphicsContext gc, Canvas canvas, Piece piece) {
@@ -1213,9 +1222,6 @@ case C, SHIFT      -> holdCurrentPiece();
             // Xóa nền và vẽ viền
             gc.setFill(Color.web("#0f0d1a"));
             gc.fillRect(0, 0, w, h);
-            gc.setStroke(Color.web("#00ff00"));
-            gc.setLineWidth(2);
-            gc.strokeRect(0, 0, w, h);
 
         //HARD MODE
          if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
