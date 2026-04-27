@@ -57,6 +57,8 @@ public class GameController {
     private javafx.scene.image.ImageView lightBulbView;
     @FXML
     private javafx.scene.control.Label flavourLabel;
+    @FXML
+    private javafx.scene.control.Label comboLabel;
 
     private javafx.scene.image.Image lightOnImage;
     private javafx.scene.image.Image lightOffImage;
@@ -391,6 +393,7 @@ public class GameController {
             shakeDuration     = shakeInitDuration;
 
             comboCount++;
+            if (comboLabel != null) comboLabel.setText("x" + comboCount);
             if (comboCount >= 2) {
                 int avgRow = fullRows.stream().mapToInt(Integer::intValue).sum() / fullRows.size();
                 comboDisplay    = comboCount;
@@ -427,6 +430,7 @@ public class GameController {
             emitScorePopup(cleared, avgRow);
         } else {
             comboCount = 0;
+            if (comboLabel != null) comboLabel.setText("x0");
         }
 
         canHold = true;
@@ -1012,11 +1016,12 @@ case C, SHIFT      -> holdCurrentPiece();
         int cs = Constants.BLOCK_SIZE;
 
         // Background
-        gc.setFill(Color.web("#0f0d1a"));
+        boolean hardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
+        gc.setFill(Color.web(hardMode ? "#280C00" : "#0f0d1a"));
         gc.fillRect(0, 0, w, h);
 
         // Grid lines
-        gc.setStroke(Color.web("#2b2740"));
+        gc.setStroke(Color.web(hardMode ? "#3d1500" : "#2b2740"));
         gc.setLineWidth(0.5);
         for (int x = 0; x <= Constants.BOARD_WIDTH; x++)
             gc.strokeLine(x * cs, 0, x * cs, h);
@@ -1220,14 +1225,8 @@ case C, SHIFT      -> holdCurrentPiece();
             double h = canvas.getHeight();
 
             // Xóa nền và vẽ viền
-            gc.setFill(Color.web("#0f0d1a"));
+            gc.setFill(Color.web(gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
             gc.fillRect(0, 0, w, h);
-
-        //HARD MODE
-         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
-            drawQuestionMark(gc, canvas);
-            return;
-         }
 
             if (piece == null) return;
 

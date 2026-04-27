@@ -255,16 +255,14 @@
 }
 
 .hard-label-header {
-    -fx-font-family: "Courier New";
-    -fx-font-weight: bold;
-    -fx-font-size: 13;
-    -fx-text-fill: #c4883a;
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: #ffffff;
 }
 
 .hard-flavour-text {
-    -fx-font-family: "Courier New";
-    -fx-font-weight: bold;
-    -fx-font-size: 18;
+    -fx-font-family: "VT323";
+    -fx-font-size: 32;
     -fx-text-fill: #c4883a;
     -fx-alignment: center;
     -fx-text-alignment: center;
