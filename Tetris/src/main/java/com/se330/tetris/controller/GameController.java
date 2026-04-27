@@ -255,7 +255,9 @@ public class GameController {
 
                 if (isGameOver && gameOverFreezeUntil > 0 && now >= gameOverFreezeUntil) {
                     gameOverFreezeUntil = 0;
-                    glitchTearEffect = new GlitchTearEffect(board, Constants.BLOCK_SIZE, () -> {
+                    boolean hardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
+                    Color tearBg = Color.web(hardMode ? "#280C00" : "#0f0d1a");
+                    glitchTearEffect = new GlitchTearEffect(board, Constants.BLOCK_SIZE, tearBg, () -> {
                         gameLoop.stop();
                         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
                     });

@@ -59,9 +59,9 @@
 
             <!-- Hold frame -->
             <StackPane prefWidth="216" prefHeight="176" styleClass="hard-hold-panel">
-                <VBox alignment="CENTER" spacing="6">
+                <VBox alignment="TOP_LEFT" spacing="4" style="-fx-padding: 37 10 10 41;">
                     <Label text="HOLD" styleClass="hard-label-header"/>
-                    <Canvas fx:id="holdBlockCanvas" width="100" height="100"/>
+                    <Canvas fx:id="holdBlockCanvas" width="100" height="100" translateX="15" translateY="-8"/>
                 </VBox>
             </StackPane>
 
@@ -78,13 +78,22 @@
                     managed="false" layoutX="-119" layoutY="31" mouseTransparent="true"/>
         </StackPane>
 
-        <!-- Lightbulb -->
-        <VBox alignment="TOP_CENTER">
-            <ImageView fx:id="lightBulbView" fitWidth="220" fitHeight="220"
-                       preserveRatio="true" visible="false"/>
-        </VBox>
+        <!-- Right spacer to balance left panel width so canvas stays centered -->
+        <Region prefWidth="216" minWidth="216"/>
 
     </HBox>
+
+    <!-- Lightbulb: floats independently so it never affects canvas position -->
+    <VBox alignment="TOP_CENTER"
+          AnchorPane.topAnchor="259" AnchorPane.rightAnchor="150">
+        <ImageView fitWidth="10" fitHeight="610" preserveRatio="false"
+                   managed="false" translateX="170" translateY="-580"
+                   mouseTransparent="true">
+            <image><Image url="@../assets/string.png"/></image>
+        </ImageView>
+        <ImageView fx:id="lightBulbView" fitWidth="350" fitHeight="350"
+                   preserveRatio="true" visible="false"/>
+    </VBox>
 
     <!-- Bottom bar -->
     <Region styleClass="hard-bar" prefHeight="176"
