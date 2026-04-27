@@ -20,7 +20,7 @@
 
     <HBox alignment="TOP_CENTER" spacing="20"
           AnchorPane.topAnchor="20" AnchorPane.leftAnchor="0"
-          AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="176">
+          AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="204">
 
         <VBox alignment="TOP_CENTER" spacing="8" style="-fx-padding: 65 0 0 0;">
 
@@ -69,7 +69,7 @@
 
 
         <StackPane prefWidth="352" prefHeight="652">
-            <ImageView fitWidth="352" fitHeight="652" preserveRatio="false"
+            <ImageView fx:id="mainFrameView" fitWidth="352" fitHeight="652" preserveRatio="false"
                        mouseTransparent="true">
                 <image><Image url="@../assets/hardmain.png"/></image>
             </ImageView>
@@ -96,14 +96,14 @@
     </VBox>
 
     <!-- Bottom bar -->
-    <Region styleClass="hard-bar" prefHeight="176"
+    <Region styleClass="hard-bar" prefHeight="204"
             AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"/>
 
     <!-- Flavour panel centred inside the bar -->
-    <HBox alignment="CENTER" prefHeight="127"
-          AnchorPane.bottomAnchor="24" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
-        <StackPane prefWidth="646" prefHeight="127" styleClass="hard-flavour-panel">
-            <Label fx:id="flavourLabel" text="You feel darkness looming"
+    <HBox alignment="CENTER" prefHeight="112"
+          AnchorPane.bottomAnchor="46" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+        <StackPane prefWidth="700" prefHeight="112" styleClass="hard-flavour-panel">
+            <Label fx:id="flavourLabel" text="Back for more?"
                    maxWidth="Infinity" styleClass="hard-flavour-text"/>
         </StackPane>
     </HBox>

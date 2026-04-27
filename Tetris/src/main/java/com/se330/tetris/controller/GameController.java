@@ -56,12 +56,16 @@ public class GameController {
     @FXML
     private javafx.scene.image.ImageView lightBulbView;
     @FXML
+    private javafx.scene.image.ImageView mainFrameView;
+    @FXML
     private javafx.scene.control.Label flavourLabel;
     @FXML
     private javafx.scene.control.Label comboLabel;
 
     private javafx.scene.image.Image lightOnImage;
     private javafx.scene.image.Image lightOffImage;
+    private javafx.scene.image.Image hardMainImage;
+    private javafx.scene.image.Image darkMainImage;
 
     private SceneManager sceneManager;
     private GameContext gameContext;
@@ -144,6 +148,55 @@ public class GameController {
     }
     private BlackoutState blackoutState = BlackoutState.NORMAL;
 
+    private double  flavourWaveTime   = 0;
+    private double  flavourTypeElapsed = 0;
+    private double  flavourCooldown    = 0;
+    private int     placesSinceFlavour = 0;
+    private boolean lightsOutMode       = false;
+    private boolean darknessLoomsMode  = false;
+    private final java.util.List<javafx.scene.control.Label> flavourChars = new java.util.ArrayList<>();
+    private javafx.scene.layout.HBox        flavourHBox;
+    private javafx.scene.layout.StackPane   flavourPane;
+
+    private static final double FLAVOUR_BASE_CD   = 7.0;
+    private static final double FLAVOUR_CHAR_DELAY = 0.055;
+    private static final String[] FLAVOUR_PLACE  = {
+        "Bold choice. truly.",
+        "That's one way to do it.",
+        "You sure about that one.",
+        "The audacity."
+    };
+    private static final String[] FLAVOUR_CLEAR  = {
+        "Fine. you get one.",
+        "Don't let it go to your head.",
+        "Was that on purpose? be honest."
+    };
+    private static final String[] FLAVOUR_TETRIS = {
+        "Okay. i see you.",
+        "Don't make it weird by celebrating.",
+        "Four lines. i'll allow it."
+    };
+    private static final String[] FLAVOUR_STACK  = {
+        "You did this to yourself.",
+        "This is a you problem.",
+        "I'd look away but i can't.",
+        "Are you okay? genuinely asking."
+    };
+    private static final String[] FLAVOUR_COMBO  = {
+        "Oh so you can do this.",
+        "Where was this ten moves ago.",
+        "Keep going. i dare you.",
+        "Now you're showing off."
+    };
+    private static final String[] FLAVOUR_POST_BLACKOUT = {
+        "The lights return. assess the damage.",
+        "Welcome back. the stack didn't wait.",
+        "Darkness lifted. problems haven't.",
+        "You survived the blackout. barely counts.",
+        "The board kept going without you.",
+        "Light's back. make it count this time."
+    };
+
     private java.util.List<TetrominoType> bag = new java.util.ArrayList<>();
 
     private int mouseTargetColumn = -1;
@@ -171,12 +224,15 @@ public class GameController {
 
         lightOnImage  = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
         lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
+        hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
+        darkMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/darkmain.png"));
 
         //HARD MODE
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
             fallIntervalNs = 300_000_000L;
             lightBulbView.setImage(lightOnImage);
             lightBulbView.setVisible(true);
+            Platform.runLater(this::buildFlavourChars);
         }
 
         // Spawn hai mảnh đầu tiên
@@ -341,6 +397,9 @@ public class GameController {
 
                 if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE && !isGameOver && !gamePaused) {
                     updateBlackout(dt);
+                    flavourWaveTime    += dt;
+                    flavourTypeElapsed += dt;
+                    flavourCooldown    -= dt;
                 }
 
                 render();
@@ -420,6 +479,7 @@ public class GameController {
                 PauseTransition delay = new PauseTransition(Duration.millis(300));
                 delay.setOnFinished(e -> SoundManager.getInstance().playSE(SoundType.TETRIS2));
                 delay.play();
+                trySetFlavour(FLAVOUR_TETRIS, FLAVOUR_BASE_CD); // always fires
                 return;
             }
 
@@ -434,9 +494,19 @@ public class GameController {
             addLines(cleared);
             updateLevel();
             emitScorePopup(cleared, avgRow);
+            // Combo takes priority over plain clear message
+            boolean flavSet = comboCount >= 2 && trySetFlavour(FLAVOUR_COMBO, 2.0);
+            if (!flavSet) trySetFlavour(FLAVOUR_CLEAR, 0.0);
         } else {
             comboCount = 0;
             if (comboLabel != null) comboLabel.setText("x0");
+            // Trigger place/stack flavour every ~7 locks
+            placesSinceFlavour++;
+            if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE && placesSinceFlavour >= 7) {
+                placesSinceFlavour = 0;
+                boolean isHigh = getStackTopRow() < 7;
+                trySetFlavour(isHigh ? FLAVOUR_STACK : FLAVOUR_PLACE, 0.0);
+            }
         }
 
         canHold = true;
@@ -924,6 +994,19 @@ case C, SHIFT      -> holdCurrentPiece();
     private static final String PANE_BASE_STYLE = "-fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;";
 
     private void render() {
+        // Swap hard-mode UI panels to dark assets during blackout
+        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            boolean inBlackout = blackoutState == BlackoutState.BLACKOUT;
+            var classes = gamePane.getStyleClass();
+            if (inBlackout && !classes.contains("blackout")) {
+                classes.add("blackout");
+                if (mainFrameView != null) mainFrameView.setImage(darkMainImage);
+            } else if (!inBlackout && classes.contains("blackout")) {
+                classes.remove("blackout");
+                if (mainFrameView != null) mainFrameView.setImage(hardMainImage);
+            }
+        }
+
         if (gameContext.getGameMode() != GameContext.GameMode.HARD_MODE) {
             if (flashIntensity > 0) {
                 double r = BG_R + flashIntensity * (1.0 - BG_R);
@@ -964,6 +1047,52 @@ case C, SHIFT      -> holdCurrentPiece();
         drawHoldBlock();
         drawNextBlocks();
         updateLightBulb();
+
+        // Flavour text render
+        if (lightsOutMode) {
+            // Vibrate the whole line
+            if (flavourHBox != null) {
+                flavourHBox.setTranslateX((rng.nextDouble() - 0.5) * 8);
+                flavourHBox.setTranslateY((rng.nextDouble() - 0.5) * 5);
+            }
+            // Per-char glitch: random opacity drops and color flashes
+            for (javafx.scene.control.Label l : flavourChars) {
+                if (rng.nextDouble() < 0.12) {
+                    l.setOpacity(rng.nextDouble() < 0.4 ? 0.0 : 1.0);
+                } else {
+                    l.setOpacity(1.0);
+                }
+                String col = rng.nextDouble() < 0.06
+                    ? (rng.nextBoolean() ? "#ffffff" : "#880000")
+                    : "#FF0000";
+                l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: " + col + ";");
+            }
+        } else if (darknessLoomsMode) {
+            if (flavourHBox != null) { flavourHBox.setTranslateX(0); flavourHBox.setTranslateY(0); }
+            int nVisible = Math.min(flavourChars.size(), (int)(flavourTypeElapsed / (FLAVOUR_CHAR_DELAY * 1.8)));
+            for (int i = 0; i < flavourChars.size(); i++) {
+                javafx.scene.control.Label l = flavourChars.get(i);
+                boolean visible = i < nVisible;
+                // Subtle flicker on revealed chars
+                if (visible && rng.nextDouble() < 0.04)
+                    l.setOpacity(0.4 + rng.nextDouble() * 0.3);
+                else
+                    l.setOpacity(visible ? 1.0 : 0.0);
+                if (visible)
+                    l.setTranslateY(Math.sin(flavourWaveTime * 1.2 + i * 0.45) * 5.0);
+            }
+        } else {
+            if (flavourHBox != null) { flavourHBox.setTranslateX(0); flavourHBox.setTranslateY(0); }
+            int nVisible = Math.min(flavourChars.size(), (int)(flavourTypeElapsed / FLAVOUR_CHAR_DELAY));
+            for (int i = 0; i < flavourChars.size(); i++) {
+                javafx.scene.control.Label l = flavourChars.get(i);
+                boolean visible = i < nVisible;
+                l.setOpacity(visible ? 1.0 : 0.0);
+                if (visible)
+                    l.setTranslateY(Math.sin(flavourWaveTime * 2.5 + i * 0.45) * 2.5);
+            }
+        }
+
         renderStartupGlitch();
     }
 
@@ -1237,7 +1366,9 @@ case C, SHIFT      -> holdCurrentPiece();
             double h = canvas.getHeight();
 
             // Xóa nền và vẽ viền
-            gc.setFill(Color.web(gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
+            gc.setFill(Color.web(
+                blackoutState == BlackoutState.BLACKOUT ? "#000000" :
+                gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
             gc.fillRect(0, 0, w, h);
 
             if (piece == null) return;
@@ -1364,6 +1495,79 @@ case C, SHIFT      -> holdCurrentPiece();
         lightBulbView.setImage(off ? lightOffImage : lightOnImage);
     }
 
+    private void buildFlavourChars() {
+        if (flavourLabel == null) return;
+        flavourLabel.setVisible(false);
+        flavourPane = (javafx.scene.layout.StackPane) flavourLabel.getParent();
+        if (flavourPane == null) return;
+        flavourHBox = new javafx.scene.layout.HBox(0);
+        flavourHBox.setAlignment(javafx.geometry.Pos.CENTER);
+        flavourPane.getChildren().add(flavourHBox);
+        rebuildFlavourChars(flavourLabel.getText());
+    }
+
+    private void rebuildFlavourChars(String text) {
+        darknessLoomsMode = false;
+        rebuildFlavourChars(text, null);
+    }
+
+    private void rebuildFlavourChars(String text, String hexColor) {
+        if (flavourHBox == null) return;
+        flavourChars.clear();
+        flavourHBox.getChildren().clear();
+        for (char c : text.toCharArray()) {
+            javafx.scene.control.Label l = new javafx.scene.control.Label(String.valueOf(c));
+            l.getStyleClass().add("hard-flavour-text");
+            if (hexColor != null)
+                l.setStyle("-fx-text-fill: " + hexColor + ";");
+            l.setOpacity(0);
+            flavourChars.add(l);
+            flavourHBox.getChildren().add(l);
+        }
+        flavourTypeElapsed = 0;
+    }
+
+    private boolean trySetFlavour(String[] pool, double threshold) {
+        if (lightsOutMode || flavourCooldown > threshold || flavourHBox == null) return false;
+        rebuildFlavourChars(pool[rng.nextInt(pool.length)]);
+        flavourCooldown = FLAVOUR_BASE_CD;
+        placesSinceFlavour = 0;
+        return true;
+    }
+
+    private int getStackTopRow() {
+        for (int r = 0; r < Constants.BOARD_HEIGHT; r++)
+            for (int c = 0; c < Constants.BOARD_WIDTH; c++)
+                if (board[r][c] != 0) return r;
+        return Constants.BOARD_HEIGHT;
+    }
+
+    private void setLightsOut() {
+        if (flavourHBox == null) return;
+        lightsOutMode = true;
+        darknessLoomsMode = false;
+        flavourCooldown = Double.MAX_VALUE;
+        flavourChars.clear();
+        flavourHBox.getChildren().clear();
+        for (char c : "LIGHTS OUT".toCharArray()) {
+            javafx.scene.control.Label l = new javafx.scene.control.Label(String.valueOf(c));
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: #FF0000;");
+            l.setOpacity(1.0);
+            flavourChars.add(l);
+            flavourHBox.getChildren().add(l);
+        }
+    }
+
+    private void clearLightsOut() {
+        lightsOutMode = false;
+        if (flavourHBox != null) {
+            flavourHBox.setTranslateX(0);
+            flavourHBox.setTranslateY(0);
+        }
+        rebuildFlavourChars(FLAVOUR_POST_BLACKOUT[rng.nextInt(FLAVOUR_POST_BLACKOUT.length)]);
+        flavourCooldown = FLAVOUR_BASE_CD;
+    }
+
     private void updateBlackout(double dt) {
         blackoutTimer += dt;
 
@@ -1375,6 +1579,9 @@ case C, SHIFT      -> holdCurrentPiece();
                     blackoutState = BlackoutState.FLICKER;
                     blackoutDuration = 0.3;
                     blackoutFlickerTimer = 0;
+                    darknessLoomsMode = true;
+                    rebuildFlavourChars("Darkness looms.", "#40A3FF");
+                    flavourCooldown = FLAVOUR_BASE_CD;
                 }
             }
 
@@ -1394,6 +1601,7 @@ case C, SHIFT      -> holdCurrentPiece();
                     blackoutDuration = 5.0;
                     blackoutDropTimer = 0;
                     SoundManager.getInstance().pauseMusic();
+                    setLightsOut();
                 }
             }
 
@@ -1404,6 +1612,7 @@ case C, SHIFT      -> holdCurrentPiece();
                     blackoutDuration = 0.3;
                     blackoutFlickerTimer = 0;
                     SoundManager.getInstance().resumeMusic();
+                    clearLightsOut();
                 }
             }
 

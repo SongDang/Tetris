@@ -251,7 +251,9 @@
     -fx-background-color: transparent;
     -fx-background-image: url("../assets/hardflavour.png");
     -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
     -fx-background-size: 100% 100%;
+    -fx-padding: 12 20 12 20;
 }
 
 .hard-label-header {
@@ -263,9 +265,32 @@
 .hard-flavour-text {
     -fx-font-family: "VT323";
     -fx-font-size: 32;
-    -fx-text-fill: #c4883a;
+    -fx-text-fill: #FF8000;
     -fx-alignment: center;
     -fx-text-alignment: center;
+}
+
+/* ── Hard Mode Blackout ───────────────────────────────────────── */
+
+.screen-hard-game.blackout {
+    -fx-background-image: url("../assets/darkbg.png");
+}
+
+.blackout .hard-bar {
+    -fx-background-image: url("../assets/darkbar.png");
+}
+
+.blackout .hard-dash-panel {
+    -fx-background-image: url("../assets/darkdash.png");
+}
+
+.blackout .hard-hold-panel {
+    -fx-background-image: url("../assets/darkhold.png");
+}
+
+.blackout .hard-flavour-panel {
+    -fx-background-image: url("../assets/darkflavour.png");
+    -fx-background-color: transparent;
 }
 
 /* ──────────────────────────────────────────────────────────────── */
