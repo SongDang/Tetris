@@ -75,7 +75,7 @@
             </ImageView>
             <Canvas fx:id="gameCanvas" width="300" height="600"/>
             <Canvas fx:id="vfxCanvas" width="600" height="600"
-                    managed="false" layoutX="-119" layoutY="31" mouseTransparent="true"/>
+                    managed="false" layoutX="-124" layoutY="26" mouseTransparent="true"/>
         </StackPane>
 
         <!-- Right spacer to balance left panel width so canvas stays centered -->

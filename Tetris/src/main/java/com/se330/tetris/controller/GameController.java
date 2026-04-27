@@ -163,6 +163,10 @@ public class GameController {
 
         vfxGc = vfxCanvas.getGraphicsContext2D();
         holdGc = holdBlockCanvas.getGraphicsContext2D();
+        // Sync vfxCanvas.layoutY to gameCanvas's actual post-layout position so
+        // their y=0 coordinates map to the same screen row.
+        Platform.runLater(() ->
+            vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
         bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
 
         lightOnImage  = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
@@ -669,10 +673,16 @@ public class GameController {
         if (shakeDuration <= 0) {
             gameCanvas.setTranslateX(0);
             gameCanvas.setTranslateY(0);
+            vfxCanvas.setTranslateX(0);
+            vfxCanvas.setTranslateY(0);
         } else {
             double factor = shakeDuration / shakeInitDuration; // eases out as duration drops
-            gameCanvas.setTranslateX((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor);
-            gameCanvas.setTranslateY((rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor);
+            double sx = (rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor;
+            double sy = (rng.nextDouble() - 0.5) * 2 * shakeIntensity * factor;
+            gameCanvas.setTranslateX(sx);
+            gameCanvas.setTranslateY(sy);
+            vfxCanvas.setTranslateX(sx);
+            vfxCanvas.setTranslateY(sy);
         }
     }
 

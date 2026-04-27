@@ -245,7 +245,8 @@ public class ResultsController {
             System.out.println("Retrying with mode: " + gameContext.getGameMode().getDisplayName());
             gameContext.reset();
             sceneManager.clearSceneCache();
-            sceneManager.switchToScene(SceneManager.GAME_SCENE);
+            boolean hardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
+            sceneManager.switchToScene(hardMode ? SceneManager.HARD_GAME_SCENE : SceneManager.GAME_SCENE);
             SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
         });
     }
