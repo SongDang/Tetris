@@ -1,0 +1,66 @@
+package com.se330.tetris.service;
+
+import com.se330.tetris.model.ScoreRecord;
+
+import java.io.*;
+import java.util.*;
+
+public class HighScoreManager {
+    private static final String DATA_FILE = "highscores.dat";
+    private static final int MAX_RECORDS = 5;
+
+    private Map<String, List<ScoreRecord>> allHighScores;
+
+    public HighScoreManager() {
+        allHighScores = new HashMap<>();
+        loadScores();
+    }
+
+    public boolean checkIfHighscore(int score, String mode) {
+        List<ScoreRecord> modeScores = allHighScores.getOrDefault(mode, new ArrayList<>());
+
+        if (modeScores.size() < MAX_RECORDS) return true;
+        return score > modeScores.get(modeScores.size() - 1).getScore();
+    }
+
+    public void addScore(ScoreRecord record) {
+        String mode = record.getGameMode();
+        List<ScoreRecord> scores = allHighScores.computeIfAbsent(mode, k -> new ArrayList<>());
+
+        scores.add(record);
+
+        scores.sort((a, b) -> Integer.compare(b.getScore(), a.getScore()));
+
+        if (scores.size() > MAX_RECORDS) {
+            scores.subList(MAX_RECORDS, scores.size()).clear();
+        }
+
+        saveScores();
+    }
+
+    public List<ScoreRecord> getTopScores(String mode) {
+        return allHighScores.getOrDefault(mode, new ArrayList<>());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void saveScores() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {
+            oos.writeObject(allHighScores);
+        } catch (IOException e) {
+            System.err.println("Lỗi khi lưu bảng điểm: " + e.getMessage());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void loadScores() {
+        File file = new File(DATA_FILE);
+        if (!file.exists()) return;
+
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            allHighScores = (Map<String, List<ScoreRecord>>) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Không thể đọc file bảng điểm cũ, khởi tạo mới.");
+            allHighScores = new HashMap<>();
+        }
+    }
+}
