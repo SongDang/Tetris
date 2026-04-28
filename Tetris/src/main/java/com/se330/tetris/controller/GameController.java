@@ -294,7 +294,8 @@ public class GameController {
             int impactX = currentPiece.getX();
             int impactY = getBombImpactY(impactX, currentPiece.getY());
             detonateBomb(impactX, impactY);
-        } else {
+        }
+        else {
             lockPiece();
         }
 
@@ -454,8 +455,10 @@ public class GameController {
                         return false;
                     if (ny < 0 || ny >= Constants.BOARD_HEIGHT)
                         return false;
-                    if (board[ny][nx] != 0)
-                        return false;
+                    if (currentPiece.getType() != TetrominoType.TRANSPARENT) {
+                        if (board[ny][nx] != 0)
+                            return false;
+                    }
                 }
             }
         }
@@ -1082,6 +1085,7 @@ public class GameController {
             case J -> 6;
             case L -> 7;
             case BOMB -> 8;
+            case TRANSPARENT -> 9;
         };
     }
 
@@ -1095,6 +1099,7 @@ public class GameController {
             case 6 -> TetrominoType.J;
             case 7 -> TetrominoType.L;
             case 8 -> TetrominoType.BOMB;
+            case 9 -> TetrominoType.TRANSPARENT;
             default -> null;
         };
     }
