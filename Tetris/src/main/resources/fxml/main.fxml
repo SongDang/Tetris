@@ -8,7 +8,7 @@
 
     <AnchorPane fx:id="mainContent" prefWidth="1440.0" prefHeight="1024.0">
         <Label layoutX="504.0" layoutY="257.0" prefWidth="472.0" prefHeight="137.0"
-               text="GAME NAME" styleClass="figma-main-title" />
+               text="TETRIS" styleClass="figma-main-title" />
 
         <Button fx:id="gamemodesBtn" layoutX="614.0" layoutY="475.0" prefWidth="252.0" prefHeight="74.0"
                 onAction="#onGamemodesClicked" text="Gamemodes" styleClass="figma-button,main-menu-button" />
