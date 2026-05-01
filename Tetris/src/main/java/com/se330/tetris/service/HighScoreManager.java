@@ -11,9 +11,18 @@ public class HighScoreManager {
 
     private Map<String, List<ScoreRecord>> allHighScores;
 
-    public HighScoreManager() {
+    private static HighScoreManager instance;
+
+    private HighScoreManager() {
         allHighScores = new HashMap<>();
         loadScores();
+    }
+
+    public static HighScoreManager getInstance() {
+        if (instance == null) {
+            instance = new HighScoreManager();
+        }
+        return instance;
     }
 
     public boolean checkIfHighscore(int score, String mode) {
