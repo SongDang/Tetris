@@ -4,7 +4,7 @@ import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.SoundType;
 
 public class Piece {
-    private final TetrominoType type;
+    private TetrominoType type;
     private int rotation;
     private int x;
     private int y;
@@ -20,6 +20,10 @@ public class Piece {
         return type;
     }
 
+    public void setType(TetrominoType type) {
+        this.type = type;
+    }
+
     public int getRotation() {
         return rotation;
     }
@@ -32,8 +36,7 @@ public class Piece {
         return y;
     }
 
-    public void setRotation(int rotation)
-    {
+    public void setRotation(int rotation) {
         SoundManager.getInstance().playSE(SoundType.BUTTON_CLICK);
         this.rotation = rotation;
     }
