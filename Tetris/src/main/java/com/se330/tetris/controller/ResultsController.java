@@ -149,7 +149,7 @@ public class ResultsController {
     }
 
     private void buildCharLabels() {
-        // Note text — hide original label, add per-char HBox centered in the same StackPane
+        /*// Note text — hide original label, add per-char HBox centered in the same StackPane
         noteLabel.setVisible(false);
         HBox noteBox = new HBox(0);
         noteBox.setAlignment(Pos.CENTER);
@@ -161,7 +161,7 @@ public class ResultsController {
             noteChars.add(l);
             noteBox.getChildren().add(l);
         }
-        notePanel.getChildren().add(noteBox);
+        notePanel.getChildren().add(noteBox);*/
     }
 
     private void tick(double dt) {
@@ -191,13 +191,13 @@ public class ResultsController {
             finalScoreLabel.setTranslateY(jy);
             String color = rng.nextBoolean() ? "#00ffff" : "#ff4444";
             finalScoreLabel.setStyle(
-                "-fx-font-family: 'VT323'; -fx-font-size: 128; -fx-text-fill: " + color + ";"
+                "-fx-font-family: 'VT323'; -fx-font-size: 85; -fx-text-fill: " + color + ";"
             );
         } else {
             finalScoreLabel.setTranslateX(0);
             finalScoreLabel.setTranslateY(0);
             finalScoreLabel.setStyle(
-                "-fx-font-family: 'VT323'; -fx-font-size: 128; -fx-text-fill: white;"
+                "-fx-font-family: 'VT323'; -fx-font-size: 85; -fx-text-fill: white;"
             );
         }
 
@@ -206,7 +206,7 @@ public class ResultsController {
             finalScoreLabel.setTranslateX(0);
             finalScoreLabel.setTranslateY(0);
             finalScoreLabel.setStyle(
-                "-fx-font-family: 'VT323'; -fx-font-size: 128; -fx-text-fill: white;"
+                "-fx-font-family: 'VT323'; -fx-font-size: 85; -fx-text-fill: white;"
             );
         }
 
