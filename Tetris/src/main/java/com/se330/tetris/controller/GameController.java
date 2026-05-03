@@ -450,12 +450,8 @@ public class GameController {
         stopRandomBlockIfNeeded(currentPiece);
         // --- GIỮ LOGIC BOMB TỪ HEAD ---
         if (currentPiece.getType() == TetrominoType.BOMB) {
-            int impactX = currentPiece.getX();
-            int impactY = getBombImpactY(impactX, currentPiece.getY());
-            detonateBomb(impactX, impactY);
-        }
-        else {
             detonateBomb(currentPiece.getX(), currentPiece.getY());
+        } else {
             lockPiece();
         }
 
