@@ -94,6 +94,8 @@ public class GameController {
     private final ParticleSystem particleSystem = new ParticleSystem();
     private LevelUpEffect levelUpEffect = null;
     private BorderPulseEffect borderPulseEffect = null;
+    private int bombsRemaining = 3;
+    private String bombInventoryBaseStyle = "";
 
     private GlitchTearEffect glitchTearEffect = null;
     private com.se330.tetris.game.GlitchExplosionEffect glitchExplosionEffect = null;
@@ -106,8 +108,8 @@ public class GameController {
     private final java.util.ArrayDeque<Piece> nextQueue = new java.util.ArrayDeque<>();
 
     private AnimationTimer gameLoop;
-    private boolean gamePaused   = false;
-    private boolean isGameOver   = false;
+    private boolean gamePaused = false;
+    private boolean isGameOver = false;
 
     private long lastFallTime = 0;
 
@@ -119,7 +121,7 @@ public class GameController {
     private int[] pendingTetrisClear = null; // Tetris rows cleared after freeze ends
     private int[] frozenRowFlash = null; // row indices to flash white during Tetris freeze
 
-    private boolean softDropping   = false;
+    private boolean softDropping = false;
     private boolean fuseLoopPlaying = false;
 
     private int comboCount = 0;
@@ -159,53 +161,53 @@ public class GameController {
 
     private BlackoutState blackoutState = BlackoutState.NORMAL;
 
-    private double  flavourWaveTime   = 0;
-    private double  flavourTypeElapsed = 0;
-    private double  flavourCooldown    = 0;
-    private int     placesSinceFlavour = 0;
-    private boolean lightsOutMode       = false;
-    private boolean darknessLoomsMode  = false;
+    private double flavourWaveTime = 0;
+    private double flavourTypeElapsed = 0;
+    private double flavourCooldown = 0;
+    private int placesSinceFlavour = 0;
+    private boolean lightsOutMode = false;
+    private boolean darknessLoomsMode = false;
     private final java.util.List<javafx.scene.control.Label> flavourChars = new java.util.ArrayList<>();
-    private javafx.scene.layout.HBox        flavourHBox;
-    private javafx.scene.layout.StackPane   flavourPane;
+    private javafx.scene.layout.HBox flavourHBox;
+    private javafx.scene.layout.StackPane flavourPane;
 
-    private static final double FLAVOUR_BASE_CD   = 7.0;
+    private static final double FLAVOUR_BASE_CD = 7.0;
     private static final double FLAVOUR_CHAR_DELAY = 0.055;
-    private static final String[] FLAVOUR_PLACE  = {
-        "Bold choice. truly.",
-        "That's one way to do it.",
-        "You sure about that one.",
-        "The audacity."
+    private static final String[] FLAVOUR_PLACE = {
+            "Bold choice. truly.",
+            "That's one way to do it.",
+            "You sure about that one.",
+            "The audacity."
     };
-    private static final String[] FLAVOUR_CLEAR  = {
-        "Fine. you get one.",
-        "Don't let it go to your head.",
-        "Was that on purpose? be honest."
+    private static final String[] FLAVOUR_CLEAR = {
+            "Fine. you get one.",
+            "Don't let it go to your head.",
+            "Was that on purpose? be honest."
     };
     private static final String[] FLAVOUR_TETRIS = {
-        "Okay. i see you.",
-        "Don't make it weird by celebrating.",
-        "Four lines. i'll allow it."
+            "Okay. i see you.",
+            "Don't make it weird by celebrating.",
+            "Four lines. i'll allow it."
     };
-    private static final String[] FLAVOUR_STACK  = {
-        "You did this to yourself.",
-        "This is a you problem.",
-        "I'd look away but i can't.",
-        "Are you okay? genuinely asking."
+    private static final String[] FLAVOUR_STACK = {
+            "You did this to yourself.",
+            "This is a you problem.",
+            "I'd look away but i can't.",
+            "Are you okay? genuinely asking."
     };
-    private static final String[] FLAVOUR_COMBO  = {
-        "Oh so you can do this.",
-        "Where was this ten moves ago.",
-        "Keep going. i dare you.",
-        "Now you're showing off."
+    private static final String[] FLAVOUR_COMBO = {
+            "Oh so you can do this.",
+            "Where was this ten moves ago.",
+            "Keep going. i dare you.",
+            "Now you're showing off."
     };
     private static final String[] FLAVOUR_POST_BLACKOUT = {
-        "The lights return. assess the damage.",
-        "Welcome back. the stack didn't wait.",
-        "Darkness lifted. problems haven't.",
-        "You survived the blackout. barely counts.",
-        "The board kept going without you.",
-        "Light's back. make it count this time."
+            "The lights return. assess the damage.",
+            "Welcome back. the stack didn't wait.",
+            "Darkness lifted. problems haven't.",
+            "You survived the blackout. barely counts.",
+            "The board kept going without you.",
+            "Light's back. make it count this time."
     };
 
     private java.util.List<TetrominoType> bag = new java.util.ArrayList<>();
@@ -234,10 +236,10 @@ public class GameController {
         // Sync vfxCanvas.layoutY to gameCanvas's actual post-layout position so
         // their y=0 coordinates map to the same screen row.
         Platform.runLater(() ->
-            vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
+                vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
         bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
 
-        lightOnImage  = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
+        lightOnImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
         lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
         hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
         darkMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/darkmain.png"));
@@ -268,7 +270,9 @@ public class GameController {
 
         // Key handler
         gamePane.setOnKeyPressed(this::handleKeyPressed);
-        gamePane.setOnKeyReleased(e -> { if (e.getCode() == javafx.scene.input.KeyCode.S) softDropping = false; });
+        gamePane.setOnKeyReleased(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.S) softDropping = false;
+        });
         gameCanvas.setOnMouseMoved(this::handleMouseMoved);
         gameCanvas.setOnMouseClicked(this::handleMouseClicked);
         Platform.runLater(() -> {
@@ -306,7 +310,8 @@ public class GameController {
                     if (pendingTetrisClear != null) {
                         int[] rows = pendingTetrisClear;
                         pendingTetrisClear = null;
-                        int sum = 0; for (int r : rows) sum += r;
+                        int sum = 0;
+                        for (int r : rows) sum += r;
                         int avgRow = sum / rows.length;
                         for (int row : rows) {
                             for (int r = row; r > 0; r--)
@@ -362,8 +367,8 @@ public class GameController {
                     particleSystem.update(dt);
                     scorePopups.removeIf(p -> p.life <= 0);
                     for (ScorePopup p : scorePopups) {
-                        p.x    += p.vx * dt;
-                        p.y    += p.vy * dt;
+                        p.x += p.vx * dt;
+                        p.y += p.vy * dt;
                         p.life -= dt / 0.7;
                     }
                     updateScreenShake(dt);
@@ -403,7 +408,8 @@ public class GameController {
                     } else {
                         // Check cảnh báo nguy hiểm (stack cao)
                         int dangerRow = (int) (Constants.BOARD_HEIGHT * 0.35);
-                        outer: for (int y = 0; y <= dangerRow; y++)
+                        outer:
+                        for (int y = 0; y <= dangerRow; y++)
                             for (int x = 0; x < Constants.BOARD_WIDTH; x++)
                                 if (board[y][x] != 0) {
                                     borderPulseEffect = new BorderPulseEffect();
@@ -421,9 +427,9 @@ public class GameController {
 
                 if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE && !isGameOver && !gamePaused) {
                     updateBlackout(dt);
-                    flavourWaveTime    += dt;
+                    flavourWaveTime += dt;
                     flavourTypeElapsed += dt;
-                    flavourCooldown    -= dt;
+                    flavourCooldown -= dt;
                 }
 
                 render();
@@ -650,7 +656,7 @@ public class GameController {
                     TetrominoType t = idToType(board[y][x]);
                     if (t != null && t != TetrominoType.BOMB)
                         snaps.add(new com.se330.tetris.game.GlitchExplosionEffect.CellSnap(
-                            x * cs, y * cs, cs, t.getColor()));
+                                x * cs, y * cs, cs, t.getColor()));
                 }
                 board[y][x] = 0;
             }
@@ -659,10 +665,10 @@ public class GameController {
         SoundManager.getInstance().stopLooping();
         fuseLoopPlaying = false;
         glitchExplosionEffect = new com.se330.tetris.game.GlitchExplosionEffect(pixelCx, pixelCy, cs, snaps);
-        flashIntensity    = 0.45;
-        shakeIntensity    = 18;
+        flashIntensity = 0.45;
+        shakeIntensity = 18;
         shakeInitDuration = 0.30;
-        shakeDuration     = 0.30;
+        shakeDuration = 0.30;
         SoundManager.getInstance().playSE(SoundType.BOMB_EXPLODE);
     }
 
@@ -933,19 +939,30 @@ public class GameController {
         if (isGameOver) return;
         KeyCode code = event.getCode();
         switch (code) {
-            case LEFT, A -> { if (canMove(-1, 0, currentPiece.getRotation()))
-                currentPiece.setX(currentPiece.getX() - 1); }
-            case RIGHT, D -> { if (canMove( 1, 0, currentPiece.getRotation()))
-                currentPiece.setX(currentPiece.getX() + 1); }
-            case DOWN -> { if (blackoutState != BlackoutState.BLACKOUT) hardDrop(); }
-            case S    -> { if (blackoutState != BlackoutState.BLACKOUT) softDropping = true; }
-            case UP, W -> { int nr = (currentPiece.getRotation() + 1) % 4;
+            case LEFT, A -> {
+                if (canMove(-1, 0, currentPiece.getRotation()))
+                    currentPiece.setX(currentPiece.getX() - 1);
+            }
+            case RIGHT, D -> {
+                if (canMove(1, 0, currentPiece.getRotation()))
+                    currentPiece.setX(currentPiece.getX() + 1);
+            }
+            case DOWN -> {
+                if (blackoutState != BlackoutState.BLACKOUT) hardDrop();
+            }
+            case S -> {
+                if (blackoutState != BlackoutState.BLACKOUT) softDropping = true;
+            }
+            case UP, W -> {
+                int nr = (currentPiece.getRotation() + 1) % 4;
                 if (canMove(0, 0, nr)) {
                     currentPiece.setRotation(nr);
                     emitRotationArc();
                 }
             }
-            case SPACE -> { if (blackoutState != BlackoutState.BLACKOUT) hardDrop(); }
+            case SPACE -> {
+                if (blackoutState != BlackoutState.BLACKOUT) hardDrop();
+            }
             case P -> handlePause();
             case B -> useBombSkill();
             case C, SHIFT -> holdCurrentPiece();
@@ -1005,7 +1022,7 @@ public class GameController {
         int nextRotation = (currentPiece.getRotation() + 1) % 4;
 
         // Basic wall-kick offsets to allow rotation when touching side walls.
-        int[] kickOffsets = { 0, -1, 1, -2, 2 };
+        int[] kickOffsets = {0, -1, 1, -2, 2};
         for (int dx : kickOffsets) {
             if (canMove(dx, 0, nextRotation)) {
                 currentPiece.setX(currentPiece.getX() + dx);
@@ -1065,8 +1082,12 @@ public class GameController {
     // ── Score popups ──────────────────────────────────────────────────────────
 
     private static class ScorePopup {
-        String text; double x, y, vx, vy, life; Color color; int fontSize;
+        String text;
+        double x, y, vx, vy, life;
+        Color color;
+        int fontSize;
     }
+
     private final java.util.List<ScorePopup> scorePopups = new java.util.ArrayList<>();
 
     private void renderTopLayer() {
@@ -1101,22 +1122,26 @@ public class GameController {
 
     private void emitScorePopup(int cleared, int avgRow) {
         int bonus = switch (cleared) {
-            case 1 -> 100; case 2 -> 300; case 3 -> 500; case 4 -> 800; default -> 0;
+            case 1 -> 100;
+            case 2 -> 300;
+            case 3 -> 500;
+            case 4 -> 800;
+            default -> 0;
         };
         if (bonus == 0) return;
         double speed = 90 + rng.nextDouble() * 40;
-        double rad   = Math.toRadians(30 + rng.nextDouble() * 120);
+        double rad = Math.toRadians(30 + rng.nextDouble() * 120);
         ScorePopup p = new ScorePopup();
-        p.text     = "+" + bonus;
-        p.x        = 8;
-        p.y        = avgRow * Constants.BLOCK_SIZE - 4;
-        p.vx       = Math.cos(rad) * speed;
-        p.vy       = -Math.sin(rad) * speed;
-        p.life     = 1.0;
+        p.text = "+" + bonus;
+        p.x = 8;
+        p.y = avgRow * Constants.BLOCK_SIZE - 4;
+        p.vx = Math.cos(rad) * speed;
+        p.vy = -Math.sin(rad) * speed;
+        p.life = 1.0;
         p.fontSize = 20 + cleared * 3;
-        p.color    = switch (cleared) {
-            case 4  -> Color.web("#00ffff");
-            case 3  -> Color.web("#ffaa00");
+        p.color = switch (cleared) {
+            case 4 -> Color.web("#00ffff");
+            case 3 -> Color.web("#ffaa00");
             default -> Color.web("#ffffff");
         };
         scorePopups.add(p);
@@ -1129,15 +1154,6 @@ public class GameController {
     private static final String PANE_BASE_STYLE = "-fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;";
 
     private void render() {
-        if (flashIntensity > 0) {
-            double r = BG_R + flashIntensity * (1.0 - BG_R);
-            double g = BG_G + flashIntensity * (1.0 - BG_G);
-            double b = BG_B + flashIntensity * (1.0 - BG_B);
-            String hex = String.format("#%02x%02x%02x", (int) (r * 255), (int) (g * 255), (int) (b * 255));
-            gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
-        } else {
-            gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
-
         // Swap hard-mode UI panels to dark assets during blackout
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
             boolean inBlackout = blackoutState == BlackoutState.BLACKOUT;
@@ -1156,7 +1172,7 @@ public class GameController {
                 double r = BG_R + flashIntensity * (1.0 - BG_R);
                 double g = BG_G + flashIntensity * (1.0 - BG_G);
                 double b = BG_B + flashIntensity * (1.0 - BG_B);
-                String hex = String.format("#%02x%02x%02x", (int)(r*255), (int)(g*255), (int)(b*255));
+                String hex = String.format("#%02x%02x%02x", (int) (r * 255), (int) (g * 255), (int) (b * 255));
                 gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
             } else {
                 gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
@@ -1207,13 +1223,16 @@ public class GameController {
                     l.setOpacity(1.0);
                 }
                 String col = rng.nextDouble() < 0.06
-                    ? (rng.nextBoolean() ? "#ffffff" : "#880000")
-                    : "#FF0000";
+                        ? (rng.nextBoolean() ? "#ffffff" : "#880000")
+                        : "#FF0000";
                 l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: " + col + ";");
             }
         } else if (darknessLoomsMode) {
-            if (flavourHBox != null) { flavourHBox.setTranslateX(0); flavourHBox.setTranslateY(0); }
-            int nVisible = Math.min(flavourChars.size(), (int)(flavourTypeElapsed / (FLAVOUR_CHAR_DELAY * 1.8)));
+            if (flavourHBox != null) {
+                flavourHBox.setTranslateX(0);
+                flavourHBox.setTranslateY(0);
+            }
+            int nVisible = Math.min(flavourChars.size(), (int) (flavourTypeElapsed / (FLAVOUR_CHAR_DELAY * 1.8)));
             for (int i = 0; i < flavourChars.size(); i++) {
                 javafx.scene.control.Label l = flavourChars.get(i);
                 boolean visible = i < nVisible;
@@ -1226,8 +1245,11 @@ public class GameController {
                     l.setTranslateY(Math.sin(flavourWaveTime * 1.2 + i * 0.45) * 5.0);
             }
         } else {
-            if (flavourHBox != null) { flavourHBox.setTranslateX(0); flavourHBox.setTranslateY(0); }
-            int nVisible = Math.min(flavourChars.size(), (int)(flavourTypeElapsed / FLAVOUR_CHAR_DELAY));
+            if (flavourHBox != null) {
+                flavourHBox.setTranslateX(0);
+                flavourHBox.setTranslateY(0);
+            }
+            int nVisible = Math.min(flavourChars.size(), (int) (flavourTypeElapsed / FLAVOUR_CHAR_DELAY));
             for (int i = 0; i < flavourChars.size(); i++) {
                 javafx.scene.control.Label l = flavourChars.get(i);
                 boolean visible = i < nVisible;
@@ -1242,25 +1264,25 @@ public class GameController {
 
     private void renderStartupGlitch() {
         if (startupGlitchElapsed >= STARTUP_GLITCH_DUR || startupGc == null) return;
-        double t     = startupGlitchElapsed / STARTUP_GLITCH_DUR;
+        double t = startupGlitchElapsed / STARTUP_GLITCH_DUR;
         double alpha = (1.0 - t * t) * 0.55;
-        double w     = startupCanvas.getWidth();
-        double h     = startupCanvas.getHeight();
+        double w = startupCanvas.getWidth();
+        double h = startupCanvas.getHeight();
 
         startupGc.clearRect(0, 0, w, h);
 
         // clean scanline bands — each drifts sideways at its own phase
         int bands = 6 + rng.nextInt(5);
         for (int i = 0; i < bands; i++) {
-            double by      = rng.nextDouble() * h;
-            double bh      = rng.nextDouble() * (h * 0.05) + 1;
-            int pick       = rng.nextInt(3);
-            double cr      = pick == 0 ? 0 : 1;
-            double cg      = pick == 0 ? 1 : 1;
-            double cb      = pick == 0 ? 1 : 0;
-            double baseA   = pick == 0 ? 0.5 : pick == 1 ? 0.4 : 0.3;
+            double by = rng.nextDouble() * h;
+            double bh = rng.nextDouble() * (h * 0.05) + 1;
+            int pick = rng.nextInt(3);
+            double cr = pick == 0 ? 0 : 1;
+            double cg = pick == 0 ? 1 : 1;
+            double cb = pick == 0 ? 1 : 0;
+            double baseA = pick == 0 ? 0.5 : pick == 1 ? 0.4 : 0.3;
             double xOffset = Math.sin(t * Math.PI * 5 + i * 1.9) * w * 0.18;
-            double pad     = Math.abs(xOffset);
+            double pad = Math.abs(xOffset);
             startupGc.setFill(Color.color(cr, cg, cb, Math.min(1, alpha * baseA)));
             startupGc.fillRect(xOffset - pad, by, w + pad * 2, bh);
             // a couple of bright accent pixels on the band
@@ -1271,7 +1293,7 @@ public class GameController {
             }
         }
         // light pixel scatter
-        int pixels = (int)(250 * (1.0 - t));
+        int pixels = (int) (250 * (1.0 - t));
         for (int i = 0; i < pixels; i++) {
             double px = rng.nextDouble() * w;
             double py = rng.nextDouble() * h;
@@ -1279,8 +1301,8 @@ public class GameController {
             startupGc.fillRect(px, py, 2, 2);
         }
         // white flashes at t=0.0, 0.22, 0.48 — sharp spike then fast decay
-        double[] flashTimes  = {0.0,  0.14, 0.28};
-        double[] flashPeaks  = {0.90, 0.42, 0.42};
+        double[] flashTimes = {0.0, 0.14, 0.28};
+        double[] flashPeaks = {0.90, 0.42, 0.42};
         double flashHalf = 0.07;
         double totalFlash = 0;
         for (int fi = 0; fi < flashTimes.length; fi++) {
@@ -1392,6 +1414,7 @@ public class GameController {
         }
 
         // Current piece - apply rotation pulse brightness
+        // Current piece - always drawn on top, visible even during blackout
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         Color pieceColor = currentPiece.getType().getColor()
                 .deriveColor(0, 1, 1.0 + rotationPulse * 1.8, 1);
@@ -1437,12 +1460,9 @@ public class GameController {
             }
         }
 
-        // Current piece - always drawn on top, visible even during blackout
-        int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         boolean isBomb = currentPiece.getType() == TetrominoType.BOMB;
 
         double chargeOffsetX = 0, chargeOffsetY = 0, charge = 0;
-        Color pieceColor;
         if (blackoutState == BlackoutState.BLACKOUT) {
             charge = blackoutDropTimer / BLACKOUT_AUTO_DROP;
             double freq = 6.0 + charge * 10.0;
@@ -1451,9 +1471,9 @@ public class GameController {
             Color base = isBomb ? Color.color(1.0, 0.15, 0.15) : currentPiece.getType().getColor();
             double bright = charge * 0.75;
             pieceColor = Color.color(
-                Math.min(1.0, base.getRed()   + bright),
-                Math.min(1.0, base.getGreen() + bright),
-                Math.min(1.0, base.getBlue()  + bright)
+                    Math.min(1.0, base.getRed() + bright),
+                    Math.min(1.0, base.getGreen() + bright),
+                    Math.min(1.0, base.getBlue() + bright)
             );
         } else {
             pieceColor = currentPiece.getType().getColor()
@@ -1474,7 +1494,7 @@ public class GameController {
                         int px = currentPiece.getX() + col;
                         int py = currentPiece.getY() + row;
                         gc.fillRect(px * cs - expansion, py * cs - expansion,
-                                    cs + expansion * 2, cs + expansion * 2);
+                                cs + expansion * 2, cs + expansion * 2);
                     }
                 }
             }
@@ -1491,14 +1511,14 @@ public class GameController {
                 for (int col = 0; col < 4; col++)
                     if (shape[row][col] == 1)
                         gc.fillRect((currentPiece.getX() + col) * cs - caOffset,
-                                    (currentPiece.getY() + row) * cs, cs, cs);
+                                (currentPiece.getY() + row) * cs, cs, cs);
             gc.setFill(Color.color(0, Math.min(1.0, base.getGreen() * 0.2 + 0.6),
-                                      Math.min(1.0, base.getBlue()  + 0.4)));
+                    Math.min(1.0, base.getBlue() + 0.4)));
             for (int row = 0; row < 4; row++)
                 for (int col = 0; col < 4; col++)
                     if (shape[row][col] == 1)
                         gc.fillRect((currentPiece.getX() + col) * cs + caOffset,
-                                    (currentPiece.getY() + row) * cs, cs, cs);
+                                (currentPiece.getY() + row) * cs, cs, cs);
             gc.setGlobalAlpha(1.0);
         }
 
@@ -1556,7 +1576,7 @@ public class GameController {
 
         gc.setFill(Color.web(
                 blackoutState == BlackoutState.BLACKOUT ? "#000000" :
-                            gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
+                        gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
         gc.fillRect(0, 0, w, h);
         // HARD MODE
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
@@ -1596,16 +1616,15 @@ public class GameController {
         double offsetY = (h - pieceHeight) / 2.0;
 
         // 3. Vẽ từng ô của khối
-            for (int row = minRow; row <= maxRow; row++) {
-                for (int col = minCol; col <= maxCol; col++) {
-                    if (shape[row][col] == 1) {
-                        double px = offsetX + (col - minCol) * previewCellSize;
-                        double py = offsetY + (row - minRow) * previewCellSize;
-                        if (type == TetrominoType.BOMB)
-                            gc.drawImage(bombSprite, px, py, previewCellSize, previewCellSize);
-                        else
-                            drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
-                    }
+        for (int row = minRow; row <= maxRow; row++) {
+            for (int col = minCol; col <= maxCol; col++) {
+                if (shape[row][col] == 1) {
+                    double px = offsetX + (col - minCol) * previewCellSize;
+                    double py = offsetY + (row - minRow) * previewCellSize;
+                    if (type == TetrominoType.BOMB)
+                        gc.drawImage(bombSprite, px, py, previewCellSize, previewCellSize);
+                    else
+                        drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
                 }
             }
         }
@@ -1617,7 +1636,7 @@ public class GameController {
     }
 
     private void drawCell(GraphicsContext gc, int x, int y, Color color,
-            double opacity, GraphicsContext target, int cs) {
+                          double opacity, GraphicsContext target, int cs) {
         double px = x * cs;
         double py = y * cs;
         target.setFill(color.deriveColor(0, 1, 1, opacity));
@@ -1628,7 +1647,7 @@ public class GameController {
     }
 
     private void drawCellAtPixel(GraphicsContext target, double px, double py,
-            int size, Color color, double opacity) {
+                                 int size, Color color, double opacity) {
         target.setFill(color.deriveColor(0, 1, 1, opacity));
         target.fillRect(px, py, size, size);
         target.setStroke(Color.web("#111111"));
@@ -1702,9 +1721,9 @@ public class GameController {
     private void updateLightBulb() {
         if (!lightBulbView.isVisible()) return;
         boolean off = switch (blackoutState) {
-            case BLACKOUT     -> true;
+            case BLACKOUT -> true;
             case FLICKER, POST_FLICKER -> ((int) blackoutFlickerTimer) % 2 == 0;
-            default           -> false;
+            default -> false;
         };
         lightBulbView.setImage(off ? lightOffImage : lightOnImage);
     }
