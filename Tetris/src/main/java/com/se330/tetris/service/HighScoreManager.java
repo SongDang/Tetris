@@ -51,6 +51,14 @@ public class HighScoreManager {
         return allHighScores.getOrDefault(mode, new ArrayList<>());
     }
 
+    public void resetAllScores() {
+        allHighScores.clear();
+
+        saveScores();
+
+        System.out.println("Tất cả thành tựu đã được reset về mặc định.");
+    }
+
     @SuppressWarnings("unchecked")
     private void saveScores() {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(DATA_FILE))) {

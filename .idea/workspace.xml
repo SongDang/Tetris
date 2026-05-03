@@ -5,13 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ffe6569-419a-42ea-bc36-bf7a20a6e1f6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Tetris/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/ResultsController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/ResultsController.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/service/HighScoreManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/service/HighScoreManager.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/module-info.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/module-info.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Tetris/src/main/resources/fxml/results.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/resources/fxml/results.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,22 +41,22 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.TetrisApp.executor": "Run",
-    "Maven.Tetris [clean].executor": "Run",
-    "Maven.Tetris [compile].executor": "Run",
-    "Maven.Tetris [test].executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feat/high-score",
-    "kotlin-language-version-configured": "true",
-    "project.structure.last.edited": "Modules",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.TetrisApp.executor&quot;: &quot;Run&quot;,
+    &quot;Maven.Tetris [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.Tetris [compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.Tetris [test].executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feat/high-score&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\DELL\Desktop\trithuc\Game\Java\Tetris\Tetris\src\main\resources\sound" />
