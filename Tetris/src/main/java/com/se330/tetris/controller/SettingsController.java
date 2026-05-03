@@ -1,6 +1,7 @@
 package com.se330.tetris.controller;
 
 import com.se330.tetris.service.SoundManager;
+import com.se330.tetris.util.SoundType;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -74,6 +75,8 @@ public class SettingsController {
 
         syncAudioButtonState();
         setScoreVisible(true);
+        for (Button btn : new Button[]{saveBtn, cancelBtn, musicIconBtn, sfxIconBtn})
+            if (btn != null) btn.setOnMouseEntered(e -> SoundManager.getInstance().playSE(SoundType.HOVER));
     }
 
     private void loadSettings() {
@@ -117,11 +120,13 @@ public class SettingsController {
 
     @FXML
     private void onMusicIconClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         musicToggle.setSelected(!musicToggle.isSelected());
     }
 
     @FXML
     private void onSfxIconClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         sfxToggle.setSelected(!sfxToggle.isSelected());
     }
 
@@ -149,6 +154,7 @@ public class SettingsController {
 
     @FXML
     private void onSaveClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         logSettings();
         if (!hideOverlayIfPresent()) {
             sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
@@ -157,6 +163,7 @@ public class SettingsController {
 
     @FXML
     private void onCancelClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         System.out.println("Settings changes discarded");
         loadSettings();
         if (!hideOverlayIfPresent()) {

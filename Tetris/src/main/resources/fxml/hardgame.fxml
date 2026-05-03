@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.geometry.Insets?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="gamePane"
+            fx:controller="com.se330.tetris.controller.GameController"
+            focusTraversable="true"
+            styleClass="screen-hard-game"
+            prefWidth="1440" prefHeight="1024">
+
+    <HBox alignment="TOP_CENTER" spacing="20"
+          AnchorPane.topAnchor="20" AnchorPane.leftAnchor="0"
+          AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="204">
+
+        <VBox alignment="TOP_CENTER" spacing="8" style="-fx-padding: 65 0 0 0;">
+
+            <StackPane prefWidth="216" prefHeight="280" styleClass="hard-dash-panel">
+                <VBox StackPane.alignment="TOP_LEFT" alignment="TOP_LEFT"
+                      style="-fx-padding: 46 40 22 40;" spacing="8">
+
+                    <Label text="SCORE" styleClass="hard-label-header"/>
+                    <Label fx:id="scoreLabel" text="0"
+                           style="-fx-font-size: 48; -fx-text-fill: #EA96FF; -fx-font-family: 'VT323';"/>
+
+                    <HBox>
+                        <VBox.margin><Insets top="10"/></VBox.margin>
+                        <Label text="LEVEL" styleClass="hard-label-header"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="levelLabel" text="1"
+                               style="-fx-font-size: 22; -fx-text-fill: #00ff88; -fx-font-family: 'VT323';"/>
+                    </HBox>
+
+                    <HBox>
+                        <Label text="LINES" styleClass="hard-label-header"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="linesLabel" text="0"
+                               style="-fx-font-size: 22; -fx-text-fill: #ffcc00; -fx-font-family: 'VT323';"/>
+                    </HBox>
+
+                    <HBox>
+                        <Label text="COMBO" styleClass="hard-label-header"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="comboLabel" text="x0"
+                               style="-fx-font-size: 22; -fx-text-fill: #ff88cc; -fx-font-family: 'VT323';"/>
+                    </HBox>
+
+                </VBox>
+            </StackPane>
+
+            <!-- Hold frame -->
+            <StackPane prefWidth="216" prefHeight="176" styleClass="hard-hold-panel">
+                <VBox alignment="TOP_LEFT" spacing="4" style="-fx-padding: 37 10 10 41;">
+                    <Label text="HOLD" styleClass="hard-label-header"/>
+                    <Canvas fx:id="holdBlockCanvas" width="100" height="100" translateX="15" translateY="-8"/>
+                </VBox>
+            </StackPane>
+
+        </VBox>
+
+
+        <StackPane prefWidth="352" prefHeight="652">
+            <ImageView fx:id="mainFrameView" fitWidth="352" fitHeight="652" preserveRatio="false"
+                       mouseTransparent="true">
+                <image><Image url="@../assets/hardmain.png"/></image>
+            </ImageView>
+            <Canvas fx:id="gameCanvas" width="300" height="600"/>
+            <Canvas fx:id="vfxCanvas" width="600" height="600"
+                    managed="false" layoutX="-124" layoutY="26" mouseTransparent="true"/>
+        </StackPane>
+
+        <!-- Right spacer to balance left panel width so canvas stays centered -->
+        <Region prefWidth="216" minWidth="216"/>
+
+    </HBox>
+
+    <!-- Lightbulb: floats independently so it never affects canvas position -->
+    <VBox alignment="TOP_CENTER"
+          AnchorPane.topAnchor="259" AnchorPane.rightAnchor="150">
+        <ImageView fitWidth="10" fitHeight="610" preserveRatio="false"
+                   managed="false" translateX="170" translateY="-580"
+                   mouseTransparent="true">
+            <image><Image url="@../assets/string.png"/></image>
+        </ImageView>
+        <ImageView fx:id="lightBulbView" fitWidth="350" fitHeight="350"
+                   preserveRatio="true" visible="false"/>
+    </VBox>
+
+    <!-- Bottom bar -->
+    <Region styleClass="hard-bar" prefHeight="204"
+            AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"/>
+
+    <!-- Flavour panel centred inside the bar -->
+    <HBox alignment="CENTER" prefHeight="112"
+          AnchorPane.bottomAnchor="46" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+        <StackPane prefWidth="700" prefHeight="112" styleClass="hard-flavour-panel">
+            <Label fx:id="flavourLabel" text="Back for more?"
+                   maxWidth="Infinity" styleClass="hard-flavour-text"/>
+        </StackPane>
+    </HBox>
+
+</AnchorPane>
