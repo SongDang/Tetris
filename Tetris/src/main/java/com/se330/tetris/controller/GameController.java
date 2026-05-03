@@ -8,11 +8,13 @@ import com.se330.tetris.game.GlitchTearEffect;
 import com.se330.tetris.game.LevelUpEffect;
 import com.se330.tetris.game.ParticleSystem;
 import com.se330.tetris.game.Piece;
+import com.se330.tetris.game.RandomBlock;
 import com.se330.tetris.game.TetrominoType;
 import com.se330.tetris.service.GameContext;
 import com.se330.tetris.service.SceneManager;
 import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
+import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -62,6 +64,11 @@ public class GameController {
     @FXML
     private javafx.scene.control.Label comboLabel;
 
+    @FXML
+    private Label bombsLabel;
+    @FXML
+    private VBox bombInventoryBox;
+
     private javafx.scene.image.Image lightOnImage;
     private javafx.scene.image.Image lightOffImage;
     private javafx.scene.image.Image hardMainImage;
@@ -85,11 +92,13 @@ public class GameController {
     private TetrominoType holdType;
     private boolean canHold = true;
     private final ParticleSystem particleSystem = new ParticleSystem();
-    private LevelUpEffect     levelUpEffect     = null;
+    private LevelUpEffect levelUpEffect = null;
     private BorderPulseEffect borderPulseEffect = null;
-    private GlitchTearEffect       glitchTearEffect       = null;
-    private com.se330.tetris.game.GlitchExplosionEffect glitchExplosionEffect = null;
+    private int bombsRemaining = 3;
+    private String bombInventoryBaseStyle = "";
 
+    private GlitchTearEffect glitchTearEffect = null;
+    private com.se330.tetris.game.GlitchExplosionEffect glitchExplosionEffect = null;
     private javafx.scene.image.Image bombSprite;
 
     private GraphicsContext nextGc1;
@@ -99,28 +108,30 @@ public class GameController {
     private final java.util.ArrayDeque<Piece> nextQueue = new java.util.ArrayDeque<>();
 
     private AnimationTimer gameLoop;
-    private boolean gamePaused   = false;
-    private boolean isGameOver   = false;
+    private boolean gamePaused = false;
+    private boolean isGameOver = false;
 
-    private long    lastFallTime   = 0;
-    private long    lastFrameTime  = 0;
-    private long    fallIntervalNs = 500_000_000L;
-    private boolean softDropping   = false;
+    private long lastFallTime = 0;
+
+    private long lastFrameTime = 0;
+    private long fallIntervalNs = 500_000_000L;
+    private long freezeUntil = 0; // nanosecond timestamp; game logic frozen until this time
+    private long gameOverFreezeUntil = 0; // 0.5s static pause before glitch fires
+    private double gameOverFlashAlpha = 0; // white flash on board at moment of game over
+    private int[] pendingTetrisClear = null; // Tetris rows cleared after freeze ends
+    private int[] frozenRowFlash = null; // row indices to flash white during Tetris freeze
+
+    private boolean softDropping = false;
     private boolean fuseLoopPlaying = false;
-    private long freezeUntil         = 0;  // nanosecond timestamp; game logic frozen until this time
-    private long   gameOverFreezeUntil  = 0;   // 0.5s static pause before glitch fires
-    private double gameOverFlashAlpha   = 0;   // white flash on board at moment of game over
-    private int[]  pendingTetrisClear   = null; // Tetris rows cleared after freeze ends
-    private int[] frozenRowFlash = null;  // row indices to flash white during Tetris freeze
 
-    private int    comboCount      = 0;
-    private int    comboDisplay    = 0;
-    private double comboFloatX     = 0;
-    private double comboFloatY     = 0;
-    private double comboFloatAlpha  = 0;
-    private double comboFloatPhase  = 0;
+    private int comboCount = 0;
+    private int comboDisplay = 0;
+    private double comboFloatX = 0;
+    private double comboFloatY = 0;
+    private double comboFloatAlpha = 0;
+    private double comboFloatPhase = 0;
     private double comboShakeAmount = 0;
-    private Color  comboColor       = Color.WHITE;
+    private Color comboColor = Color.WHITE;
 
     private int dropStartRow = -1;
     private double shakeIntensity = 0;
@@ -139,6 +150,7 @@ public class GameController {
     private double blackoutTimer = 0;
     private double blackoutDuration = 0;
     private double blackoutFlickerTimer = 0;
+
     private enum BlackoutState {
         NORMAL,
         FLICKER,      // warning flicker before blackout
@@ -146,55 +158,56 @@ public class GameController {
         BLACKOUT,     // screen goes dark
         POST_FLICKER  // flicker as light comes back on
     }
+
     private BlackoutState blackoutState = BlackoutState.NORMAL;
 
-    private double  flavourWaveTime   = 0;
-    private double  flavourTypeElapsed = 0;
-    private double  flavourCooldown    = 0;
-    private int     placesSinceFlavour = 0;
-    private boolean lightsOutMode       = false;
-    private boolean darknessLoomsMode  = false;
+    private double flavourWaveTime = 0;
+    private double flavourTypeElapsed = 0;
+    private double flavourCooldown = 0;
+    private int placesSinceFlavour = 0;
+    private boolean lightsOutMode = false;
+    private boolean darknessLoomsMode = false;
     private final java.util.List<javafx.scene.control.Label> flavourChars = new java.util.ArrayList<>();
-    private javafx.scene.layout.HBox        flavourHBox;
-    private javafx.scene.layout.StackPane   flavourPane;
+    private javafx.scene.layout.HBox flavourHBox;
+    private javafx.scene.layout.StackPane flavourPane;
 
-    private static final double FLAVOUR_BASE_CD   = 7.0;
+    private static final double FLAVOUR_BASE_CD = 7.0;
     private static final double FLAVOUR_CHAR_DELAY = 0.055;
-    private static final String[] FLAVOUR_PLACE  = {
-        "Bold choice. truly.",
-        "That's one way to do it.",
-        "You sure about that one.",
-        "The audacity."
+    private static final String[] FLAVOUR_PLACE = {
+            "Bold choice. truly.",
+            "That's one way to do it.",
+            "You sure about that one.",
+            "The audacity."
     };
-    private static final String[] FLAVOUR_CLEAR  = {
-        "Fine. you get one.",
-        "Don't let it go to your head.",
-        "Was that on purpose? be honest."
+    private static final String[] FLAVOUR_CLEAR = {
+            "Fine. you get one.",
+            "Don't let it go to your head.",
+            "Was that on purpose? be honest."
     };
     private static final String[] FLAVOUR_TETRIS = {
-        "Okay. i see you.",
-        "Don't make it weird by celebrating.",
-        "Four lines. i'll allow it."
+            "Okay. i see you.",
+            "Don't make it weird by celebrating.",
+            "Four lines. i'll allow it."
     };
-    private static final String[] FLAVOUR_STACK  = {
-        "You did this to yourself.",
-        "This is a you problem.",
-        "I'd look away but i can't.",
-        "Are you okay? genuinely asking."
+    private static final String[] FLAVOUR_STACK = {
+            "You did this to yourself.",
+            "This is a you problem.",
+            "I'd look away but i can't.",
+            "Are you okay? genuinely asking."
     };
-    private static final String[] FLAVOUR_COMBO  = {
-        "Oh so you can do this.",
-        "Where was this ten moves ago.",
-        "Keep going. i dare you.",
-        "Now you're showing off."
+    private static final String[] FLAVOUR_COMBO = {
+            "Oh so you can do this.",
+            "Where was this ten moves ago.",
+            "Keep going. i dare you.",
+            "Now you're showing off."
     };
     private static final String[] FLAVOUR_POST_BLACKOUT = {
-        "The lights return. assess the damage.",
-        "Welcome back. the stack didn't wait.",
-        "Darkness lifted. problems haven't.",
-        "You survived the blackout. barely counts.",
-        "The board kept going without you.",
-        "Light's back. make it count this time."
+            "The lights return. assess the damage.",
+            "Welcome back. the stack didn't wait.",
+            "Darkness lifted. problems haven't.",
+            "You survived the blackout. barely counts.",
+            "The board kept going without you.",
+            "Light's back. make it count this time."
     };
 
     private java.util.List<TetrominoType> bag = new java.util.ArrayList<>();
@@ -202,6 +215,10 @@ public class GameController {
     private int mouseTargetColumn = -1;
 
     private final java.util.Random rng = new java.util.Random();
+
+    private static final long RANDOM_BLOCK_INTERVAL_MS = 2000L;
+    private static final double RANDOM_BLOCK_CHANCE = 0.30;
+    private boolean randomBlockEnabled = true;
 
     @FXML
     private void initialize() {
@@ -219,16 +236,17 @@ public class GameController {
         // Sync vfxCanvas.layoutY to gameCanvas's actual post-layout position so
         // their y=0 coordinates map to the same screen row.
         Platform.runLater(() ->
-            vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
+                vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
         bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
 
-        lightOnImage  = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
+        lightOnImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
         lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
         hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
         darkMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/darkmain.png"));
 
-        //HARD MODE
+        // HARD MODE
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            // Increase speed
             fallIntervalNs = 300_000_000L;
             lightBulbView.setImage(lightOnImage);
             lightBulbView.setVisible(true);
@@ -252,7 +270,9 @@ public class GameController {
 
         // Key handler
         gamePane.setOnKeyPressed(this::handleKeyPressed);
-        gamePane.setOnKeyReleased(e -> { if (e.getCode() == javafx.scene.input.KeyCode.S) softDropping = false; });
+        gamePane.setOnKeyReleased(e -> {
+            if (e.getCode() == javafx.scene.input.KeyCode.S) softDropping = false;
+        });
         gameCanvas.setOnMouseMoved(this::handleMouseMoved);
         gameCanvas.setOnMouseClicked(this::handleMouseClicked);
         Platform.runLater(() -> {
@@ -284,16 +304,18 @@ public class GameController {
                 lastFrameTime = now;
 
                 if (freezeUntil > 0 && now >= freezeUntil) {
-                    lastFallTime   = now;
-                    freezeUntil    = 0;
+                    lastFallTime = now;
+                    freezeUntil = 0;
                     frozenRowFlash = null;
                     if (pendingTetrisClear != null) {
                         int[] rows = pendingTetrisClear;
                         pendingTetrisClear = null;
-                        int sum = 0; for (int r : rows) sum += r;
+                        int sum = 0;
+                        for (int r : rows) sum += r;
                         int avgRow = sum / rows.length;
                         for (int row : rows) {
-                            for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
+                            for (int r = row; r > 0; r--)
+                                board[r] = board[r - 1].clone();
                             board[0] = new int[Constants.BOARD_WIDTH];
                         }
                         addScore(4);
@@ -304,14 +326,15 @@ public class GameController {
                     }
                 }
 
+                if (glitchTearEffect != null)
+                    glitchTearEffect.update(dt);
+                if (gameOverFlashAlpha > 0)
+                    gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
                 if (startupGlitchElapsed < STARTUP_GLITCH_DUR) startupGlitchElapsed += dt;
-                if (glitchTearEffect != null) glitchTearEffect.update(dt);
                 if (glitchExplosionEffect != null) {
                     glitchExplosionEffect.update(dt);
                     if (glitchExplosionEffect.isDone()) glitchExplosionEffect = null;
                 }
-
-                if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
 
                 if (isGameOver && gameOverFreezeUntil > 0 && now >= gameOverFreezeUntil) {
                     gameOverFreezeUntil = 0;
@@ -344,8 +367,8 @@ public class GameController {
                     particleSystem.update(dt);
                     scorePopups.removeIf(p -> p.life <= 0);
                     for (ScorePopup p : scorePopups) {
-                        p.x    += p.vx * dt;
-                        p.y    += p.vy * dt;
+                        p.x += p.vx * dt;
+                        p.y += p.vy * dt;
                         p.life -= dt / 0.7;
                     }
                     updateScreenShake(dt);
@@ -368,38 +391,45 @@ public class GameController {
                     }
 
                     // Cập nhật các hiệu ứng VFX mới
-                    if (rotationPulse  > 0) rotationPulse  = Math.max(0, rotationPulse  - dt * 8.0);
-                    if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
+                    if (rotationPulse > 0)
+                        rotationPulse = Math.max(0, rotationPulse - dt * 8.0);
+                    if (flashIntensity > 0)
+                        flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
 
                     if (levelUpEffect != null) {
                         levelUpEffect.update(dt);
-                        if (levelUpEffect.isDone()) levelUpEffect = null;
+                        if (levelUpEffect.isDone())
+                            levelUpEffect = null;
                     }
                     if (borderPulseEffect != null) {
                         borderPulseEffect.update(dt);
-                        if (borderPulseEffect.isDone()) borderPulseEffect = null;
+                        if (borderPulseEffect.isDone())
+                            borderPulseEffect = null;
                     } else {
                         // Check cảnh báo nguy hiểm (stack cao)
-                        int dangerRow = (int)(Constants.BOARD_HEIGHT * 0.35);
+                        int dangerRow = (int) (Constants.BOARD_HEIGHT * 0.35);
                         outer:
                         for (int y = 0; y <= dangerRow; y++)
                             for (int x = 0; x < Constants.BOARD_WIDTH; x++)
-                                if (board[y][x] != 0) { borderPulseEffect = new BorderPulseEffect(); break outer; }
+                                if (board[y][x] != 0) {
+                                    borderPulseEffect = new BorderPulseEffect();
+                                    break outer;
+                                }
                     }
 
                     if (comboFloatAlpha > 0) {
-                        comboFloatY      -= dt * 60;
-                        comboFloatPhase  += dt * 5.0;
-                        comboShakeAmount  = Math.max(0, comboShakeAmount - dt * 100);
-                        comboFloatAlpha   = Math.max(0, comboFloatAlpha - dt * 1.1);
+                        comboFloatY -= dt * 60;
+                        comboFloatPhase += dt * 5.0;
+                        comboShakeAmount = Math.max(0, comboShakeAmount - dt * 100);
+                        comboFloatAlpha = Math.max(0, comboFloatAlpha - dt * 1.1);
                     }
                 }
 
                 if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE && !isGameOver && !gamePaused) {
                     updateBlackout(dt);
-                    flavourWaveTime    += dt;
+                    flavourWaveTime += dt;
                     flavourTypeElapsed += dt;
-                    flavourCooldown    -= dt;
+                    flavourCooldown -= dt;
                 }
 
                 render();
@@ -417,6 +447,7 @@ public class GameController {
     }
 
     private void lockAndSpawn() {
+        stopRandomBlockIfNeeded(currentPiece);
         // --- GIỮ LOGIC BOMB TỪ HEAD ---
         if (currentPiece.getType() == TetrominoType.BOMB) {
             detonateBomb(currentPiece.getX(), currentPiece.getY());
@@ -429,9 +460,13 @@ public class GameController {
         for (int y = Constants.BOARD_HEIGHT - 1; y >= 0; y--) {
             boolean full = true;
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
-                if (board[y][x] == 0) { full = false; break; }
+                if (board[y][x] == 0) {
+                    full = false;
+                    break;
+                }
             }
-            if (full) fullRows.add(y);
+            if (full)
+                fullRows.add(y);
         }
 
         if (!fullRows.isEmpty()) {
@@ -439,54 +474,58 @@ public class GameController {
             for (int row : fullRows) {
                 for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                     TetrominoType t = idToType(board[row][x]);
-                    if (t != null) particleSystem.emitRowBurst(x * cs, row * cs, t.getColor(), 8);
+                    if (t != null)
+                        particleSystem.emitRowBurst(x * cs, row * cs, t.getColor(), 8);
                 }
             }
 
-            double leftBase  = VFX_MARGIN;
+            double leftBase = VFX_MARGIN;
             double rightBase = VFX_MARGIN + Constants.BOARD_WIDTH * cs;
-            Color pieceCol   = currentPiece.getType().getColor();
+            Color pieceCol = currentPiece.getType().getColor();
             for (int row : fullRows) {
                 particleSystem.emitRowBeams(leftBase, rightBase, row * cs, cs, pieceCol);
             }
 
             // --- LOGIC COMBO & SHAKE MỚI ---
             double t = cleared / 4.0;
-            flashIntensity    = 0.12 + t * 0.28;
-            shakeIntensity    = 5.0  + t * 13.0  + (cleared == 4 ? 12.0 : 0);
-            shakeInitDuration = 0.18 + t * 0.17  + (cleared == 4 ? 0.10 : 0);
-            shakeDuration     = shakeInitDuration;
+            flashIntensity = 0.12 + t * 0.28;
+            shakeIntensity = 5.0 + t * 13.0 + (cleared == 4 ? 12.0 : 0);
+            shakeInitDuration = 0.18 + t * 0.17 + (cleared == 4 ? 0.10 : 0);
+            shakeDuration = shakeInitDuration;
 
             comboCount++;
             if (comboLabel != null) comboLabel.setText("x" + comboCount);
             if (comboCount >= 2) {
                 int avgRow = fullRows.stream().mapToInt(Integer::intValue).sum() / fullRows.size();
-                comboDisplay    = comboCount;
-                comboFloatX     = gameCanvas.getWidth() / 2.0 - 50;
-                comboFloatY     = avgRow * cs;
-                comboFloatAlpha  = 1.0;
-                comboFloatPhase  = 0;
+                comboDisplay = comboCount;
+                comboFloatX = gameCanvas.getWidth() / 2.0 - 50;
+                comboFloatY = avgRow * cs;
+                comboFloatAlpha = 1.0;
+                comboFloatPhase = 0;
                 comboShakeAmount = 10 + comboDisplay * 5;
                 comboColor = TetrominoType.values()[rng.nextInt(7)].getColor();
             }
 
             if (cleared == 4) {
                 fullRows.sort(java.util.Collections.reverseOrder());
-                frozenRowFlash     = fullRows.stream().mapToInt(Integer::intValue).toArray();
+                frozenRowFlash = fullRows.stream().mapToInt(Integer::intValue).toArray();
                 pendingTetrisClear = frozenRowFlash;
-                freezeUntil        = System.nanoTime() + 300_000_000L;
+
+                freezeUntil = System.nanoTime() + 300_000_000L;
                 SoundManager.getInstance().playSE(SoundType.TETRIS);
                 PauseTransition delay = new PauseTransition(Duration.millis(300));
                 delay.setOnFinished(e -> SoundManager.getInstance().playSE(SoundType.TETRIS2));
                 delay.play();
                 trySetFlavour(FLAVOUR_TETRIS, FLAVOUR_BASE_CD); // always fires
+
                 return;
             }
 
             int avgRow = fullRows.stream().mapToInt(Integer::intValue).sum() / fullRows.size();
             fullRows.sort(java.util.Collections.reverseOrder());
             for (int row : fullRows) {
-                for (int r = row; r > 0; r--) board[r] = board[r - 1].clone();
+                for (int r = row; r > 0; r--)
+                    board[r] = board[r - 1].clone();
                 board[0] = new int[Constants.BOARD_WIDTH];
             }
 
@@ -516,11 +555,14 @@ public class GameController {
     private void spawnAndCheckGameOver() {
         spawnPiece();
         if (!canMove(0, 0, currentPiece.getRotation())) {
-            isGameOver          = true;
-            gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
-            gameOverFlashAlpha  = 0.6;
+            isGameOver = true;
+            stopRandomBlockIfNeeded(currentPiece);
             SoundManager.getInstance().playSE(SoundType.GAME_OVER);
             SoundManager.getInstance().stopMusic();
+            gameLoop.stop();
+            sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+            gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
+            gameOverFlashAlpha = 0.6;
         }
     }
 
@@ -542,10 +584,24 @@ public class GameController {
         currentPiece.setX(Constants.BOARD_WIDTH / 2 - 2);
         currentPiece.setY(0);
         nextQueue.addLast(randomPiece());
+
+        startRandomBlockIfNeeded(currentPiece);
+
+        // --- RESET BLACKOUT ---
+        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            if (blackoutState != BlackoutState.NORMAL) {
+                blackoutState = BlackoutState.NORMAL;
+
+                // reset
+                blackoutDuration = 0;
+                blackoutFlickerTimer = 0;
+            }
+        }
     }
 
     private Piece createSpawnedPiece(TetrominoType type) {
-        return new Piece(type, Constants.BOARD_WIDTH / 2 - 2, 0);
+        Piece piece = new Piece(type, Constants.BOARD_WIDTH / 2 - 2, 0);
+        return piece;
     }
 
     private Piece randomPiece() {
@@ -557,7 +613,32 @@ public class GameController {
 
         // Pop the first piece
         TetrominoType type = bag.remove(0);
+        if (randomBlockEnabled && isRandomBlockCandidate(type) && rng.nextDouble() < RANDOM_BLOCK_CHANCE) {
+            return createRandomBlock(type);
+        }
         return new Piece(type, 0, 0);
+    }
+
+    private boolean isRandomBlockCandidate(TetrominoType type) {
+        return type != TetrominoType.BOMB;
+    }
+
+    private RandomBlock createRandomBlock(TetrominoType initialType) {
+        RandomBlock block = new RandomBlock(initialType, 0, 0, RANDOM_BLOCK_INTERVAL_MS);
+        block.setTypeValidator(this::canPlaceType);
+        return block;
+    }
+
+    private void startRandomBlockIfNeeded(Piece piece) {
+        if (piece instanceof RandomBlock randomBlock) {
+            randomBlock.startTimer();
+        }
+    }
+
+    private void stopRandomBlockIfNeeded(Piece piece) {
+        if (piece instanceof RandomBlock randomBlock) {
+            randomBlock.lockBlock();
+        }
     }
 
     private void detonateBomb(int centerX, int centerY) {
@@ -575,7 +656,7 @@ public class GameController {
                     TetrominoType t = idToType(board[y][x]);
                     if (t != null && t != TetrominoType.BOMB)
                         snaps.add(new com.se330.tetris.game.GlitchExplosionEffect.CellSnap(
-                            x * cs, y * cs, cs, t.getColor()));
+                                x * cs, y * cs, cs, t.getColor()));
                 }
                 board[y][x] = 0;
             }
@@ -584,10 +665,10 @@ public class GameController {
         SoundManager.getInstance().stopLooping();
         fuseLoopPlaying = false;
         glitchExplosionEffect = new com.se330.tetris.game.GlitchExplosionEffect(pixelCx, pixelCy, cs, snaps);
-        flashIntensity    = 0.45;
-        shakeIntensity    = 18;
+        flashIntensity = 0.45;
+        shakeIntensity = 18;
         shakeInitDuration = 0.30;
-        shakeDuration     = 0.30;
+        shakeDuration = 0.30;
         SoundManager.getInstance().playSE(SoundType.BOMB_EXPLODE);
     }
 
@@ -599,6 +680,27 @@ public class GameController {
                 if (shape[row][col] == 1) {
                     int nx = currentPiece.getX() + col + dx;
                     int ny = currentPiece.getY() + row + dy;
+                    if (nx < 0 || nx >= Constants.BOARD_WIDTH)
+                        return false;
+                    if (ny < 0 || ny >= Constants.BOARD_HEIGHT)
+                        return false;
+                    if (currentPiece.getType() != TetrominoType.TRANSPARENT) {
+                        if (board[ny][nx] != 0)
+                            return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean canPlaceType(Piece piece, TetrominoType type) {
+        int[][] shape = type.getShape(piece.getRotation());
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int nx = piece.getX() + col;
+                    int ny = piece.getY() + row;
                     if (nx < 0 || nx >= Constants.BOARD_WIDTH)
                         return false;
                     if (ny < 0 || ny >= Constants.BOARD_HEIGHT)
@@ -713,9 +815,9 @@ public class GameController {
 
             fallIntervalNs = Math.max(100_000_000L, base - (newLevel - 1) * 40_000_000L);
             levelUpEffect = new LevelUpEffect(newLevel, () -> {
-                shakeIntensity    = 18;
+                shakeIntensity = 18;
                 shakeInitDuration = 0.25;
-                shakeDuration     = 0.25;
+                shakeDuration = 0.25;
             });
         }
     }
@@ -772,6 +874,7 @@ public class GameController {
         }
 
         canHold = false;
+        stopRandomBlockIfNeeded(currentPiece);
         TetrominoType currentType = currentPiece.getType();
 
         if (holdType == null) {
@@ -797,26 +900,74 @@ public class GameController {
         return distance;
     }
 
+    private void useBombSkill() {
+        if (isGameOver || gamePaused || bombsRemaining <= 0 || currentPiece == null) {
+            return;
+        }
+        if (currentPiece.getType() == TetrominoType.BOMB) {
+            return;
+        }
+
+        bombsRemaining--;
+        stopRandomBlockIfNeeded(currentPiece);
+        currentPiece = new Piece(TetrominoType.BOMB, currentPiece.getX(), currentPiece.getY());
+        updateBombInventoryUI();
+        flashBombInventory();
+    }
+
+    private void updateBombInventoryUI() {
+        if (bombsLabel != null) {
+            bombsLabel.setText("\uD83D\uDCA3 x" + bombsRemaining);
+        }
+    }
+
+    private void flashBombInventory() {
+        if (bombInventoryBox == null) {
+            return;
+        }
+
+        bombInventoryBox.setStyle(
+                bombInventoryBaseStyle
+                        + "; -fx-border-color: #ffcc00; -fx-border-width: 2;"
+                        + " -fx-effect: dropshadow(gaussian, #ffcc00, 10, 0.6, 0, 0);");
+
+        PauseTransition reset = new PauseTransition(Duration.millis(160));
+        reset.setOnFinished(e -> bombInventoryBox.setStyle(bombInventoryBaseStyle));
+        reset.play();
+    }
+
     @FXML
     private void handleKeyPressed(KeyEvent event) {
         if (isGameOver) return;
         KeyCode code = event.getCode();
         switch (code) {
-            case LEFT, A -> { if (canMove(-1, 0, currentPiece.getRotation()))
-                currentPiece.setX(currentPiece.getX() - 1); }
-            case RIGHT, D -> { if (canMove( 1, 0, currentPiece.getRotation()))
-                currentPiece.setX(currentPiece.getX() + 1); }
-            case DOWN -> { if (blackoutState != BlackoutState.BLACKOUT) hardDrop(); }
-            case S    -> { if (blackoutState != BlackoutState.BLACKOUT) softDropping = true; }
-            case UP, W -> { int nr = (currentPiece.getRotation() + 1) % 4;
+            case LEFT, A -> {
+                if (canMove(-1, 0, currentPiece.getRotation()))
+                    currentPiece.setX(currentPiece.getX() - 1);
+            }
+            case RIGHT, D -> {
+                if (canMove(1, 0, currentPiece.getRotation()))
+                    currentPiece.setX(currentPiece.getX() + 1);
+            }
+            case DOWN -> {
+                if (blackoutState != BlackoutState.BLACKOUT) hardDrop();
+            }
+            case S -> {
+                if (blackoutState != BlackoutState.BLACKOUT) softDropping = true;
+            }
+            case UP, W -> {
+                int nr = (currentPiece.getRotation() + 1) % 4;
                 if (canMove(0, 0, nr)) {
                     currentPiece.setRotation(nr);
                     emitRotationArc();
                 }
             }
-            case SPACE -> { if (blackoutState != BlackoutState.BLACKOUT) hardDrop(); }
+            case SPACE -> {
+                if (blackoutState != BlackoutState.BLACKOUT) hardDrop();
+            }
             case P -> handlePause();
-case C, SHIFT      -> holdCurrentPiece();
+            case B -> useBombSkill();
+            case C, SHIFT -> holdCurrentPiece();
             case ESCAPE -> handleExit();
             default -> {
                 return;
@@ -873,7 +1024,7 @@ case C, SHIFT      -> holdCurrentPiece();
         int nextRotation = (currentPiece.getRotation() + 1) % 4;
 
         // Basic wall-kick offsets to allow rotation when touching side walls.
-        int[] kickOffsets = { 0, -1, 1, -2, 2 };
+        int[] kickOffsets = {0, -1, 1, -2, 2};
         for (int dx : kickOffsets) {
             if (canMove(dx, 0, nextRotation)) {
                 currentPiece.setX(currentPiece.getX() + dx);
@@ -918,7 +1069,10 @@ case C, SHIFT      -> holdCurrentPiece();
 
     private void handleExit() {
         System.out.println("Exiting to main menu");
+        stopRandomBlockIfNeeded(currentPiece);
+
         SoundManager.getInstance().stopLooping();
+
         if (gameLoop != null) {
             gameLoop.stop();
         }
@@ -930,8 +1084,12 @@ case C, SHIFT      -> holdCurrentPiece();
     // ── Score popups ──────────────────────────────────────────────────────────
 
     private static class ScorePopup {
-        String text; double x, y, vx, vy, life; Color color; int fontSize;
+        String text;
+        double x, y, vx, vy, life;
+        Color color;
+        int fontSize;
     }
+
     private final java.util.List<ScorePopup> scorePopups = new java.util.ArrayList<>();
 
     private void renderTopLayer() {
@@ -966,22 +1124,26 @@ case C, SHIFT      -> holdCurrentPiece();
 
     private void emitScorePopup(int cleared, int avgRow) {
         int bonus = switch (cleared) {
-            case 1 -> 100; case 2 -> 300; case 3 -> 500; case 4 -> 800; default -> 0;
+            case 1 -> 100;
+            case 2 -> 300;
+            case 3 -> 500;
+            case 4 -> 800;
+            default -> 0;
         };
         if (bonus == 0) return;
         double speed = 90 + rng.nextDouble() * 40;
-        double rad   = Math.toRadians(30 + rng.nextDouble() * 120);
+        double rad = Math.toRadians(30 + rng.nextDouble() * 120);
         ScorePopup p = new ScorePopup();
-        p.text     = "+" + bonus;
-        p.x        = 8;
-        p.y        = avgRow * Constants.BLOCK_SIZE - 4;
-        p.vx       = Math.cos(rad) * speed;
-        p.vy       = -Math.sin(rad) * speed;
-        p.life     = 1.0;
+        p.text = "+" + bonus;
+        p.x = 8;
+        p.y = avgRow * Constants.BLOCK_SIZE - 4;
+        p.vx = Math.cos(rad) * speed;
+        p.vy = -Math.sin(rad) * speed;
+        p.life = 1.0;
         p.fontSize = 20 + cleared * 3;
-        p.color    = switch (cleared) {
-            case 4  -> Color.web("#00ffff");
-            case 3  -> Color.web("#ffaa00");
+        p.color = switch (cleared) {
+            case 4 -> Color.web("#00ffff");
+            case 3 -> Color.web("#ffaa00");
             default -> Color.web("#ffffff");
         };
         scorePopups.add(p);
@@ -1012,7 +1174,7 @@ case C, SHIFT      -> holdCurrentPiece();
                 double r = BG_R + flashIntensity * (1.0 - BG_R);
                 double g = BG_G + flashIntensity * (1.0 - BG_G);
                 double b = BG_B + flashIntensity * (1.0 - BG_B);
-                String hex = String.format("#%02x%02x%02x", (int)(r*255), (int)(g*255), (int)(b*255));
+                String hex = String.format("#%02x%02x%02x", (int) (r * 255), (int) (g * 255), (int) (b * 255));
                 gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
             } else {
                 gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
@@ -1063,13 +1225,16 @@ case C, SHIFT      -> holdCurrentPiece();
                     l.setOpacity(1.0);
                 }
                 String col = rng.nextDouble() < 0.06
-                    ? (rng.nextBoolean() ? "#ffffff" : "#880000")
-                    : "#FF0000";
+                        ? (rng.nextBoolean() ? "#ffffff" : "#880000")
+                        : "#FF0000";
                 l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: " + col + ";");
             }
         } else if (darknessLoomsMode) {
-            if (flavourHBox != null) { flavourHBox.setTranslateX(0); flavourHBox.setTranslateY(0); }
-            int nVisible = Math.min(flavourChars.size(), (int)(flavourTypeElapsed / (FLAVOUR_CHAR_DELAY * 1.8)));
+            if (flavourHBox != null) {
+                flavourHBox.setTranslateX(0);
+                flavourHBox.setTranslateY(0);
+            }
+            int nVisible = Math.min(flavourChars.size(), (int) (flavourTypeElapsed / (FLAVOUR_CHAR_DELAY * 1.8)));
             for (int i = 0; i < flavourChars.size(); i++) {
                 javafx.scene.control.Label l = flavourChars.get(i);
                 boolean visible = i < nVisible;
@@ -1082,8 +1247,11 @@ case C, SHIFT      -> holdCurrentPiece();
                     l.setTranslateY(Math.sin(flavourWaveTime * 1.2 + i * 0.45) * 5.0);
             }
         } else {
-            if (flavourHBox != null) { flavourHBox.setTranslateX(0); flavourHBox.setTranslateY(0); }
-            int nVisible = Math.min(flavourChars.size(), (int)(flavourTypeElapsed / FLAVOUR_CHAR_DELAY));
+            if (flavourHBox != null) {
+                flavourHBox.setTranslateX(0);
+                flavourHBox.setTranslateY(0);
+            }
+            int nVisible = Math.min(flavourChars.size(), (int) (flavourTypeElapsed / FLAVOUR_CHAR_DELAY));
             for (int i = 0; i < flavourChars.size(); i++) {
                 javafx.scene.control.Label l = flavourChars.get(i);
                 boolean visible = i < nVisible;
@@ -1098,25 +1266,25 @@ case C, SHIFT      -> holdCurrentPiece();
 
     private void renderStartupGlitch() {
         if (startupGlitchElapsed >= STARTUP_GLITCH_DUR || startupGc == null) return;
-        double t     = startupGlitchElapsed / STARTUP_GLITCH_DUR;
+        double t = startupGlitchElapsed / STARTUP_GLITCH_DUR;
         double alpha = (1.0 - t * t) * 0.55;
-        double w     = startupCanvas.getWidth();
-        double h     = startupCanvas.getHeight();
+        double w = startupCanvas.getWidth();
+        double h = startupCanvas.getHeight();
 
         startupGc.clearRect(0, 0, w, h);
 
         // clean scanline bands — each drifts sideways at its own phase
         int bands = 6 + rng.nextInt(5);
         for (int i = 0; i < bands; i++) {
-            double by      = rng.nextDouble() * h;
-            double bh      = rng.nextDouble() * (h * 0.05) + 1;
-            int pick       = rng.nextInt(3);
-            double cr      = pick == 0 ? 0 : 1;
-            double cg      = pick == 0 ? 1 : 1;
-            double cb      = pick == 0 ? 1 : 0;
-            double baseA   = pick == 0 ? 0.5 : pick == 1 ? 0.4 : 0.3;
+            double by = rng.nextDouble() * h;
+            double bh = rng.nextDouble() * (h * 0.05) + 1;
+            int pick = rng.nextInt(3);
+            double cr = pick == 0 ? 0 : 1;
+            double cg = pick == 0 ? 1 : 1;
+            double cb = pick == 0 ? 1 : 0;
+            double baseA = pick == 0 ? 0.5 : pick == 1 ? 0.4 : 0.3;
             double xOffset = Math.sin(t * Math.PI * 5 + i * 1.9) * w * 0.18;
-            double pad     = Math.abs(xOffset);
+            double pad = Math.abs(xOffset);
             startupGc.setFill(Color.color(cr, cg, cb, Math.min(1, alpha * baseA)));
             startupGc.fillRect(xOffset - pad, by, w + pad * 2, bh);
             // a couple of bright accent pixels on the band
@@ -1127,7 +1295,7 @@ case C, SHIFT      -> holdCurrentPiece();
             }
         }
         // light pixel scatter
-        int pixels = (int)(250 * (1.0 - t));
+        int pixels = (int) (250 * (1.0 - t));
         for (int i = 0; i < pixels; i++) {
             double px = rng.nextDouble() * w;
             double py = rng.nextDouble() * h;
@@ -1135,8 +1303,8 @@ case C, SHIFT      -> holdCurrentPiece();
             startupGc.fillRect(px, py, 2, 2);
         }
         // white flashes at t=0.0, 0.22, 0.48 — sharp spike then fast decay
-        double[] flashTimes  = {0.0,  0.14, 0.28};
-        double[] flashPeaks  = {0.90, 0.42, 0.42};
+        double[] flashTimes = {0.0, 0.14, 0.28};
+        double[] flashPeaks = {0.90, 0.42, 0.42};
         double flashHalf = 0.07;
         double totalFlash = 0;
         for (int fi = 0; fi < flashTimes.length; fi++) {
@@ -1176,6 +1344,28 @@ case C, SHIFT      -> holdCurrentPiece();
             gc.strokeRect(0, 0, w, h);
         }
 
+        // HARD MODE
+        boolean isDark = false;
+        if (blackoutState == BlackoutState.FLICKER) {
+            // chớp nhanh: 10 lần / giây
+            isDark = ((int) (blackoutFlickerTimer * 10)) % 2 == 0;
+        }
+        if (blackoutState == BlackoutState.BLACKOUT) {
+            isDark = true;
+        }
+        if (!isDark) {
+            // Locked cells
+            for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
+                for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+                    if (board[y][x] != 0) {
+                        TetrominoType t = idToType(board[y][x]);
+                        if (t != null)
+                            drawCell(gc, x, y, t.getColor(), 1.0);
+                    }
+                }
+            }
+        }
+
         // Locked cells
         for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
@@ -1205,7 +1395,8 @@ case C, SHIFT      -> holdCurrentPiece();
         }
 
         // Ghost + current piece hidden during game over (glitch effect takes over)
-        if (isGameOver) return;
+        if (isGameOver)
+            return;
 
         // Ghost
         if (freezeUntil == 0) {
@@ -1224,11 +1415,34 @@ case C, SHIFT      -> holdCurrentPiece();
             }
         }
 
+        // Current piece - apply rotation pulse brightness
+        // Current piece - always drawn on top, visible even during blackout
+        int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+        Color pieceColor = currentPiece.getType().getColor()
+                .deriveColor(0, 1, 1.0 + rotationPulse * 1.8, 1);
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    drawCell(gc,
+                            currentPiece.getX() + col,
+                            currentPiece.getY() + row,
+                            pieceColor,
+                            1.0);
+                }
+            }
+        }
+
+        if (currentPiece instanceof RandomBlock randomBlock && randomBlock.isIndicatorOn()) {
+            drawRandomBlockIndicator(randomBlock, gc, cs);
+        }
+
         // Floating combo text
         if (comboFloatAlpha > 0) {
             double cx = comboFloatX + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount;
             double cy = comboFloatY + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount * 0.4;
-            double flash = (Math.sin(comboFloatPhase * 3.0) + 1.0) / 2.0;
+
+            double flash = (Math.sin(comboFloatPhase * 3.0) + 1.0) / 2.0; // 0..1
+
             Color drawColor = comboColor.interpolate(Color.WHITE, flash);
             int fontSize = (int) Math.min(75, 32 + comboDisplay * 7);
             gc.setGlobalAlpha(comboFloatAlpha);
@@ -1248,12 +1462,9 @@ case C, SHIFT      -> holdCurrentPiece();
             }
         }
 
-        // Current piece - always drawn on top, visible even during blackout
-        int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         boolean isBomb = currentPiece.getType() == TetrominoType.BOMB;
 
         double chargeOffsetX = 0, chargeOffsetY = 0, charge = 0;
-        Color pieceColor;
         if (blackoutState == BlackoutState.BLACKOUT) {
             charge = blackoutDropTimer / BLACKOUT_AUTO_DROP;
             double freq = 6.0 + charge * 10.0;
@@ -1262,9 +1473,9 @@ case C, SHIFT      -> holdCurrentPiece();
             Color base = isBomb ? Color.color(1.0, 0.15, 0.15) : currentPiece.getType().getColor();
             double bright = charge * 0.75;
             pieceColor = Color.color(
-                Math.min(1.0, base.getRed()   + bright),
-                Math.min(1.0, base.getGreen() + bright),
-                Math.min(1.0, base.getBlue()  + bright)
+                    Math.min(1.0, base.getRed() + bright),
+                    Math.min(1.0, base.getGreen() + bright),
+                    Math.min(1.0, base.getBlue() + bright)
             );
         } else {
             pieceColor = currentPiece.getType().getColor()
@@ -1285,7 +1496,7 @@ case C, SHIFT      -> holdCurrentPiece();
                         int px = currentPiece.getX() + col;
                         int py = currentPiece.getY() + row;
                         gc.fillRect(px * cs - expansion, py * cs - expansion,
-                                    cs + expansion * 2, cs + expansion * 2);
+                                cs + expansion * 2, cs + expansion * 2);
                     }
                 }
             }
@@ -1302,14 +1513,14 @@ case C, SHIFT      -> holdCurrentPiece();
                 for (int col = 0; col < 4; col++)
                     if (shape[row][col] == 1)
                         gc.fillRect((currentPiece.getX() + col) * cs - caOffset,
-                                    (currentPiece.getY() + row) * cs, cs, cs);
+                                (currentPiece.getY() + row) * cs, cs, cs);
             gc.setFill(Color.color(0, Math.min(1.0, base.getGreen() * 0.2 + 0.6),
-                                      Math.min(1.0, base.getBlue()  + 0.4)));
+                    Math.min(1.0, base.getBlue() + 0.4)));
             for (int row = 0; row < 4; row++)
                 for (int col = 0; col < 4; col++)
                     if (shape[row][col] == 1)
                         gc.fillRect((currentPiece.getX() + col) * cs + caOffset,
-                                    (currentPiece.getY() + row) * cs, cs, cs);
+                                (currentPiece.getY() + row) * cs, cs, cs);
             gc.setGlobalAlpha(1.0);
         }
 
@@ -1362,55 +1573,63 @@ case C, SHIFT      -> holdCurrentPiece();
     }
 
     private void drawPreview(GraphicsContext gc, Canvas canvas, Piece piece) {
-            double w = canvas.getWidth();
-            double h = canvas.getHeight();
+        double w = canvas.getWidth();
+        double h = canvas.getHeight();
 
-            // Xóa nền và vẽ viền
-            gc.setFill(Color.web(
+        gc.setFill(Color.web(
                 blackoutState == BlackoutState.BLACKOUT ? "#000000" :
-                gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
-            gc.fillRect(0, 0, w, h);
+                        gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
+        gc.fillRect(0, 0, w, h);
+        // HARD MODE
+        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            drawQuestionMark(gc, canvas);
+            return;
+        }
+        // Xóa nền và vẽ viền
 
-            if (piece == null) return;
 
-            TetrominoType type = piece.getType();
-            int[][] shape = type.getShape(0); // Luôn vẽ ở góc xoay mặc định
+        if (piece == null)
+            return;
 
-            // 1. Tính toán vùng bao (Bounding Box) để căn giữa khối gạch
-            int minRow = 4, maxRow = -1, minCol = 4, maxCol = -1;
-            for (int row = 0; row < 4; row++) {
-                for (int col = 0; col < 4; col++) {
-                    if (shape[row][col] == 1) {
-                        minRow = Math.min(minRow, row);
-                        maxRow = Math.max(maxRow, row);
-                        minCol = Math.min(minCol, col);
-                        maxCol = Math.max(maxCol, col);
-                    }
+        TetrominoType type = piece.getType();
+        int[][] shape = type.getShape(0); // Luôn vẽ ở góc xoay mặc định
+
+        // 1. Tính toán vùng bao (Bounding Box) để căn giữa khối gạch
+        int minRow = 4, maxRow = -1, minCol = 4, maxCol = -1;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    minRow = Math.min(minRow, row);
+                    maxRow = Math.max(maxRow, row);
+                    minCol = Math.min(minCol, col);
+                    maxCol = Math.max(maxCol, col);
                 }
             }
+        }
 
-            if (maxRow < 0 || maxCol < 0) return;
+        if (maxRow < 0 || maxCol < 0)
+            return;
 
-            // 2. Tính toán vị trí vẽ để khối luôn nằm chính giữa Canvas
-            int previewCellSize = 24; // Kích thước ô nhỏ hơn cho vùng Preview
-            int pieceWidth = (maxCol - minCol + 1) * previewCellSize;
-            int pieceHeight = (maxRow - minRow + 1) * previewCellSize;
-            double offsetX = (w - pieceWidth) / 2.0;
-            double offsetY = (h - pieceHeight) / 2.0;
+        // 2. Tính toán vị trí vẽ để khối luôn nằm chính giữa Canvas
+        int previewCellSize = 24; // Kích thước ô nhỏ hơn cho vùng Preview
+        int pieceWidth = (maxCol - minCol + 1) * previewCellSize;
+        int pieceHeight = (maxRow - minRow + 1) * previewCellSize;
+        double offsetX = (w - pieceWidth) / 2.0;
+        double offsetY = (h - pieceHeight) / 2.0;
 
-            // 3. Vẽ từng ô của khối
-            for (int row = minRow; row <= maxRow; row++) {
-                for (int col = minCol; col <= maxCol; col++) {
-                    if (shape[row][col] == 1) {
-                        double px = offsetX + (col - minCol) * previewCellSize;
-                        double py = offsetY + (row - minRow) * previewCellSize;
-                        if (type == TetrominoType.BOMB)
-                            gc.drawImage(bombSprite, px, py, previewCellSize, previewCellSize);
-                        else
-                            drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
-                    }
+        // 3. Vẽ từng ô của khối
+        for (int row = minRow; row <= maxRow; row++) {
+            for (int col = minCol; col <= maxCol; col++) {
+                if (shape[row][col] == 1) {
+                    double px = offsetX + (col - minCol) * previewCellSize;
+                    double py = offsetY + (row - minRow) * previewCellSize;
+                    if (type == TetrominoType.BOMB)
+                        gc.drawImage(bombSprite, px, py, previewCellSize, previewCellSize);
+                    else
+                        drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
                 }
             }
+        }
     }
 
     // Helper: vẽ 1 ô trên gameGc
@@ -1419,7 +1638,7 @@ case C, SHIFT      -> holdCurrentPiece();
     }
 
     private void drawCell(GraphicsContext gc, int x, int y, Color color,
-            double opacity, GraphicsContext target, int cs) {
+                          double opacity, GraphicsContext target, int cs) {
         double px = x * cs;
         double py = y * cs;
         target.setFill(color.deriveColor(0, 1, 1, opacity));
@@ -1438,6 +1657,21 @@ case C, SHIFT      -> holdCurrentPiece();
         target.strokeRect(px, py, size, size);
     }
 
+    private void drawRandomBlockIndicator(Piece piece, GraphicsContext gc, int cs) {
+        int[][] shape = piece.getType().getShape(piece.getRotation());
+        gc.setStroke(Color.web("#00e5ff"));
+        gc.setLineWidth(2.2);
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    double px = (piece.getX() + col) * cs;
+                    double py = (piece.getY() + row) * cs;
+                    gc.strokeRect(px + 1, py + 1, cs - 2, cs - 2);
+                }
+            }
+        }
+    }
+
     private int typeId(TetrominoType type) {
         return switch (type) {
             case I -> 1;
@@ -1448,6 +1682,7 @@ case C, SHIFT      -> holdCurrentPiece();
             case J -> 6;
             case L -> 7;
             case BOMB -> 8;
+            case TRANSPARENT -> 9;
         };
     }
 
@@ -1461,11 +1696,13 @@ case C, SHIFT      -> holdCurrentPiece();
             case 6 -> TetrominoType.J;
             case 7 -> TetrominoType.L;
             case 8 -> TetrominoType.BOMB;
+            case 9 -> TetrominoType.TRANSPARENT;
             default -> null;
         };
     }
 
     public void gameOver() {
+        stopRandomBlockIfNeeded(currentPiece);
         if (gameLoop != null)
             gameLoop.stop();
         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
@@ -1488,9 +1725,9 @@ case C, SHIFT      -> holdCurrentPiece();
     private void updateLightBulb() {
         if (!lightBulbView.isVisible()) return;
         boolean off = switch (blackoutState) {
-            case BLACKOUT     -> true;
+            case BLACKOUT -> true;
             case FLICKER, POST_FLICKER -> ((int) blackoutFlickerTimer) % 2 == 0;
-            default           -> false;
+            default -> false;
         };
         lightBulbView.setImage(off ? lightOffImage : lightOnImage);
     }
