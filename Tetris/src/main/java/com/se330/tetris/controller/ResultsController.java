@@ -66,6 +66,12 @@ public class ResultsController {
 
     @FXML
     private void initialize() {
+        playerNameInput.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue.length() > 9) {
+                playerNameInput.setText(oldValue);
+            }
+        });
+
         sceneManager = SceneManager.getInstance();
         gameContext = GameContext.getInstance();
 
@@ -121,6 +127,14 @@ public class ResultsController {
         newRecordBox.setManaged(false);
 
         refreshHighscoreTable();
+    }
+    @FXML
+    private void onResetAllClicked() {
+        HighScoreManager.getInstance().resetAllScores();
+
+        highScoreTable.getItems().clear();
+
+        System.out.println("Bảng xếp hạng đã được xóa sạch hoàn toàn.");
     }
 
     private void refreshHighscoreTable() {

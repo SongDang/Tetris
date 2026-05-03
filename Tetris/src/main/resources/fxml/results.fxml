@@ -38,7 +38,7 @@
             <VBox fx:id="newRecordBox" spacing="15" alignment="CENTER" style="-fx-border-color: #00ff88; -fx-border-width: 2; -fx-padding: 20; -fx-border-radius: 15; -fx-background-color: rgba(0, 255, 136, 0.05);">
                 <Label text="NEW ACHIEVEMENT!" style="-fx-text-fill: #00ff88; -fx-font-size: 22px; -fx-font-weight: bold;"/>
                 <HBox spacing="15" alignment="CENTER">
-                    <TextField fx:id="playerNameInput" promptText="NAME (MAX 8)"
+                    <TextField fx:id="playerNameInput" promptText="NAME (MAX 9)"
                                prefWidth="220.0" prefHeight="50.0"
                                style="-fx-background-color: #0f0d1a; -fx-text-fill: white; -fx-border-color: #444; -fx-font-size: 18px; -fx-font-family: 'Courier New';"/>
                     <Button fx:id="saveBtn" text="SAVE" onAction="#onSaveClicked"
@@ -73,6 +73,9 @@
                     <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
                 </columnResizePolicy>
             </TableView>
+
+            <Hyperlink fx:id="resetAllBtn" text="Reset all scores" onAction="#onResetAllClicked"
+                       style="-fx-text-fill: #ff4444; -fx-font-family: 'Courier New'; -fx-font-size: 16px; -fx-underline: true; -fx-border-color: transparent;" />
         </VBox>
     </HBox>
 

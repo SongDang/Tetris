@@ -7,7 +7,7 @@ import java.util.*;
 
 public class HighScoreManager {
     private static final String DATA_FILE = "highscores.dat";
-    private static final int MAX_RECORDS = 5;
+    private static final int MAX_RECORDS = 10;
 
     private Map<String, List<ScoreRecord>> allHighScores;
 
