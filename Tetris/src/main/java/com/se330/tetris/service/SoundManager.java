@@ -13,6 +13,7 @@ import java.util.Map;
 public class SoundManager {
     private static SoundManager instance;
     private Clip musicClip;
+    private Clip loopingClip;
     private final Map<SoundType, URL> soundMap = new HashMap<>();
 
     private float musicVolume = 0.8f;
@@ -79,6 +80,43 @@ public class SoundManager {
             });
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    public void playLooping(SoundType type) {
+        stopLooping();
+        try {
+            URL url = soundMap.get(type);
+            if (url == null) return;
+            AudioInputStream ais = AudioSystem.getAudioInputStream(url);
+            loopingClip = AudioSystem.getClip();
+            loopingClip.open(ais);
+            applyVolume(loopingClip, seVolume);
+            loopingClip.loop(Clip.LOOP_CONTINUOUSLY);
+            loopingClip.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void stopLooping() {
+        if (loopingClip != null) {
+            loopingClip.stop();
+            loopingClip.close();
+            loopingClip = null;
+        }
+    }
+
+    public void pauseMusic() {
+        if (musicClip != null && musicClip.isRunning()) {
+            musicClip.stop();
+        }
+    }
+
+    public void resumeMusic() {
+        if (musicClip != null && musicClip.isOpen() && !musicClip.isRunning()) {
+            musicClip.loop(Clip.LOOP_CONTINUOUSLY);
+            musicClip.start();
         }
     }
 

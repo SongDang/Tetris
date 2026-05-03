@@ -29,7 +29,7 @@ public class ParticleSystem {
     private static class HorizontalBeam {
         double x, y, width, height, life;
         Color  color;
-        boolean leftSide; // true = left of board, false = right
+        boolean leftSide;
 
         HorizontalBeam(double x, double y, double width, double height,
                        boolean leftSide, Color color) {
@@ -44,8 +44,8 @@ public class ParticleSystem {
     }
 
     private final List<Particle>       particles = new ArrayList<>();
-    private final List<LightColumn>    columns     = new ArrayList<>();
-    private final List<HorizontalBeam> beams       = new ArrayList<>();
+    private final List<LightColumn>    columns   = new ArrayList<>();
+    private final List<HorizontalBeam> beams     = new ArrayList<>();
     private final Random rng = new Random();
 
     public void emitLockParticles(double pixelX, double pixelY, Color color, int count) {
@@ -65,15 +65,6 @@ public class ParticleSystem {
         columns.add(new LightColumn(leftPixelX, fromPixelY, toPixelY, spanWidth, color));
     }
 
-    /**
-     * Emit sparks from the corners of each actual occupied cell in the piece.
-     *
-     * @param pieceX    piece grid X origin
-     * @param pieceY    piece grid Y origin
-     * @param shape     4x4 shape array
-     * @param blockSize size of one cell in pixels
-     * @param color     tetromino color
-     */
     public void emitRowBurst(double cellPixelX, double cellPixelY, Color color, int count) {
         for (int i = 0; i < count; i++) {
             double angle = rng.nextDouble() * Math.PI * 2;
@@ -90,12 +81,11 @@ public class ParticleSystem {
     }
 
     public void emitCornerSparks(int pieceX, int pieceY, int[][] shape, int blockSize, Color color) {
-        // Corner offsets (dx, dy) within a cell and their outward directions
         int[][] cellCorners = {
-            { 0, 0, -1, -1 }, // top-left     → NW
-            { 1, 0,  1, -1 }, // top-right    → NE
-            { 1, 1,  1,  1 }, // bottom-right → SE
-            { 0, 1, -1,  1 }, // bottom-left  → SW
+            { 0, 0, -1, -1 },
+            { 1, 0,  1, -1 },
+            { 1, 1,  1,  1 },
+            { 0, 1, -1,  1 },
         };
 
         for (int row = 0; row < 4; row++) {
@@ -110,7 +100,6 @@ public class ParticleSystem {
                     double dirX = corner[2];
                     double dirY = corner[3];
 
-                    // 2 sparks per corner
                     for (int i = 0; i < 2; i++) {
                         double spread = Math.toRadians(rng.nextDouble() * 35 - 17.5);
                         double cos    = Math.cos(spread), sin = Math.sin(spread);
@@ -127,22 +116,38 @@ public class ParticleSystem {
         }
     }
 
-    /**
-     * Emit a pair of horizontal beams (left + right) from the board edges at the given row.
-     *
-     * @param leftBaseX  x pixel of the board's left edge in vfxCanvas coordinates
-     * @param rightBaseX x pixel of the board's right edge in vfxCanvas coordinates
-     * @param rowY       top pixel of the cleared row (in vfxCanvas y, same as game y)
-     * @param rowH       height of one row in pixels
-     * @param color      beam color
-     */
+    private static final Color[] FUSE_COLORS = {
+        Color.WHITE, Color.web("#ffee88"), Color.web("#ffaa00"), Color.web("#ff6600")
+    };
+
+    public void emitFuseSparks(double cx, double cy, double blockSize, int rotation) {
+        double half = blockSize / 2.0;
+        double tipX, tipY, baseAngleDeg;
+        switch (rotation % 4) {
+            case 1  -> { tipX = cx + half; tipY = cy;        baseAngleDeg =   0; }
+            case 2  -> { tipX = cx;        tipY = cy + half;  baseAngleDeg =  90; }
+            case 3  -> { tipX = cx - half; tipY = cy;        baseAngleDeg = 180; }
+            default -> { tipX = cx;        tipY = cy - half;  baseAngleDeg = -90; }
+        }
+        Color[] palette = FUSE_COLORS;
+        int count = 3 + rng.nextInt(3);
+        for (int i = 0; i < count; i++) {
+            double angle = Math.toRadians(baseAngleDeg + (rng.nextDouble() - 0.5) * 110);
+            double speed = rng.nextDouble() * 85 + 30;
+            double px    = tipX + (rng.nextDouble() - 0.5) * 5;
+            double py    = tipY + (rng.nextDouble() - 0.5) * 5;
+            double decay = rng.nextDouble() * 3.5 + 5.0;
+            double size  = rng.nextDouble() * 2.0 + 1.0;
+            particles.add(new Particle(px, py, Math.cos(angle) * speed, Math.sin(angle) * speed,
+                                       decay, palette[rng.nextInt(palette.length)], size));
+        }
+    }
+
     public void emitRowBeams(double leftBaseX, double rightBaseX,
                               double rowY, double rowH, Color color) {
-        double flashW = 120.0; // width of the flash bar extending outward from each edge
+        double flashW = 120.0;
         Color  bright = color.brighter().brighter();
-        // Left flash: extends leftward from the board's left edge
         beams.add(new HorizontalBeam(leftBaseX - flashW, rowY, flashW, rowH, true,  bright));
-        // Right flash: extends rightward from the board's right edge
         beams.add(new HorizontalBeam(rightBaseX,         rowY, flashW, rowH, false, bright));
     }
 
@@ -155,11 +160,9 @@ public class ParticleSystem {
 
         Iterator<HorizontalBeam> bit = beams.iterator();
         while (bit.hasNext()) { HorizontalBeam b = bit.next(); b.update(dt); if (b.isDead()) bit.remove(); }
-
     }
 
     public void render(GraphicsContext gc) {
-        // Light columns
         for (LightColumn c : columns) {
             double a = Math.max(0, c.life);
             double beamHeight = c.toY - c.fromY;
@@ -172,10 +175,8 @@ public class ParticleSystem {
             );
             gc.setFill(outer);
             gc.fillRect(c.x, c.fromY, c.width, beamHeight);
-
         }
 
-        // Particles
         for (Particle p : particles) {
             gc.setGlobalAlpha(Math.max(0, p.life));
             gc.setFill(p.color);
@@ -184,7 +185,6 @@ public class ParticleSystem {
         gc.setGlobalAlpha(1.0);
     }
 
-    /** Renders horizontal beams onto the vfxCanvas (cleared each frame by caller). */
     public void renderBeams(GraphicsContext gc) {
         double cw = gc.getCanvas().getWidth();
         double ch = gc.getCanvas().getHeight();
@@ -194,8 +194,6 @@ public class ParticleSystem {
             if (b.life <= 0) continue;
             double a = 0.85 * b.life;
             double r = b.color.getRed(), g = b.color.getGreen(), bl = b.color.getBlue();
-            // Left flash: bright at right edge (board edge), transparent at left
-            // Right flash: bright at left edge (board edge), transparent at right
             double brightX = b.leftSide ? b.x + b.width : b.x;
             double fadeX   = b.leftSide ? b.x           : b.x + b.width;
             LinearGradient grad = new LinearGradient(

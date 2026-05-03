@@ -44,7 +44,7 @@
 
 .figma-button {
     -fx-background-color: transparent;
-    -fx-background-image: url("../assets/rectangle-26.png");
+    -fx-background-image: url("../assets/main_button.png");
     -fx-background-repeat: no-repeat;
     -fx-background-position: center;
     -fx-background-size: 100% 100%;
@@ -180,7 +180,7 @@
 
 .results-title {
     -fx-font-family: "VT323";
-    -fx-font-size: 48;
+    -fx-font-size: 64;
     -fx-text-fill: #ffffff;
     -fx-alignment: center;
     -fx-text-alignment: center;
@@ -205,9 +205,95 @@
 
 .results-note-text {
     -fx-font-family: "VT323";
-    -fx-font-size: 32;
+    -fx-font-size: 42;
     -fx-text-fill: #ffffff;
 }
+
+/* ── Hard Mode UI ─────────────────────────────────────────────── */
+
+.screen-hard-game {
+    -fx-background-color: #1a0a06;
+    -fx-background-image: url("../assets/hardbg.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: cover;
+    -fx-background-position: center;
+}
+
+.hard-bar {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardbar.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-dash-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/harddash.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-hold-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardhold.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-main-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardmain.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-flavour-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardflavour.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-padding: 12 20 12 20;
+}
+
+.hard-label-header {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: #ffffff;
+}
+
+.hard-flavour-text {
+    -fx-font-family: "VT323";
+    -fx-font-size: 32;
+    -fx-text-fill: #FF8000;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* ── Hard Mode Blackout ───────────────────────────────────────── */
+
+.screen-hard-game.blackout {
+    -fx-background-image: url("../assets/darkbg.png");
+}
+
+.blackout .hard-bar {
+    -fx-background-image: url("../assets/darkbar.png");
+}
+
+.blackout .hard-dash-panel {
+    -fx-background-image: url("../assets/darkdash.png");
+}
+
+.blackout .hard-hold-panel {
+    -fx-background-image: url("../assets/darkhold.png");
+}
+
+.blackout .hard-flavour-panel {
+    -fx-background-image: url("../assets/darkflavour.png");
+    -fx-background-color: transparent;
+}
+
+/* ──────────────────────────────────────────────────────────────── */
 
 .button:hover,
 .figma-button:hover,

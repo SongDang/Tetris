@@ -43,7 +43,7 @@ public class BorderPulseEffect {
     private static void drawPulse(GraphicsContext gc, double cw, double ch, double localT) {
         double alpha = pulseAlpha(localT);
 
-        // Vignette: faint red fill bleeding inward from all four edges
+        // Vignette
         double vig = 18;
         gc.setFill(Color.color(1, 0, 0, alpha * 0.10));
         gc.fillRect(0,        0,        cw,  vig);
@@ -51,7 +51,7 @@ public class BorderPulseEffect {
         gc.fillRect(0,        vig,      vig, ch - vig * 2);
         gc.fillRect(cw - vig, vig,      vig, ch - vig * 2);
 
-        // Red border stroke — thick at peak, thins on decay
+        // Red border stroke 
         gc.save();
         gc.setStroke(Color.color(1, 0, 0, alpha));
         gc.setLineWidth(2.5 + alpha * 5.0);
