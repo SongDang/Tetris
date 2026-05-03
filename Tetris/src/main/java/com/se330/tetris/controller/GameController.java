@@ -60,6 +60,8 @@ public class GameController {
     @FXML
     private VBox timePanel;
     @FXML
+    private Label freezeLabel;
+    @FXML
     private Canvas holdBlockCanvas;
     @FXML
     private javafx.scene.image.ImageView lightBulbView;
@@ -126,6 +128,7 @@ public class GameController {
     private double gameOverFlashAlpha = 0; // white flash on board at moment of game over
     private int[] pendingTetrisClear = null; // Tetris rows cleared after freeze ends
     private int[] frozenRowFlash = null; // row indices to flash white during Tetris freeze
+    private boolean pendingTetrisClearHasTimeBlock = false;
 
     private boolean softDropping = false;
     private boolean fuseLoopPlaying = false;
@@ -226,6 +229,16 @@ public class GameController {
     private static final double RANDOM_BLOCK_CHANCE = 0.30;
     private boolean randomBlockEnabled = true;
 
+    private static final int TIME_BLOCK_ID = 10;
+    private static final Color TIME_BLOCK_COLOR = Color.web("#33ccff");
+    private static final double TIME_BLOCK_CHANCE = 0.1;
+
+    private static final int FREEZE_DURATION_SECONDS = 10;
+    private boolean isFreezeActive = false;
+    private int freezeRemainingSeconds = 0;
+    private Timeline freezeTimeline;
+    private final java.util.List<Piece> suspendedPieces = new java.util.ArrayList<>();
+
     private static final int TIME_ATTACK_START_SECONDS = 120;
     private double timeRemainingSeconds = 0;
     private Timeline timeAttackTimeline;
@@ -321,6 +334,8 @@ public class GameController {
                     if (pendingTetrisClear != null) {
                         int[] rows = pendingTetrisClear;
                         pendingTetrisClear = null;
+                        boolean hasTimeBlock = pendingTetrisClearHasTimeBlock;
+                        pendingTetrisClearHasTimeBlock = false;
                         int sum = 0;
                         for (int r : rows)
                             sum += r;
@@ -334,6 +349,7 @@ public class GameController {
                         addLines(4);
                         updateLevel();
                         emitScorePopup(4, avgRow);
+                        triggerFreezeIfNeeded(hasTimeBlock);
                         spawnAndCheckGameOver();
                     }
                 }
@@ -364,17 +380,19 @@ public class GameController {
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     applyMouseTarget(now);
 
-                    if (blackoutState == BlackoutState.BLACKOUT) {
-                        blackoutDropTimer += dt;
-                        if (blackoutDropTimer >= BLACKOUT_AUTO_DROP) {
-                            blackoutDropTimer = 0;
-                            hardDrop();
-                        }
-                    } else {
-                        long effectiveInterval = softDropping ? 50_000_000L : fallIntervalNs;
-                        if (now - lastFallTime >= effectiveInterval) {
-                            updateFall();
-                            lastFallTime = now;
+                    if (!isFreezeActive) {
+                        if (blackoutState == BlackoutState.BLACKOUT) {
+                            blackoutDropTimer += dt;
+                            if (blackoutDropTimer >= BLACKOUT_AUTO_DROP) {
+                                blackoutDropTimer = 0;
+                                hardDrop();
+                            }
+                        } else {
+                            long effectiveInterval = softDropping ? 50_000_000L : fallIntervalNs;
+                            if (now - lastFallTime >= effectiveInterval) {
+                                updateFall();
+                                lastFallTime = now;
+                            }
                         }
                     }
 
@@ -457,6 +475,7 @@ public class GameController {
         } else {
             lockAndSpawn();
         }
+        updateSuspendedFall();
     }
 
     private void lockAndSpawn() {
@@ -483,6 +502,13 @@ public class GameController {
         }
 
         if (!fullRows.isEmpty()) {
+            boolean hasTimeBlock = false;
+            for (int row : fullRows) {
+                if (rowHasTimeBlock(row)) {
+                    hasTimeBlock = true;
+                    break;
+                }
+            }
             int cleared = fullRows.size();
             for (int row : fullRows) {
                 for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
@@ -524,6 +550,7 @@ public class GameController {
                 fullRows.sort(java.util.Collections.reverseOrder());
                 frozenRowFlash = fullRows.stream().mapToInt(Integer::intValue).toArray();
                 pendingTetrisClear = frozenRowFlash;
+                pendingTetrisClearHasTimeBlock = hasTimeBlock;
 
                 freezeUntil = System.nanoTime() + 300_000_000L;
                 SoundManager.getInstance().playSE(SoundType.TETRIS);
@@ -547,6 +574,7 @@ public class GameController {
             addLines(cleared);
             updateLevel();
             emitScorePopup(cleared, avgRow);
+            triggerFreezeIfNeeded(hasTimeBlock);
             // Combo takes priority over plain clear message
             boolean flavSet = comboCount >= 2 && trySetFlavour(FLAVOUR_COMBO, 2.0);
             if (!flavSet)
@@ -574,6 +602,7 @@ public class GameController {
             isGameOver = true;
             stopRandomBlockIfNeeded(currentPiece);
             stopTimeAttackTimer();
+            stopFreezeTimer();
             SoundManager.getInstance().playSE(SoundType.GAME_OVER);
             SoundManager.getInstance().stopMusic();
             gameLoop.stop();
@@ -705,11 +734,37 @@ public class GameController {
                     if (currentPiece.getType() != TetrominoType.TRANSPARENT) {
                         if (board[ny][nx] != 0)
                             return false;
+                        if (isCellOccupiedBySuspended(nx, ny, currentPiece))
+                            return false;
                     }
                 }
             }
         }
         return true;
+    }
+
+    private boolean isCellOccupiedBySuspended(int x, int y, Piece ignore) {
+        if (suspendedPieces.isEmpty()) {
+            return false;
+        }
+        for (Piece piece : suspendedPieces) {
+            if (piece == ignore) {
+                continue;
+            }
+            int[][] shape = piece.getType().getShape(piece.getRotation());
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (shape[row][col] == 1) {
+                        int px = piece.getX() + col;
+                        int py = piece.getY() + row;
+                        if (px == x && py == y) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private boolean canPlaceType(Piece piece, TetrominoType type) {
@@ -749,7 +804,7 @@ public class GameController {
                     int y = currentPiece.getY() + row;
                     if (y >= 0 && y < Constants.BOARD_HEIGHT
                             && x >= 0 && x < Constants.BOARD_WIDTH) {
-                        board[y][x] = typeId(currentPiece.getType());
+                        board[y][x] = getLockedCellId(currentPiece.getType());
                         if (dropStartRow >= 0) {
                             particleSystem.emitLockParticles(
                                     x * cs, y * cs, currentPiece.getType().getColor(), 18);
@@ -778,6 +833,24 @@ public class GameController {
                     currentPiece.getType().getColor());
             dropStartRow = -1;
         }
+    }
+
+    private int getLockedCellId(TetrominoType type) {
+        if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK
+                && type != TetrominoType.BOMB
+                && rng.nextDouble() < TIME_BLOCK_CHANCE) {
+            return TIME_BLOCK_ID;
+        }
+        return typeId(type);
+    }
+
+    private boolean rowHasTimeBlock(int row) {
+        for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+            if (board[row][x] == TIME_BLOCK_ID) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private int clearLines() {
@@ -890,6 +963,143 @@ public class GameController {
         lockAndSpawn();
     }
 
+    private void suspendCurrentPiece() {
+        if (currentPiece == null) {
+            return;
+        }
+        stopRandomBlockIfNeeded(currentPiece);
+        Piece frozen = new Piece(currentPiece.getType(), currentPiece.getX(), currentPiece.getY());
+        frozen.setRotationSilent(currentPiece.getRotation());
+        suspendedPieces.add(frozen);
+        spawnAndCheckGameOver();
+    }
+
+    private void updateSuspendedFall() {
+        if (suspendedPieces.isEmpty()) {
+            return;
+        }
+        java.util.List<Piece> locked = new java.util.ArrayList<>();
+        for (Piece piece : suspendedPieces) {
+            if (canMoveSuspended(piece, 0, 1)) {
+                piece.setY(piece.getY() + 1);
+            } else {
+                locked.add(piece);
+            }
+        }
+
+        for (Piece piece : locked) {
+            suspendedPieces.remove(piece);
+            if (piece.getType() == TetrominoType.BOMB) {
+                detonateBomb(piece.getX(), piece.getY());
+            } else {
+                mergePieceToBoard(piece);
+                processSuspendedLineClears();
+            }
+        }
+    }
+
+    private boolean canMoveSuspended(Piece piece, int dx, int dy) {
+        int[][] shape = piece.getType().getShape(piece.getRotation());
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int nx = piece.getX() + col + dx;
+                    int ny = piece.getY() + row + dy;
+                    if (nx < 0 || nx >= Constants.BOARD_WIDTH)
+                        return false;
+                    if (ny < 0 || ny >= Constants.BOARD_HEIGHT)
+                        return false;
+                    if (board[ny][nx] != 0)
+                        return false;
+                    if (isCellOccupiedBySuspended(nx, ny, piece))
+                        return false;
+                    if (isCellOccupiedByCurrent(nx, ny))
+                        return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean isCellOccupiedByCurrent(int x, int y) {
+        if (currentPiece == null) {
+            return false;
+        }
+        int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int px = currentPiece.getX() + col;
+                    int py = currentPiece.getY() + row;
+                    if (px == x && py == y) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private void mergePieceToBoard(Piece piece) {
+        int[][] shape = piece.getType().getShape(piece.getRotation());
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int x = piece.getX() + col;
+                    int y = piece.getY() + row;
+                    if (y >= 0 && y < Constants.BOARD_HEIGHT
+                            && x >= 0 && x < Constants.BOARD_WIDTH) {
+                        board[y][x] = getLockedCellId(piece.getType());
+                    }
+                }
+            }
+        }
+    }
+
+    private void processSuspendedLineClears() {
+        java.util.List<Integer> fullRows = new java.util.ArrayList<>();
+        for (int y = Constants.BOARD_HEIGHT - 1; y >= 0; y--) {
+            boolean full = true;
+            for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+                if (board[y][x] == 0) {
+                    full = false;
+                    break;
+                }
+            }
+            if (full)
+                fullRows.add(y);
+        }
+
+        if (fullRows.isEmpty()) {
+            return;
+        }
+
+        boolean hasTimeBlock = false;
+        for (int row : fullRows) {
+            if (rowHasTimeBlock(row)) {
+                hasTimeBlock = true;
+                break;
+            }
+        }
+
+        fullRows.sort(java.util.Collections.reverseOrder());
+        for (int row : fullRows) {
+            for (int r = row; r > 0; r--)
+                board[r] = board[r - 1].clone();
+            board[0] = new int[Constants.BOARD_WIDTH];
+        }
+
+        comboCount = 0;
+        if (comboLabel != null)
+            comboLabel.setText("x0");
+
+        int cleared = fullRows.size();
+        addScore(cleared);
+        addLines(cleared);
+        updateLevel();
+        triggerFreezeIfNeeded(hasTimeBlock);
+    }
+
     private void holdCurrentPiece() {
         if (!canHold || currentPiece == null || isGameOver || currentPiece.getType() == TetrominoType.BOMB) {
             return;
@@ -973,10 +1183,14 @@ public class GameController {
                     currentPiece.setX(currentPiece.getX() + 1);
             }
             case DOWN -> {
+                if (isFreezeActive)
+                    return;
                 if (blackoutState != BlackoutState.BLACKOUT)
                     hardDrop();
             }
             case S -> {
+                if (isFreezeActive)
+                    return;
                 if (blackoutState != BlackoutState.BLACKOUT)
                     softDropping = true;
             }
@@ -988,6 +1202,10 @@ public class GameController {
                 }
             }
             case SPACE -> {
+                if (isFreezeActive) {
+                    suspendCurrentPiece();
+                    return;
+                }
                 if (blackoutState != BlackoutState.BLACKOUT)
                     hardDrop();
             }
@@ -1105,6 +1323,7 @@ public class GameController {
         System.out.println("Exiting to main menu");
         stopRandomBlockIfNeeded(currentPiece);
         stopTimeAttackTimer();
+        stopFreezeTimer();
 
         SoundManager.getInstance().stopLooping();
 
@@ -1399,6 +1618,10 @@ public class GameController {
             for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
                 for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                     if (board[y][x] != 0) {
+                        if (board[y][x] == TIME_BLOCK_ID) {
+                            drawTimeBlockCell(gc, x, y, cs);
+                            continue;
+                        }
                         TetrominoType t = idToType(board[y][x]);
                         if (t != null)
                             drawCell(gc, x, y, t.getColor(), 1.0);
@@ -1411,6 +1634,10 @@ public class GameController {
         for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                 if (board[y][x] != 0) {
+                    if (board[y][x] == TIME_BLOCK_ID) {
+                        drawTimeBlockCell(gc, x, y, cs);
+                        continue;
+                    }
                     TetrominoType t = idToType(board[y][x]);
                     if (t == null)
                         continue;
@@ -1456,6 +1683,8 @@ public class GameController {
                 }
             }
         }
+
+        renderSuspendedPieces(gc, cs);
 
         // Current piece - apply rotation pulse brightness
         // Current piece - always drawn on top, visible even during blackout
@@ -1719,6 +1948,17 @@ public class GameController {
         target.strokeRect(px, py, size, size);
     }
 
+    private void drawTimeBlockCell(GraphicsContext gc, int x, int y, int cs) {
+        drawCell(gc, x, y, TIME_BLOCK_COLOR, 1.0);
+        gc.setStroke(Color.web("#e6ffff"));
+        gc.setLineWidth(1.0);
+        double px = x * cs + 4;
+        double py = y * cs + 4;
+        gc.strokeOval(px, py, cs - 8, cs - 8);
+        gc.strokeLine(x * cs + cs / 2.0, y * cs + 6, x * cs + cs / 2.0, y * cs + cs / 2.0);
+        gc.strokeLine(x * cs + cs / 2.0, y * cs + cs / 2.0, x * cs + cs - 8, y * cs + cs / 2.0);
+    }
+
     private void drawRandomBlockIndicator(Piece piece, GraphicsContext gc, int cs) {
         int[][] shape = piece.getType().getShape(piece.getRotation());
         gc.setStroke(Color.web("#00e5ff"));
@@ -1729,6 +1969,28 @@ public class GameController {
                     double px = (piece.getX() + col) * cs;
                     double py = (piece.getY() + row) * cs;
                     gc.strokeRect(px + 1, py + 1, cs - 2, cs - 2);
+                }
+            }
+        }
+    }
+
+    private void renderSuspendedPieces(GraphicsContext gc, int cs) {
+        if (suspendedPieces.isEmpty()) {
+            return;
+        }
+        for (Piece piece : suspendedPieces) {
+            int[][] shape = piece.getType().getShape(piece.getRotation());
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (shape[row][col] == 1) {
+                        int px = piece.getX() + col;
+                        int py = piece.getY() + row;
+                        if (piece.getType() == TetrominoType.BOMB) {
+                            gc.drawImage(bombSprite, px * cs, py * cs, cs, cs);
+                        } else {
+                            drawCell(gc, px, py, piece.getType().getColor(), 1.0);
+                        }
+                    }
                 }
             }
         }
@@ -1766,6 +2028,7 @@ public class GameController {
     public void gameOver() {
         stopRandomBlockIfNeeded(currentPiece);
         stopTimeAttackTimer();
+        stopFreezeTimer();
         if (gameLoop != null)
             gameLoop.stop();
         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
@@ -1777,6 +2040,10 @@ public class GameController {
                 timePanel.setVisible(false);
                 timePanel.setManaged(false);
             }
+            if (freezeLabel != null) {
+                freezeLabel.setVisible(false);
+                freezeLabel.setManaged(false);
+            }
             return;
         }
 
@@ -1786,11 +2053,79 @@ public class GameController {
             timePanel.setVisible(true);
             timePanel.setManaged(true);
         }
+        if (freezeLabel != null) {
+            freezeLabel.setVisible(false);
+            freezeLabel.setManaged(false);
+        }
 
         timeAttackTimeline = new Timeline(
                 new KeyFrame(Duration.seconds(1), e -> tickTimeAttack()));
         timeAttackTimeline.setCycleCount(Timeline.INDEFINITE);
         timeAttackTimeline.play();
+    }
+
+    private void triggerFreezeIfNeeded(boolean hasTimeBlock) {
+        if (!hasTimeBlock) {
+            return;
+        }
+        if (gameContext.getGameMode() != GameContext.GameMode.TIME_ATTACK) {
+            return;
+        }
+        if (isFreezeActive) {
+            freezeRemainingSeconds = FREEZE_DURATION_SECONDS;
+            updateFreezeLabel();
+            return;
+        }
+        startFreeze();
+    }
+
+    private void startFreeze() {
+        isFreezeActive = true;
+        freezeRemainingSeconds = FREEZE_DURATION_SECONDS;
+        softDropping = false;
+        updateFreezeLabel();
+        if (timeAttackTimeline != null) {
+            timeAttackTimeline.pause();
+        }
+        if (freezeTimeline == null) {
+            freezeTimeline = new Timeline(new KeyFrame(Duration.seconds(1), e -> tickFreeze()));
+            freezeTimeline.setCycleCount(Timeline.INDEFINITE);
+        }
+        freezeTimeline.playFromStart();
+    }
+
+    private void tickFreeze() {
+        if (!isFreezeActive) {
+            return;
+        }
+        freezeRemainingSeconds = Math.max(0, freezeRemainingSeconds - 1);
+        updateFreezeLabel();
+        if (freezeRemainingSeconds <= 0) {
+            endFreeze();
+        }
+    }
+
+    private void endFreeze() {
+        isFreezeActive = false;
+        if (freezeTimeline != null) {
+            freezeTimeline.stop();
+        }
+        if (timeAttackTimeline != null && gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK) {
+            timeAttackTimeline.play();
+        }
+        if (freezeLabel != null) {
+            freezeLabel.setVisible(false);
+            freezeLabel.setManaged(false);
+        }
+    }
+
+    private void updateFreezeLabel() {
+        if (freezeLabel == null) {
+            return;
+        }
+        freezeLabel.setVisible(true);
+        freezeLabel.setManaged(true);
+        freezeLabel.setText("FREEZE: " + freezeRemainingSeconds + "s");
     }
 
     private void tickTimeAttack() {
@@ -1835,6 +2170,7 @@ public class GameController {
         isGameOver = true;
         stopRandomBlockIfNeeded(currentPiece);
         stopTimeAttackTimer();
+        stopFreezeTimer();
         SoundManager.getInstance().playSE(SoundType.GAME_OVER);
         SoundManager.getInstance().stopMusic();
         if (gameLoop != null) {
@@ -1846,6 +2182,17 @@ public class GameController {
     private void stopTimeAttackTimer() {
         if (timeAttackTimeline != null) {
             timeAttackTimeline.stop();
+        }
+    }
+
+    private void stopFreezeTimer() {
+        isFreezeActive = false;
+        if (freezeTimeline != null) {
+            freezeTimeline.stop();
+        }
+        if (freezeLabel != null) {
+            freezeLabel.setVisible(false);
+            freezeLabel.setManaged(false);
         }
     }
 

@@ -36,6 +36,8 @@
         <VBox fx:id="timePanel" style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
             <Label text="TIME" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
             <Label fx:id="timeLabel" text="00:30" style="-fx-font-size: 26; -fx-text-fill: #00ccff; -fx-font-family: 'Courier New';"/>
+            <Label fx:id="freezeLabel" text="FREEZE: 10s" visible="false"
+                   style="-fx-font-size: 12; -fx-text-fill: #66ffff; -fx-font-family: 'Courier New';"/>
         </VBox>
     </VBox>
 
