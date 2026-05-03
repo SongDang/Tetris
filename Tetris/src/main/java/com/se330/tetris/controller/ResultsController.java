@@ -1,5 +1,9 @@
 package com.se330.tetris.controller;
 
+import javafx.animation.AnimationTimer;
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 import com.se330.tetris.model.ScoreRecord;
 import com.se330.tetris.service.HighScoreManager;
 import com.se330.tetris.service.SoundManager;
@@ -7,9 +11,17 @@ import com.se330.tetris.util.SoundType;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import com.se330.tetris.service.GameContext;
 import com.se330.tetris.service.SceneManager;
 import javafx.scene.layout.VBox;
@@ -17,6 +29,10 @@ import javafx.scene.layout.VBox;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class ResultsController {
 
@@ -58,7 +74,26 @@ public class ResultsController {
     private TableColumn<ScoreRecord, String> colDate;
 
     private SceneManager sceneManager;
-    private GameContext gameContext;
+    private GameContext  gameContext;
+
+    private AnimationTimer    glitchTimer;
+    private Region            blackOverlay;
+    private double            elapsed  = 0;
+    private long              lastNano = 0;
+    private String            realScore;
+    private final Random      rng = new Random();
+
+    private final List<Label> noteChars = new ArrayList<>();
+
+    private static final double DARK_HOLD    = 0.25;
+    private static final double FADE_DUR     = 1.50;
+    private static final double SCRAMBLE_END = DARK_HOLD + 0.55;
+    private static final double TYPE_START   = DARK_HOLD + 0.30;
+    private static final double CHAR_DELAY   = 0.055;
+
+    private static final double WAVE_AMP   = 2.5;
+    private static final double WAVE_SPEED = 2.5;
+    private static final double WAVE_PHASE = 0.45;
 
     int score, level, lines;
     String mode;
@@ -80,6 +115,134 @@ public class ResultsController {
         colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
 
         populateResults();
+        for (Button btn : new Button[]{saveBtn, retryBtn, menuBtn})
+            if (btn != null) btn.setOnMouseEntered(e -> SoundManager.getInstance().playSE(SoundType.HOVER));
+        PauseTransition glitchDelay = new PauseTransition(Duration.millis(300));
+        glitchDelay.setOnFinished(e -> SoundManager.getInstance().playSE(SoundType.RESULT_GLITCH));
+        glitchDelay.play();
+        startGlitchIntro();
+    }
+
+    private void startGlitchIntro() {
+        realScore = finalScoreLabel.getText();
+        buildCharLabels();
+
+        blackOverlay = new Region();
+        blackOverlay.setStyle("-fx-background-color: black;");
+        blackOverlay.setMouseTransparent(true);
+        AnchorPane.setTopAnchor(blackOverlay, 0.0);
+        AnchorPane.setBottomAnchor(blackOverlay, 0.0);
+        AnchorPane.setLeftAnchor(blackOverlay, 0.0);
+        AnchorPane.setRightAnchor(blackOverlay, 0.0);
+        resultsPane.getChildren().add(blackOverlay);
+
+        lastNano = System.nanoTime();
+        glitchTimer = new AnimationTimer() {
+            @Override public void handle(long now) {
+                double dt = (now - lastNano) / 1_000_000_000.0;
+                lastNano = now;
+                elapsed += dt;
+                tick(dt);
+            }
+        };
+        glitchTimer.start();
+    }
+
+    private void buildCharLabels() {
+        /*// Note text — hide original label, add per-char HBox centered in the same StackPane
+        noteLabel.setVisible(false);
+        HBox noteBox = new HBox(0);
+        noteBox.setAlignment(Pos.CENTER);
+        for (char c : noteLabel.getText().toCharArray()) {
+            Label l = new Label(String.valueOf(c));
+            l.setFont(Font.font("VT323", 32));
+            l.setTextFill(Color.WHITE);
+            l.setOpacity(0);
+            noteChars.add(l);
+            noteBox.getChildren().add(l);
+        }
+        notePanel.getChildren().add(noteBox);*/
+    }
+
+    private void tick(double dt) {
+        // Overlay fade: hold black briefly, then smoothstep ease-out to transparent
+        if (elapsed <= DARK_HOLD) {
+            blackOverlay.setOpacity(1.0);
+        } else {
+            double t     = Math.min(1.0, (elapsed - DARK_HOLD) / FADE_DUR);
+            double eased = t * t * (3.0 - 2.0 * t); // smoothstep
+            blackOverlay.setOpacity(1.0 - eased);
+            if (t >= 1.0) blackOverlay.setVisible(false);
+        }
+
+        // Score scramble while dark/early
+        if (elapsed < SCRAMBLE_END) {
+            finalScoreLabel.setText(scrambleDigits(realScore));
+        } else {
+            finalScoreLabel.setText(realScore);
+        }
+
+        // Glitch jitter + color flash on score — heavy early, rare late
+        double rate = elapsed < DARK_HOLD + FADE_DUR ? 18.0 : 1.5;
+        if (rng.nextDouble() < rate * dt) {
+            double jx  = (rng.nextDouble() - 0.5) * 28;
+            double jy  = (rng.nextDouble() - 0.5) * 6;
+            finalScoreLabel.setTranslateX(jx);
+            finalScoreLabel.setTranslateY(jy);
+            String color = rng.nextBoolean() ? "#00ffff" : "#ff4444";
+            finalScoreLabel.setStyle(
+                "-fx-font-family: 'VT323'; -fx-font-size: 85; -fx-text-fill: " + color + ";"
+            );
+        } else {
+            finalScoreLabel.setTranslateX(0);
+            finalScoreLabel.setTranslateY(0);
+            finalScoreLabel.setStyle(
+                "-fx-font-family: 'VT323'; -fx-font-size: 85; -fx-text-fill: white;"
+            );
+        }
+
+        // Stop score glitch after 8s but keep wave running
+        if (elapsed > 8.0) {
+            finalScoreLabel.setTranslateX(0);
+            finalScoreLabel.setTranslateY(0);
+            finalScoreLabel.setStyle(
+                "-fx-font-family: 'VT323'; -fx-font-size: 85; -fx-text-fill: white;"
+            );
+        }
+
+        // Typing effect for note text
+        double typeElapsed = elapsed - TYPE_START;
+        if (typeElapsed > 0) {
+            int nNote = Math.min(noteChars.size(), (int)(typeElapsed / CHAR_DELAY));
+            for (int i = 0; i < noteChars.size(); i++)
+                noteChars.get(i).setOpacity(i < nNote ? 1.0 : 0.0);
+        }
+
+        // Wave: sine-offset each visible note character
+        for (int i = 0; i < noteChars.size(); i++) {
+            if (noteChars.get(i).getOpacity() > 0)
+                noteChars.get(i).setTranslateY(Math.sin(elapsed * WAVE_SPEED + i * WAVE_PHASE) * WAVE_AMP);
+        }
+    }
+
+    private void fadeToBlack(Runnable onDone) {
+        if (glitchTimer != null) glitchTimer.stop();
+        resultsPane.setMouseTransparent(true);
+        blackOverlay.setOpacity(0);
+        blackOverlay.setVisible(true);
+        blackOverlay.setMouseTransparent(false);
+        FadeTransition ft = new FadeTransition(Duration.millis((long)(FADE_DUR * 1000)), blackOverlay);
+        ft.setFromValue(0);
+        ft.setToValue(1);
+        ft.setOnFinished(e -> onDone.run());
+        ft.play();
+    }
+
+    private String scrambleDigits(String original) {
+        StringBuilder sb = new StringBuilder();
+        for (char c : original.toCharArray())
+            sb.append(Character.isDigit(c) ? (char)('0' + rng.nextInt(10)) : c);
+        return sb.toString();
     }
 
     private void populateResults() {
@@ -95,7 +258,6 @@ public class ResultsController {
         gameModeLabel.setText(mode);
         levelLabel.setText(String.valueOf(level));
         linesLabel.setText(String.valueOf(lines));
-
 
         System.out.println("Results displayed:");
         System.out.println("  Final Score: " + score);
@@ -118,6 +280,15 @@ public class ResultsController {
 
     @FXML
     private void onSaveClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        fadeToBlack(() -> {
+            int score = Integer.parseInt(finalScoreLabel.getText());
+            System.out.println("Saving score: " + score + " (" + gameModeLabel.getText() + ")");
+            System.out.println("Save completed, returning to main menu");
+            gameContext.reset();
+            sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        });
+
         String playerName = playerNameInput.getText();
         ScoreRecord scoreRecord = new ScoreRecord(playerName, score, date, mode);
         HighScoreManager.getInstance().addScore(scoreRecord);
@@ -147,18 +318,24 @@ public class ResultsController {
 
     @FXML
     private void onRetryClicked() {
-        System.out.println("Retrying with mode: " + gameContext.getGameMode().getDisplayName());
-        gameContext.reset();
-        // Clear cache to force GameController.initialize() to run again
-        sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.GAME_SCENE);
-        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        fadeToBlack(() -> {
+            System.out.println("Retrying with mode: " + gameContext.getGameMode().getDisplayName());
+            gameContext.reset();
+            sceneManager.clearSceneCache();
+            boolean hardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
+            sceneManager.switchToScene(hardMode ? SceneManager.HARD_GAME_SCENE : SceneManager.GAME_SCENE);
+            SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
+        });
     }
 
     @FXML
     private void onMenuClicked() {
-        System.out.println("Returning to main menu");
-        gameContext.reset();
-        sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        fadeToBlack(() -> {
+            System.out.println("Returning to main menu");
+            gameContext.reset();
+            sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        });
     }
 }

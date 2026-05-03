@@ -32,6 +32,8 @@ public class GamemodesController {
     private void initialize() {
         sceneManager = SceneManager.getInstance();
         gameContext = GameContext.getInstance();
+        for (Button btn : new Button[]{standardBtn, timeAttackBtn, hardModeBtn, backBtn})
+            if (btn != null) btn.setOnMouseEntered(e -> SoundManager.getInstance().playSE(SoundType.HOVER));
     }
 
     @FXML
@@ -46,6 +48,8 @@ public class GamemodesController {
 
     @FXML
     private void onTimeAttackClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
         gameContext.setGameMode(GameContext.GameMode.TIME_ATTACK);
         gameContext.reset();
         sceneManager.clearSceneCache();
@@ -54,14 +58,17 @@ public class GamemodesController {
 
     @FXML
     private void onHardModeClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
         gameContext.setGameMode(GameContext.GameMode.HARD_MODE);
         gameContext.reset();
         sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.GAME_SCENE);
+        sceneManager.switchToScene(SceneManager.HARD_GAME_SCENE);
     }
 
     @FXML
     private void onBackClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
     }
 }

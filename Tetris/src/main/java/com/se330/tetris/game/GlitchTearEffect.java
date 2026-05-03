@@ -19,6 +19,7 @@ public class GlitchTearEffect {
     private final int[][]  boardSnapshot;
     private final int      boardCols, boardRows;
     private final int      blockSize;
+    private final Color    bgColor;
     private final Runnable onDone;
     private final Random   rng = new Random();
 
@@ -32,10 +33,11 @@ public class GlitchTearEffect {
     private Phase   phase     = Phase.TEAR;
     private boolean doneFired = false;
 
-    public GlitchTearEffect(int[][] board, int blockSize, Runnable onDone) {
+    public GlitchTearEffect(int[][] board, int blockSize, Color bgColor, Runnable onDone) {
         this.boardCols = board[0].length;
         this.boardRows = board.length;
         this.blockSize = blockSize;
+        this.bgColor   = bgColor;
         this.onDone    = onDone;
 
         boardSnapshot = new int[boardRows][boardCols];
@@ -93,7 +95,7 @@ public class GlitchTearEffect {
         double boardH = boardRows * blockSize;
 
         // Clear board area with background color
-        gc.setFill(Color.web("#0f0d1a"));
+        gc.setFill(bgColor);
         gc.fillRect(0, 0, boardW, boardH);
 
         if (phase == Phase.TEAR) {
