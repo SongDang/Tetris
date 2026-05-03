@@ -1,13 +1,22 @@
 package com.se330.tetris.controller;
 
+import com.se330.tetris.model.ScoreRecord;
+import com.se330.tetris.service.HighScoreManager;
 import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.SoundType;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.AnchorPane;
 import com.se330.tetris.service.GameContext;
 import com.se330.tetris.service.SceneManager;
+import javafx.scene.layout.VBox;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class ResultsController {
 
@@ -21,16 +30,10 @@ public class ResultsController {
     private Label gameModeLabel;
 
     @FXML
-    private Label timeLabel;
-
-    @FXML
     private Label linesLabel;
 
     @FXML
     private Label levelLabel;
-
-    @FXML
-    private Label blocksLabel;
 
     @FXML
     private Button saveBtn;
@@ -41,50 +44,105 @@ public class ResultsController {
     @FXML
     private Button menuBtn;
 
+    @FXML
+    private VBox newRecordBox;
+    @FXML
+    private TextField playerNameInput;
+    @FXML
+    private TableView<ScoreRecord> highScoreTable;
+    @FXML
+    private TableColumn<ScoreRecord, String> colName;
+    @FXML
+    private TableColumn<ScoreRecord, Integer> colScore;
+    @FXML
+    private TableColumn<ScoreRecord, String> colDate;
+
     private SceneManager sceneManager;
     private GameContext gameContext;
 
+    int score, level, lines;
+    String mode;
+    String date;
+
     @FXML
     private void initialize() {
+        playerNameInput.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue.length() > 9) {
+                playerNameInput.setText(oldValue);
+            }
+        });
+
         sceneManager = SceneManager.getInstance();
         gameContext = GameContext.getInstance();
+
+        colName.setCellValueFactory(new PropertyValueFactory<>("playerName"));
+        colScore.setCellValueFactory(new PropertyValueFactory<>("score"));
+        colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
+
         populateResults();
     }
 
     private void populateResults() {
-        int demoScore = gameContext.getScore();
-        ;
-        int demoLevel = gameContext.getLevel();
-        int demoLines = gameContext.getLines();
-        int demoBlocks = 156;
-        long demoTime = 332000;
+        score = gameContext.getScore();
+        level = gameContext.getLevel();
+        lines = gameContext.getLines();
+        mode = gameContext.getGameMode().getDisplayName();
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        date = now.format(formatter);
 
-        finalScoreLabel.setText(String.valueOf(demoScore));
-        gameModeLabel.setText(gameContext.getGameMode().getDisplayName());
-        levelLabel.setText(String.valueOf(demoLevel));
-        linesLabel.setText(String.valueOf(demoLines));
-        blocksLabel.setText(String.valueOf(demoBlocks));
+        finalScoreLabel.setText(String.valueOf(score));
+        gameModeLabel.setText(mode);
+        levelLabel.setText(String.valueOf(level));
+        linesLabel.setText(String.valueOf(lines));
 
-        long totalSeconds = demoTime / 1000;
-        long minutes = totalSeconds / 60;
-        long seconds = totalSeconds % 60;
-        timeLabel.setText(String.format("Time: %d:%02d", minutes, seconds));
 
         System.out.println("Results displayed:");
-        System.out.println("  Final Score: " + demoScore);
+        System.out.println("  Final Score: " + score);
         System.out.println("  Mode: " + gameContext.getGameMode().getDisplayName());
-        System.out.println("  Level: " + demoLevel);
-        System.out.println("  Lines: " + demoLines);
-        System.out.println("  Time: " + String.format("%d:%02d", minutes, seconds));
+        System.out.println("  Level: " + level);
+        System.out.println("  Lines: " + lines);
+
+        //high score
+        Boolean isNewHighScore = HighScoreManager.getInstance().checkIfHighscore(score, mode);
+        if(isNewHighScore)
+        {
+            newRecordBox.setVisible(true);
+        }
+        else {
+            newRecordBox.setVisible(false);
+        }
+
+        refreshHighscoreTable();
     }
 
     @FXML
     private void onSaveClicked() {
-        int score = Integer.parseInt(finalScoreLabel.getText());
-        System.out.println("Saving score: " + score + " (" + gameModeLabel.getText() + ")");
-        System.out.println("Save completed, returning to main menu");
-        gameContext.reset();
-        sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        String playerName = playerNameInput.getText();
+        ScoreRecord scoreRecord = new ScoreRecord(playerName, score, date, mode);
+        HighScoreManager.getInstance().addScore(scoreRecord);
+        System.out.println("Add score record: " + scoreRecord);
+
+        newRecordBox.setVisible(false);
+        newRecordBox.setManaged(false);
+
+        refreshHighscoreTable();
+    }
+    @FXML
+    private void onResetAllClicked() {
+        HighScoreManager.getInstance().resetAllScores();
+
+        highScoreTable.getItems().clear();
+
+        System.out.println("Bảng xếp hạng đã được xóa sạch hoàn toàn.");
+    }
+
+    private void refreshHighscoreTable() {
+        List<ScoreRecord> topScores = HighScoreManager.getInstance().getTopScores(mode);
+
+        ObservableList<ScoreRecord> observableData = FXCollections.observableArrayList(topScores);
+
+        highScoreTable.setItems(observableData);
     }
 
     @FXML

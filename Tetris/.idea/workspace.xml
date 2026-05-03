@@ -6,7 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="4ef5aa4c-aaa8-4047-871e-c1513f66338f" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/com/se330/tetris/controller/GameController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/se330/tetris/controller/GameController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/se330/tetris/controller/ResultsController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/se330/tetris/controller/ResultsController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/fxml/results.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/resources/fxml/results.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,7 +60,7 @@
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;feature/hardmode&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feat/high-score&quot;,
     &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
