@@ -154,6 +154,7 @@ public class GameController {
         gamePane.setOnKeyPressed(this::handleKeyPressed);
         gamePane.setOnKeyReleased(e -> { if (e.getCode() == KeyCode.S) softDropping = false; });
         gameCanvas.setOnMouseMoved(this::handleMouseMoved);
+        gameCanvas.setOnMouseExited(e -> mouseTargetColumn = -1);
         gameCanvas.setOnMouseClicked(this::handleMouseClicked);
 
         Platform.runLater(() -> {
@@ -516,10 +517,12 @@ public class GameController {
         if (freezeUntil > 0) { event.consume(); return; }
         switch (code) {
             case LEFT, A -> {
+                mouseTargetColumn = -1;
                 if (boardEngine.canMove(currentPiece, -1, 0, currentPiece.getRotation(), suspendedPieces))
                     currentPiece.setX(currentPiece.getX() - 1);
             }
             case RIGHT, D -> {
+                mouseTargetColumn = -1;
                 if (boardEngine.canMove(currentPiece, 1, 0, currentPiece.getRotation(), suspendedPieces))
                     currentPiece.setX(currentPiece.getX() + 1);
             }
@@ -568,12 +571,17 @@ public class GameController {
 
     private void handleMouseClicked(MouseEvent event) {
         if (gamePaused || isGameOver) return;
+        if (freezeUntil > 0) { event.consume(); return; }
         gamePane.requestFocus();
         if (event.getButton() == MouseButton.PRIMARY) {
-            if (hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT) hardDrop();
+            if (timeAttack.isFreezeActive) { suspendCurrentPiece(); }
+            else if (hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT) hardDrop();
             event.consume();
         } else if (event.getButton() == MouseButton.SECONDARY) {
-            tryRotateWithWallKick();
+            if (tryRotateWithWallKick()) {
+                renderer.onRotate();
+                renderer.onRotationArc(currentPiece, Constants.BLOCK_SIZE);
+            }
             event.consume();
         }
     }
