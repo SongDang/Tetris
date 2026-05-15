@@ -63,24 +63,27 @@ public class SoundManager {
     }
 
     public void playSE(SoundType type) {
-        try {
-            URL url = soundMap.get(type);
-            if (url == null) return;
-
-            AudioInputStream ais = AudioSystem.getAudioInputStream(url);
-            Clip seClip = AudioSystem.getClip();
-            seClip.open(ais);
-            applyVolume(seClip, seVolume);
-            seClip.start();
-
-            seClip.addLineListener(event -> {
-                if (event.getType() == javax.sound.sampled.LineEvent.Type.STOP) {
-                    seClip.close();
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        URL url = soundMap.get(type);
+        if (url == null) return;
+        float vol = seVolume;
+        Thread t = new Thread(() -> {
+            try {
+                AudioInputStream ais = AudioSystem.getAudioInputStream(url);
+                Clip seClip = AudioSystem.getClip();
+                seClip.open(ais);
+                ais.close();
+                applyVolume(seClip, vol);
+                seClip.start();
+                seClip.addLineListener(event -> {
+                    if (event.getType() == javax.sound.sampled.LineEvent.Type.STOP)
+                        seClip.close();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        t.setDaemon(true);
+        t.start();
     }
 
     public void playLooping(SoundType type) {

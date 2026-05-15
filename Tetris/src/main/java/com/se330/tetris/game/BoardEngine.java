@@ -4,6 +4,7 @@ import com.se330.tetris.service.GameContext;
 import com.se330.tetris.util.Constants;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -144,7 +145,11 @@ public class BoardEngine {
     }
 
     public void clearRows(List<Integer> rows) {
-        for (int row : rows) {
+        // Must process rows top-to-bottom (ascending index) so each shift-down
+        // does not move a still-full row into a position we already skipped.
+        List<Integer> sorted = new ArrayList<>(rows);
+        Collections.sort(sorted);
+        for (int row : sorted) {
             for (int r = row; r > 0; r--)
                 board[r] = board[r - 1].clone();
             board[0] = new int[Constants.BOARD_WIDTH];

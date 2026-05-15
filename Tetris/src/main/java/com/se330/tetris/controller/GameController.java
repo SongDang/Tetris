@@ -246,6 +246,7 @@ public class GameController {
                 updateLevel();
                 renderer.emitScorePopup(4, avgRow);
                 timeAttack.triggerFreezeIfNeeded(hasTimeBlock);
+                canHold = true;
                 spawnAndCheckGameOver();
             }
         }
