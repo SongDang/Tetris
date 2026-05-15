@@ -357,6 +357,7 @@ public class GameController {
         }
 
         canHold = true;
+        lastFallTime = System.nanoTime();
         spawnAndCheckGameOver();
     }
 
@@ -511,6 +512,8 @@ public class GameController {
     private void handleKeyPressed(KeyEvent event) {
         if (isGameOver) return;
         KeyCode code = event.getCode();
+        if (code == KeyCode.P) { handlePause(); event.consume(); return; }
+        if (freezeUntil > 0) { event.consume(); return; }
         switch (code) {
             case LEFT, A -> {
                 if (boardEngine.canMove(currentPiece, -1, 0, currentPiece.getRotation(), suspendedPieces))
@@ -540,7 +543,7 @@ public class GameController {
                 if (timeAttack.isFreezeActive) { suspendCurrentPiece(); return; }
                 if (hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT) hardDrop();
             }
-            case P -> handlePause();
+            case P -> {} // handled above
             case B -> useBombSkill();
             case C, SHIFT -> holdCurrentPiece();
             case ESCAPE -> handleExit();
