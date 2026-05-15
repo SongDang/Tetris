@@ -532,9 +532,7 @@ public class GameController {
                     softDropping = true;
             }
             case UP, W -> {
-                int nr = (currentPiece.getRotation() + 1) % 4;
-                if (boardEngine.canMove(currentPiece, 0, 0, nr, suspendedPieces)) {
-                    currentPiece.setRotation(nr);
+                if (tryRotateWithWallKick()) {
                     renderer.onRotate();
                     renderer.onRotationArc(currentPiece, Constants.BLOCK_SIZE);
                 }
