@@ -100,6 +100,7 @@ public class GameController {
     private GlitchTearEffect glitchTearEffect = null;
     private com.se330.tetris.game.GlitchExplosionEffect glitchExplosionEffect = null;
     private javafx.scene.image.Image bombSprite;
+    private javafx.scene.image.Image ghostSprite;
 
     private GraphicsContext nextGc1;
     private GraphicsContext nextGc2;
@@ -161,7 +162,10 @@ public class GameController {
 
     private BlackoutState blackoutState = BlackoutState.NORMAL;
 
-    private double flavourWaveTime = 0;
+    private double flavourWaveTime    = 0;
+    private double ghostParticleTimer = 0;
+    private double ghostTrailTimer    = 0;
+
     private double flavourTypeElapsed = 0;
     private double flavourCooldown = 0;
     private int placesSinceFlavour = 0;
@@ -237,7 +241,8 @@ public class GameController {
         // their y=0 coordinates map to the same screen row.
         Platform.runLater(() ->
                 vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
-        bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
+        bombSprite   = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
+        ghostSprite  = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/GhostBlock.png"));
 
         lightOnImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
         lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
@@ -389,6 +394,21 @@ public class GameController {
                         double by = (currentPiece.getY() + 0.5) * cs;
                         particleSystem.emitFuseSparks(bx, by, cs, currentPiece.getRotation());
                     }
+                    if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
+                        int cs = Constants.BLOCK_SIZE;
+                        int[][] gShape = currentPiece.getType().getShape(currentPiece.getRotation());
+                        ghostParticleTimer -= dt;
+                        if (ghostParticleTimer <= 0) {
+                            ghostParticleTimer = 0.06;
+                            for (int row = 0; row < 4; row++)
+                                for (int col = 0; col < 4; col++)
+                                    if (gShape[row][col] == 1)
+                                        particleSystem.emitGhostDrift(
+                                            (currentPiece.getX() + col + 0.5) * cs,
+                                            (currentPiece.getY() + row + 0.5) * cs,
+                                            cs);
+                        }
+                    }
 
                     // Cập nhật các hiệu ứng VFX mới
                     if (rotationPulse > 0)
@@ -452,6 +472,23 @@ public class GameController {
         if (currentPiece.getType() == TetrominoType.BOMB) {
             detonateBomb(currentPiece.getX(), currentPiece.getY());
         } else {
+            if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
+                int cs = Constants.BLOCK_SIZE;
+                int[][] gShape = currentPiece.getType().getShape(currentPiece.getRotation());
+                for (int row = 0; row < 4; row++) {
+                    for (int col = 0; col < 4; col++) {
+                        if (gShape[row][col] != 1) continue;
+                        int bx = currentPiece.getX() + col;
+                        int lockedY = currentPiece.getY() + row;
+                        if (bx < 0 || bx >= Constants.BOARD_WIDTH) continue;
+                        for (int scanY = 0; scanY < lockedY; scanY++) {
+                            if (scanY < Constants.BOARD_HEIGHT && board[scanY][bx] != 0)
+                                particleSystem.emitGhostTrail(
+                                    (bx + 0.5) * cs, (scanY + 0.5) * cs, cs);
+                        }
+                    }
+                }
+            }
             lockPiece();
         }
 
@@ -620,7 +657,7 @@ public class GameController {
     }
 
     private boolean isRandomBlockCandidate(TetrominoType type) {
-        return type != TetrominoType.BOMB;
+        return type != TetrominoType.BOMB && type != TetrominoType.TRANSPARENT;
     }
 
     private RandomBlock createRandomBlock(TetrominoType initialType) {
@@ -1374,6 +1411,8 @@ public class GameController {
                     if (t == null) continue;
                     if (t == TetrominoType.BOMB)
                         gc.drawImage(bombSprite, x * cs, y * cs, cs, cs);
+                    else if (t == TetrominoType.TRANSPARENT)
+                        gc.drawImage(ghostSprite, x * cs, y * cs, cs, cs);
                     else
                         drawCell(gc, x, y, t.getColor(), 1.0);
                 }
@@ -1462,7 +1501,8 @@ public class GameController {
             }
         }
 
-        boolean isBomb = currentPiece.getType() == TetrominoType.BOMB;
+        boolean isBomb  = currentPiece.getType() == TetrominoType.BOMB;
+        boolean isGhost = currentPiece.getType() == TetrominoType.TRANSPARENT;
 
         double chargeOffsetX = 0, chargeOffsetY = 0, charge = 0;
         if (blackoutState == BlackoutState.BLACKOUT) {
@@ -1537,7 +1577,29 @@ public class GameController {
                         gc.rotate(currentPiece.getRotation() * 90.0);
                         gc.drawImage(bombSprite, -cs / 2.0, -cs / 2.0, cs, cs);
                         gc.restore();
-                    } else
+                    } else if (isGhost) {
+                        double gx = px * cs, gy = py * cs;
+                        double dx1 = Math.sin(flavourWaveTime * 35.0) * 5;
+                        double dy1 = Math.cos(flavourWaveTime * 28.0) * 4;
+                        double dx2 = -Math.sin(flavourWaveTime * 42.0 + 1.2) * 4;
+                        double dy2 = -Math.cos(flavourWaveTime * 38.0) * 3;
+                        // lavender displacement copy
+                        gc.save();
+                        gc.setGlobalAlpha(0.55);
+                        gc.drawImage(ghostSprite, gx + dx1, gy + dy1, cs, cs);
+                        gc.setFill(Color.web("#9966cc", 0.5));
+                        gc.fillRect(gx + dx1, gy + dy1, cs, cs);
+                        // white displacement copy
+                        gc.setGlobalAlpha(0.45);
+                        gc.drawImage(ghostSprite, gx + dx2, gy + dy2, cs, cs);
+                        gc.setFill(Color.web("#ffffff", 0.45));
+                        gc.fillRect(gx + dx2, gy + dy2, cs, cs);
+                        // main sprite
+                        gc.setGlobalAlpha(1.0);
+                        gc.drawImage(ghostSprite, gx, gy, cs, cs);
+                        gc.restore();
+                    }
+                    else
                         drawCell(gc, px, py, pieceColor, 1.0);
                 }
             }
