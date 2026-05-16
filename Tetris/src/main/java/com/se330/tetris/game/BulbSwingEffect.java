@@ -26,6 +26,7 @@ public class BulbSwingEffect {
 
     private double maxAngle  = 0;
     private long   triggerNs = 0;
+    private int    swingSign = 1;
 
     public BulbSwingEffect(ImageView bulbView) {
         // Attach the rotation to the parent VBox so the string swings with the bulb.
@@ -63,14 +64,15 @@ public class BulbSwingEffect {
         timer.start();
     }
 
-    /** Trigger a swing scaled by lines cleared (1 = subtle, 4 = dramatic). */
+    /** Trigger a swing scaled by lines cleared (1 = subtle, 4 = dramatic). Alternates direction. */
     public void trigger(int lines) {
-        maxAngle  = switch (lines) {
-            case 1  -> 15.0;
-            case 2  -> 22.0;
-            case 3  -> 30.0;
-            default -> 40.0;
+        maxAngle  = swingSign * switch (lines) {
+            case 1  -> 3.0;
+            case 2  -> 5.0;
+            case 3  -> 7.0;
+            default -> 10.0;
         };
+        swingSign = -swingSign;
         triggerNs = System.nanoTime();
     }
 

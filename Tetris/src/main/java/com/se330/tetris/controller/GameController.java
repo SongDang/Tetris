@@ -730,6 +730,7 @@ public class GameController {
         shakeInitDuration = 0.30;
         shakeDuration = 0.30;
         SoundManager.getInstance().playSE(SoundType.BOMB_EXPLODE);
+        if (bulbSwing != null) bulbSwing.trigger(4);
     }
 
 
