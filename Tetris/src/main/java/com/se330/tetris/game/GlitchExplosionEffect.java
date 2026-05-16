@@ -16,11 +16,10 @@ public class GlitchExplosionEffect {
         }
     }
 
-    // White-heavy palette — roughly 40% white
     private static final Color[] NEON = {
         Color.WHITE, Color.WHITE, Color.WHITE,
-        Color.web("#ff00ff"), Color.web("#00ffff"), Color.web("#ffff00"),
-        Color.web("#ff0044"), Color.web("#44ff00"), Color.web("#ff8800"),
+        Color.web("#ff1a1a"), Color.web("#ff4466"), Color.web("#ff80a0"),
+        Color.web("#ff0033"), Color.web("#ffb3c1"), Color.web("#ff3355"),
         Color.WHITE
     };
 

@@ -163,8 +163,8 @@ public class GameController {
     private BlackoutState blackoutState = BlackoutState.NORMAL;
 
     private double flavourWaveTime    = 0;
-    private double ghostParticleTimer = 0;
-    private double ghostTrailTimer    = 0;
+    private double ghostParticleTimer    = 0;
+    private double randomBlockSparkTimer = 0;
 
     private double flavourTypeElapsed = 0;
     private double flavourCooldown = 0;
@@ -404,6 +404,22 @@ public class GameController {
                                 for (int col = 0; col < 4; col++)
                                     if (gShape[row][col] == 1)
                                         particleSystem.emitGhostDrift(
+                                            (currentPiece.getX() + col + 0.5) * cs,
+                                            (currentPiece.getY() + row + 0.5) * cs,
+                                            cs);
+                        }
+                    }
+
+                    if (currentPiece instanceof RandomBlock) {
+                        randomBlockSparkTimer -= dt;
+                        if (randomBlockSparkTimer <= 0) {
+                            randomBlockSparkTimer = 0.05;
+                            int cs = Constants.BLOCK_SIZE;
+                            int[][] rbShape = currentPiece.getType().getShape(currentPiece.getRotation());
+                            for (int row = 0; row < 4; row++)
+                                for (int col = 0; col < 4; col++)
+                                    if (rbShape[row][col] == 1)
+                                        particleSystem.emitRandomBlockSparks(
                                             (currentPiece.getX() + col + 0.5) * cs,
                                             (currentPiece.getY() + row + 0.5) * cs,
                                             cs);
@@ -1501,8 +1517,9 @@ public class GameController {
             }
         }
 
-        boolean isBomb  = currentPiece.getType() == TetrominoType.BOMB;
-        boolean isGhost = currentPiece.getType() == TetrominoType.TRANSPARENT;
+        boolean isBomb       = currentPiece.getType() == TetrominoType.BOMB;
+        boolean isGhost      = currentPiece.getType() == TetrominoType.TRANSPARENT;
+        boolean isRandomBlock = currentPiece instanceof RandomBlock;
 
         double chargeOffsetX = 0, chargeOffsetY = 0, charge = 0;
         if (blackoutState == BlackoutState.BLACKOUT) {
@@ -1569,7 +1586,22 @@ public class GameController {
                 if (shape[row][col] == 1) {
                     int px = currentPiece.getX() + col;
                     int py = currentPiece.getY() + row;
-                    if (isBomb && blackoutState != BlackoutState.BLACKOUT) {
+                    if (isRandomBlock) {
+                        double t = flavourWaveTime;
+                        double erratic = Math.sin(t * 23.0) * Math.sin(t * 11.7) * Math.sin(t * 5.3);
+                        double shift = 2.0 + Math.abs(erratic) * 8.0;
+                        double redOffY  = Math.sin(t * 17.0) * 2.5;
+                        double blueOffY = Math.sin(t * 13.3 + 1.1) * 2.5;
+                        gc.save();
+                        gc.setGlobalAlpha(0.35 + Math.abs(erratic) * 0.3);
+                        gc.setFill(Color.color(1, 0, 0));
+                        gc.fillRect(px * cs - shift, py * cs + redOffY, cs, cs);
+                        gc.setFill(Color.color(0, 0.4, 1));
+                        gc.fillRect(px * cs + shift, py * cs + blueOffY, cs, cs);
+                        gc.setGlobalAlpha(1.0);
+                        gc.restore();
+                        drawCell(gc, px, py, pieceColor, 1.0);
+                    } else if (isBomb && blackoutState != BlackoutState.BLACKOUT) {
                         double bcx = px * cs + cs / 2.0;
                         double bcy = py * cs + cs / 2.0;
                         gc.save();
@@ -1605,6 +1637,38 @@ public class GameController {
             }
         }
         gc.restore();
+
+        // RandomBlock morph hint — glitch flash of next shape
+        if (isRandomBlock) {
+            RandomBlock rb = (RandomBlock) currentPiece;
+            TetrominoType preview = rb.getPreviewType();
+            double progress = rb.getMorphProgress();
+            if (preview != null && progress > 0.3) {
+                // erratic flicker: product of multiple sines at coprime freqs
+                double t = flavourWaveTime;
+                double glitch = Math.sin(t * 19.0) * Math.sin(t * 7.3) * Math.sin(t * 31.0);
+                double threshold = 0.35 - progress * 0.32;
+                if (glitch > threshold) {
+                    double flashAlpha = Math.min(1.0, (glitch - threshold) / (1.0 - threshold) * 2.0);
+                    int[][] previewShape = preview.getShape(currentPiece.getRotation());
+                    gc.save();
+                    for (int row = 0; row < 4; row++) {
+                        if (previewShape[row][0] + previewShape[row][1] + previewShape[row][2] + previewShape[row][3] == 0) continue;
+                        double rowGlitch = (rng.nextDouble() - 0.5) * 10 * (1.0 - progress);
+                        for (int col = 0; col < 4; col++) {
+                            if (previewShape[row][col] != 1) continue;
+                            double cx = (currentPiece.getX() + col) * cs + rowGlitch;
+                            double cy = (currentPiece.getY() + row) * cs;
+                            gc.setGlobalAlpha(Math.min(1.0, flashAlpha * (0.75 + rng.nextDouble() * 0.5)));
+                            gc.setFill(Color.WHITE);
+                            gc.fillRect(cx, cy, cs, cs);
+                        }
+                    }
+                    gc.setGlobalAlpha(1.0);
+                    gc.restore();
+                }
+            }
+        }
 
         // Paused overlay
         if (gamePaused) {

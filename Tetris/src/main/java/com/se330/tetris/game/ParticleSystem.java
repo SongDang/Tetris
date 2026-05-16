@@ -156,6 +156,21 @@ public class ParticleSystem {
         }
     }
 
+    public void emitRandomBlockSparks(double cx, double cy, double blockSize) {
+        int count = 2 + rng.nextInt(3);
+        for (int i = 0; i < count; i++) {
+            double angle  = rng.nextDouble() * Math.PI * 2;
+            double speed  = rng.nextDouble() * 140 + 60;
+            double px     = cx + (rng.nextDouble() - 0.5) * blockSize * 0.5;
+            double py     = cy + (rng.nextDouble() - 0.5) * blockSize * 0.5;
+            // alternate red and blue per particle
+            Color c = (i % 2 == 0) ? Color.web("#ff2222") : Color.web("#2266ff");
+            double decay  = rng.nextDouble() * 4.0 + 6.0;
+            double size   = rng.nextDouble() * 2.5 + 1.0;
+            particles.add(new Particle(px, py, Math.cos(angle) * speed, Math.sin(angle) * speed, decay, c, size));
+        }
+    }
+
     public void emitGhostDrift(double cx, double cy, double blockSize) {
         Color[] palette = { Color.web("#b39ddb"), Color.web("#ce93d8"), Color.web("#ede7f6"), Color.WHITE };
         int count = 2 + rng.nextInt(3);
