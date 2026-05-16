@@ -99,6 +99,7 @@ public class GameController {
 
     private GlitchTearEffect glitchTearEffect = null;
     private com.se330.tetris.game.GlitchExplosionEffect glitchExplosionEffect = null;
+    private com.se330.tetris.game.BulbSwingEffect bulbSwing;
     private javafx.scene.image.Image bombSprite;
     private javafx.scene.image.Image ghostSprite;
 
@@ -243,7 +244,6 @@ public class GameController {
                 vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
         bombSprite   = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
         ghostSprite  = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/GhostBlock.png"));
-
         lightOnImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
         lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
         hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
@@ -294,6 +294,10 @@ public class GameController {
                     startupCanvas.setHeight(n.getHeight());
                 }
             });
+
+            // Bulb swing effect
+            if (lightBulbView != null)
+                bulbSwing = new com.se330.tetris.game.BulbSwingEffect(lightBulbView);
         });
 
         startGameLoop();
@@ -327,6 +331,7 @@ public class GameController {
                         addLines(4);
                         updateLevel();
                         emitScorePopup(4, avgRow);
+                        if (bulbSwing != null) bulbSwing.trigger(4);
                         spawnAndCheckGameOver();
                     }
                 }
@@ -347,6 +352,7 @@ public class GameController {
                     Color tearBg = Color.web(hardMode ? "#280C00" : "#0f0d1a");
                     glitchTearEffect = new GlitchTearEffect(board, Constants.BLOCK_SIZE, tearBg, () -> {
                         gameLoop.stop();
+                        if (bulbSwing != null) bulbSwing.stop();
                         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
                     });
                 }
@@ -586,6 +592,7 @@ public class GameController {
             addLines(cleared);
             updateLevel();
             emitScorePopup(cleared, avgRow);
+            if (bulbSwing != null) bulbSwing.trigger(cleared);
             // Combo takes priority over plain clear message
             boolean flavSet = comboCount >= 2 && trySetFlavour(FLAVOUR_COMBO, 2.0);
             if (!flavSet) trySetFlavour(FLAVOUR_CLEAR, 0.0);
