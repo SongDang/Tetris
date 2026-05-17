@@ -41,6 +41,10 @@ public class Piece {
         this.rotation = rotation;
     }
 
+    public void setRotationSilent(int rotation) {
+        this.rotation = rotation;
+    }
+
     public void setX(int x) {
         this.x = x;
     }
