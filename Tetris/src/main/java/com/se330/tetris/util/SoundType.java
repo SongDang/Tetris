@@ -19,7 +19,8 @@ public enum SoundType {
     TETRIS2("/sound/tetris2.wav"),
     FUSE("/sound/fuse.wav"),
     RESULT_GLITCH("/sound/result_glitch.wav"),
-    TRANSPARENT_PIECE("/sound/transparent_piece_sound.wav");
+    TRANSPARENT_PIECE("/sound/transparent_piece_sound.wav"),
+    RANDOM_PIECE("/sound/random_piece_sound.wav");
 
     private final String path;
 

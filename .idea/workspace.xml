@@ -5,12 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="0ffe6569-419a-42ea-bc36-bf7a20a6e1f6" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/hard_mode_music.wav" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/time_mode_music.wav" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/transparent_piece_sound.wav" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Tetris/src/main/resources/sound/random_piece_sound.wav" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GameController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GameController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GamemodesController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GamemodesController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/game/RandomBlock.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/game/RandomBlock.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/util/SoundType.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/util/SoundType.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
