@@ -389,6 +389,12 @@ public class GameController {
                 nextQueue.addLast(candidate);
             }
         }
+
+        if(currentPiece.getType() == TetrominoType.TRANSPARENT)
+        {
+            SoundManager.getInstance().playSE(SoundType.TRANSPARENT_PIECE);
+        }
+
         currentPiece.setX(Constants.BOARD_WIDTH / 2 - 2);
         currentPiece.setY(0);
         nextQueue.addLast(randomPiece());

@@ -4,6 +4,8 @@ public enum SoundType {
     //music
     MAIN_THEME("/sound/main_theme_music.wav"),
     GAMEPLAY_THEME("/sound/gameplay_theme.wav"),
+    HARD_THEME("/sound/hard_mode_music.wav"),
+    TIME_MODE_MUSIC("/sound/time_mode_music.wav"),
     //sound effect
     BUTTON_CLICK("/sound/button_click_sound.wav"),
     CLICK("/sound/click.wav"),
@@ -16,7 +18,8 @@ public enum SoundType {
     TETRIS("/sound/tetris.wav"),
     TETRIS2("/sound/tetris2.wav"),
     FUSE("/sound/fuse.wav"),
-    RESULT_GLITCH("/sound/result_glitch.wav");
+    RESULT_GLITCH("/sound/result_glitch.wav"),
+    TRANSPARENT_PIECE("/sound/transparent_piece_sound.wav");
 
     private final String path;
 
