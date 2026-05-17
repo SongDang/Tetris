@@ -110,6 +110,7 @@ public class GameController {
     private javafx.scene.image.Image hardMainImage;
     private javafx.scene.image.Image darkMainImage;
     private javafx.scene.image.Image bombSprite;
+    private javafx.scene.image.Image ghostSprite;
 
     @FXML
     private void initialize() {
@@ -134,7 +135,7 @@ public class GameController {
                 gameCanvas, vfxCanvas, holdBlockCanvas,
                 nextBlockCanvas1, nextBlockCanvas2, nextBlockCanvas3,
                 gamePane, lightBulbView, mainFrameView,
-                bombSprite, lightOnImage, lightOffImage, hardMainImage, darkMainImage,
+                bombSprite, ghostSprite, lightOnImage, lightOffImage, hardMainImage, darkMainImage,
                 gameContext, boardEngine, hardMode, rng);
 
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
@@ -178,6 +179,7 @@ public class GameController {
 
     private void loadImages() {
         bombSprite    = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
+        ghostSprite    = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/GhostBlock.png"));
         lightOnImage  = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
         lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
         hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
@@ -197,7 +199,7 @@ public class GameController {
 
                 handleTetrisFreezeExpiry(now);
                 handleGameOverFreeze(now);
-                renderer.update(dt, gamePaused, isGameOver);
+                renderer.update(dt, gamePaused, isGameOver, currentPiece);
 
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     applyMouseTarget();
@@ -390,8 +392,8 @@ public class GameController {
             }
         }
 
-        if(currentPiece.getType() == TetrominoType.TRANSPARENT)
-        {
+        // --- GỘP LOGIC ÂM THANH KHI SPAWN TỪ HEAD ---
+        if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
             SoundManager.getInstance().playSE(SoundType.TRANSPARENT_PIECE);
         }
         if (currentPiece instanceof RandomBlock) {
