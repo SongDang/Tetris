@@ -11,68 +11,29 @@
 
     <HBox layoutY="88.0" spacing="98.0" alignment="CENTER"
           AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
-        <Button fx:id="standardBtn" onAction="#onStandardClicked" prefWidth="349.0" prefHeight="664.0"
-                styleClass="mode-card-button">
-            <graphic>
-                <VBox prefWidth="297.0" prefHeight="612.0" alignment="CENTER" fillWidth="true">
-                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
-                        <Label text="Standard" styleClass="mode-card-title" prefWidth="297.0" />
-                    </StackPane>
-                    <StackPane prefWidth="297.0" prefHeight="220.0" alignment="CENTER">
-                        <ImageView fitWidth="180.0" fitHeight="180.0" preserveRatio="true">
-                            <image>
-                                <Image url="@../assets/standard_icon.png" />
-                            </image>
-                        </ImageView>
-                    </StackPane>
-                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
-                        <Label text="A classic game&#10;of Tetris" styleClass="mode-card-description" prefWidth="297.0" />
-                    </StackPane>
-                </VBox>
-            </graphic>
-        </Button>
+        <StackPane prefWidth="349.0" prefHeight="664.0">
+            <ImageView fx:id="standardCard" fitWidth="349.0" fitHeight="664.0" preserveRatio="false">
+                <image>
+                    <Image url="@../assets/default_standard.png" />
+                </image>
+            </ImageView>
+        </StackPane>
 
-        <Button fx:id="timeAttackBtn" onAction="#onTimeAttackClicked" prefWidth="349.0" prefHeight="664.0"
-                styleClass="mode-card-button">
-            <graphic>
-                <VBox prefWidth="297.0" prefHeight="612.0" alignment="CENTER" fillWidth="true">
-                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
-                        <Label text="Time&#10;Attack" styleClass="mode-card-title" prefWidth="297.0" />
-                    </StackPane>
-                    <StackPane prefWidth="297.0" prefHeight="220.0" alignment="CENTER">
-                        <ImageView fitWidth="160.0" fitHeight="160.0" preserveRatio="true">
-                            <image>
-                                <Image url="@../assets/clock-face-ten.png" />
-                            </image>
-                        </ImageView>
-                    </StackPane>
-                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
-                        <Label text="Time is&#10;constantly&#10;ticking down" styleClass="mode-card-description" prefWidth="297.0" />
-                    </StackPane>
-                </VBox>
-            </graphic>
-        </Button>
+        <StackPane prefWidth="349.0" prefHeight="664.0">
+            <ImageView fx:id="timeCard" fitWidth="349.0" fitHeight="664.0" preserveRatio="false">
+                <image>
+                    <Image url="@../assets/default_time.png" />
+                </image>
+            </ImageView>
+        </StackPane>
 
-        <Button fx:id="hardModeBtn" onAction="#onHardModeClicked" prefWidth="349.0" prefHeight="664.0"
-                styleClass="mode-card-button">
-            <graphic>
-                <VBox prefWidth="297.0" prefHeight="612.0" alignment="CENTER" fillWidth="true">
-                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
-                        <Label text="Hard&#10;Mode" styleClass="mode-card-title" prefWidth="297.0" />
-                    </StackPane>
-                    <StackPane prefWidth="297.0" prefHeight="220.0" alignment="CENTER">
-                        <ImageView fitWidth="185.0" fitHeight="185.0" preserveRatio="true">
-                            <image>
-                                <Image url="@../assets/pngegg-1.png" />
-                            </image>
-                        </ImageView>
-                    </StackPane>
-                    <StackPane prefWidth="297.0" prefHeight="170.0" alignment="CENTER">
-                        <Label text="No forecasts,&#10;lights&#10;occasionally go&#10;out" styleClass="mode-card-description" prefWidth="297.0" />
-                    </StackPane>
-                </VBox>
-            </graphic>
-        </Button>
+        <StackPane prefWidth="349.0" prefHeight="664.0">
+            <ImageView fx:id="hardCard" fitWidth="349.0" fitHeight="664.0" preserveRatio="false">
+                <image>
+                    <Image url="@../assets/default_hard.png" />
+                </image>
+            </ImageView>
+        </StackPane>
     </HBox>
 
         <AnchorPane prefHeight="176.0" styleClass="mode-footer"
@@ -80,9 +41,7 @@
         <Region prefHeight="176.0" styleClass="bottom-glow"
             AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="0.0" />
 
-        <Button fx:id="backBtn" onAction="#onBackClicked" text="Back"
-            layoutX="82.0" layoutY="51.0" prefWidth="148.0" prefHeight="74.0"
-            styleClass="figma-button" />
+        <Button fx:id="backCard" text="Back" onAction="#onBackClicked" layoutX="82.0" layoutY="51.0" prefWidth="148.0" prefHeight="74.0" styleClass="figma-button" />
         </AnchorPane>
 
 </AnchorPane>
