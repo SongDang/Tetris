@@ -1,5 +1,7 @@
 package com.se330.tetris.game;
 
+import com.se330.tetris.service.SoundManager;
+import com.se330.tetris.util.SoundType;
 import javafx.application.Platform;
 
 import java.util.ArrayList;
@@ -94,6 +96,7 @@ public class RandomBlock extends Piece {
         for (TetrominoType candidate : candidates) {
             if (typeValidator == null || typeValidator.test(this, candidate)) {
                 setType(candidate);
+                SoundManager.getInstance().playSE(SoundType.RANDOM_PIECE);
                 return;
             }
         }
