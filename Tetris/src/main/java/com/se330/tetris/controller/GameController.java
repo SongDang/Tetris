@@ -128,7 +128,7 @@ public class GameController {
                 () -> SoundManager.getInstance().resumeMusic());
 
         timeAttack = new TimeAttackHandler(
-                gameContext, timeLabel, freezeLabel, timePanel,
+                gameContext, timeLabel, freezeLabel, bombsLabel, timePanel, bombInventoryBox,
                 this::handleGameOver);
 
         renderer = new GameRenderer(
@@ -653,6 +653,7 @@ public class GameController {
     }
 
     private void useBombSkill() {
+        if (gameContext.getGameMode() != GameContext.GameMode.TIME_ATTACK) return;
         if (isGameOver || gamePaused || bombsRemaining <= 0 || currentPiece == null
                 || currentPiece.getType() == TetrominoType.BOMB) return;
         bombsRemaining--;

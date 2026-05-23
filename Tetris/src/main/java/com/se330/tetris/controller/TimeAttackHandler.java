@@ -20,7 +20,9 @@ class TimeAttackHandler {
     private final GameContext gameContext;
     private final Label timeLabel;
     private final Label freezeLabel;
+    private final Label bombLabel;
     private final VBox timePanel;
+    private final VBox bombPanel;
     private final Runnable onGameOver;
 
     private double timeRemainingSeconds = 0;
@@ -30,15 +32,19 @@ class TimeAttackHandler {
     private int freezeRemainingSeconds = 0;
     private Timeline freezeTimeline;
 
+    private int bombsRemaining = 3;
+
     private boolean gamePausedRef = false;
     private boolean isGameOverRef = false;
 
-    TimeAttackHandler(GameContext gameContext, Label timeLabel, Label freezeLabel,
-                      VBox timePanel, Runnable onGameOver) {
+    TimeAttackHandler(GameContext gameContext, Label timeLabel, Label freezeLabel, Label bombLabel,
+                      VBox timePanel, VBox bombPanel, Runnable onGameOver) {
         this.gameContext = gameContext;
         this.timeLabel = timeLabel;
         this.freezeLabel = freezeLabel;
+        this.bombLabel = bombLabel;
         this.timePanel = timePanel;
+        this.bombPanel = bombPanel;
         this.onGameOver = onGameOver;
     }
 
@@ -47,6 +53,19 @@ class TimeAttackHandler {
             if (timePanel != null) { timePanel.setVisible(false); timePanel.setManaged(false); }
             if (freezeLabel != null) { freezeLabel.setVisible(false); freezeLabel.setManaged(false); }
             return;
+        }
+
+        if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK) {
+            if (bombPanel != null) {
+                bombPanel.setVisible(true);
+                bombPanel.setManaged(true);
+                bombLabel.setText("💣 x" + bombsRemaining);
+            }
+        } else {
+            if (bombPanel != null) {
+                bombPanel.setVisible(false);
+                bombPanel.setManaged(false);
+            }
         }
 
         timeRemainingSeconds = TIME_ATTACK_START_SECONDS;
