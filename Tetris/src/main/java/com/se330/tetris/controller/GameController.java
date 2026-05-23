@@ -409,12 +409,16 @@ public class GameController {
     }
 
     private Piece randomPiece() {
+        boolean isStandard = gameContext.getGameMode() == GameContext.GameMode.STANDARD;
         if (bag.isEmpty()) {
-            bag.addAll(Arrays.asList(TetrominoType.values()));
+            for (TetrominoType t : TetrominoType.values()) {
+                if (isStandard && t == TetrominoType.BOMB) continue;
+                bag.add(t);
+            }
             Collections.shuffle(bag);
         }
         TetrominoType type = bag.remove(0);
-        if (randomBlockEnabled && type != TetrominoType.BOMB && rng.nextDouble() < RANDOM_BLOCK_CHANCE) {
+        if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && rng.nextDouble() < RANDOM_BLOCK_CHANCE) {
             RandomBlock block = new RandomBlock(type, 0, 0, RANDOM_BLOCK_INTERVAL_MS);
             block.setTypeValidator((p, t) -> boardEngine.canPlaceType(p, t));
             return block;
@@ -654,7 +658,8 @@ public class GameController {
 
     private void useBombSkill() {
         if (isGameOver || gamePaused || bombsRemaining <= 0 || currentPiece == null
-                || currentPiece.getType() == TetrominoType.BOMB) return;
+                || currentPiece.getType() == TetrominoType.BOMB
+                || gameContext.getGameMode() == GameContext.GameMode.STANDARD) return;
         bombsRemaining--;
         stopRandomBlockIfNeeded(currentPiece);
         currentPiece = new Piece(TetrominoType.BOMB, currentPiece.getX(), currentPiece.getY());
