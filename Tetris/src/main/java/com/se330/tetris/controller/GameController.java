@@ -443,15 +443,6 @@ public class GameController {
         SoundManager.getInstance().playSE(SoundType.BOMB_EXPLODE);
     }
 
-    private void suspendCurrentPiece() {
-        if (currentPiece == null) return;
-        stopRandomBlockIfNeeded(currentPiece);
-        Piece frozen = new Piece(currentPiece.getType(), currentPiece.getX(), currentPiece.getY());
-        frozen.setRotationSilent(currentPiece.getRotation());
-        suspendedPieces.add(frozen);
-        spawnAndCheckGameOver();
-    }
-
     private void updateSuspendedFall() {
         if (suspendedPieces.isEmpty()) return;
         List<Piece> locked = new ArrayList<>();
@@ -556,7 +547,6 @@ public class GameController {
                 }
             }
             case SPACE -> {
-                if (timeAttack.isFreezeActive) { suspendCurrentPiece(); return; }
                 if (hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT) hardDrop();
             }
             case P -> {} // handled above
@@ -589,8 +579,7 @@ public class GameController {
         if (freezeUntil > 0) { event.consume(); return; }
         gamePane.requestFocus();
         if (event.getButton() == MouseButton.PRIMARY) {
-            if (timeAttack.isFreezeActive) { suspendCurrentPiece(); }
-            else if (hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT) hardDrop();
+            if (hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT) hardDrop();
             event.consume();
         } else if (event.getButton() == MouseButton.SECONDARY) {
             if (tryRotateWithWallKick()) {
