@@ -1,66 +1,104 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.canvas.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<HBox xmlns="http://javafx.com/javafx/17"
-      xmlns:fx="http://javafx.com/fxml/1"
-      fx:id="gamePane"
-      fx:controller="com.se330.tetris.controller.GameController"
-      focusTraversable="true"
-      style="-fx-background-color: #0f0d1a; -fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;">
+<AnchorPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="gamePane"
+            fx:controller="com.se330.tetris.controller.GameController"
+            focusTraversable="true"
+            prefWidth="1440.0" prefHeight="1024.0"
+            styleClass="screen-standard-game">
 
-    <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 150;">
+    <HBox alignment="TOP_CENTER" spacing="68.0"
+          AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="0.0"
+          AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="204.0">
 
-        <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
-            <Label text="HOLD" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Canvas fx:id="holdBlockCanvas" width="100" height="100"/>
+        <VBox alignment="TOP_CENTER" spacing="8.0" prefWidth="216.0" style="-fx-padding: 65 0 0 0;">
+            <StackPane prefWidth="216.0" prefHeight="280.0" styleClass="game-score-panel">
+                <VBox alignment="TOP_LEFT" spacing="8.0" style="-fx-padding: 46 40 22 40;">
+                    <Label text="SCORE" styleClass="game-label-header"/>
+                    <Label fx:id="scoreLabel" text="0" styleClass="game-score-value">
+                        <VBox.margin><Insets bottom="18.0"/></VBox.margin>
+                    </Label>
+
+                    <HBox>
+                        <Label text="ACT" styleClass="game-label-header"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="levelLabel" text="1" styleClass="game-small-value"/>
+                    </HBox>
+
+                    <HBox>
+                        <Label text="LINES" styleClass="game-label-header"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="linesLabel" text="0" styleClass="game-small-value"/>
+                    </HBox>
+
+                    <HBox>
+                        <Label text="COMBO" styleClass="game-label-header"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="comboLabel" text="x0" styleClass="game-combo-value"/>
+                    </HBox>
+                </VBox>
+            </StackPane>
+
+            <StackPane prefWidth="216.0" prefHeight="176.0" styleClass="game-hold-panel">
+                <VBox alignment="TOP_LEFT" spacing="4.0" style="-fx-padding: 37 10 10 41;">
+                    <Label text="HOLD" styleClass="game-label-header"/>
+                    <Canvas fx:id="holdBlockCanvas" width="100.0" height="100.0" translateX="15.0" translateY="-8.0"/>
+                </VBox>
+            </StackPane>
         </VBox>
 
-        <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
-            <Label text="SCORE" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Label fx:id="scoreLabel" text="0" style="-fx-font-size: 26; -fx-text-fill: #ffffff; -fx-font-family: 'Courier New';"/>
-        </VBox>
-
-        <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
-            <Label text="LEVEL" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Label fx:id="levelLabel" text="1" style="-fx-font-size: 26; -fx-text-fill: #00ff88; -fx-font-family: 'Courier New';"/>
-        </VBox>
-
-        <VBox style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
-            <Label text="LINES" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Label fx:id="linesLabel" text="0" style="-fx-font-size: 26; -fx-text-fill: #ffcc00; -fx-font-family: 'Courier New';"/>
-        </VBox>
-
-        <VBox fx:id="timePanel" style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
-            <Label text="TIME" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Label fx:id="timeLabel" text="00:30" style="-fx-font-size: 26; -fx-text-fill: #00ccff; -fx-font-family: 'Courier New';"/>
-            <Label fx:id="freezeLabel" text="FREEZE: 10s" visible="false"
-                   style="-fx-font-size: 12; -fx-text-fill: #66ffff; -fx-font-family: 'Courier New';"/>
-        </VBox>
-    </VBox>
-
-    <VBox style="-fx-alignment: center; -fx-spacing: 10;">
-        <StackPane style="-fx-border-color: #00ff00; -fx-border-width: 2;">
-            <Canvas fx:id="gameCanvas" width="300" height="600"/>
-            <Canvas fx:id="vfxCanvas" width="600" height="600" managed="false" layoutX="-150" mouseTransparent="true"/>
+        <StackPane prefWidth="352.0" prefHeight="652.0">
+            <ImageView fx:id="mainFrameView" fitWidth="352.0" fitHeight="652.0"
+                       preserveRatio="false" mouseTransparent="true">
+                <image><Image url="@../assets/standardmain.png"/></image>
+            </ImageView>
+            <Canvas fx:id="gameCanvas" width="300.0" height="600.0"/>
+            <Canvas fx:id="vfxCanvas" width="600.0" height="600.0"
+                    managed="false" layoutX="-124.0" layoutY="26.0" mouseTransparent="true"/>
         </StackPane>
 
-        <HBox style="-fx-alignment: center; -fx-padding: 8 0 0 0;">
-            <Label text="← →: Move | ↑: Rotate | C: Hold | SPACE: Drop | P: Pause"
-                   style="-fx-font-size: 10; -fx-text-fill: #666688; -fx-font-family: 'Courier New';"/>
-        </HBox>
-    </VBox>
+        <VBox alignment="TOP_CENTER" spacing="36.0" prefWidth="216.0" style="-fx-padding: 65 0 0 0;">
+            <StackPane prefWidth="216.0" prefHeight="382.0" styleClass="game-next-panel">
+                <VBox alignment="TOP_CENTER" spacing="8.0" style="-fx-padding: 28 0 0 0;">
+                    <Label text="NEXT" styleClass="game-label-header" maxWidth="138.0" alignment="CENTER_LEFT"/>
+                    <Canvas fx:id="nextBlockCanvas1" width="100.0" height="100.0"/>
+                    <Canvas fx:id="nextBlockCanvas2" width="100.0" height="100.0"/>
+                    <Canvas fx:id="nextBlockCanvas3" width="100.0" height="100.0"/>
+                </VBox>
+            </StackPane>
 
-    <VBox style="-fx-alignment: center; -fx-spacing: 16; -fx-min-width: 200;">
-        <VBox style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
-            <Label text="NEXT" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-            <Canvas fx:id="nextBlockCanvas1" width="100" height="100"/>
-            <Canvas fx:id="nextBlockCanvas2" width="100" height="100"/>
-            <Canvas fx:id="nextBlockCanvas3" width="100" height="100"/>
+            <VBox fx:id="timePanel" alignment="CENTER" prefWidth="216.0" prefHeight="126.0"
+                  styleClass="game-time-panel">
+                <Label fx:id="timeLabel" text="00:00" styleClass="game-time-value"/>
+                <Label fx:id="freezeLabel" text="FREEZE: 10s" visible="false" managed="false"
+                       styleClass="game-freeze-value"/>
+            </VBox>
         </VBox>
+    </HBox>
 
-        <ImageView fx:id="lightBulbView" fitWidth="180" fitHeight="180" preserveRatio="true" visible="false"/>
-    </VBox>
-</HBox>
+    <Region prefHeight="176.0" styleClass="game-bottom-bar"
+            AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"/>
+
+    <HBox alignment="CENTER" prefHeight="127.0"
+          AnchorPane.bottomAnchor="28.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+        <StackPane prefWidth="646.0" prefHeight="127.0" styleClass="game-flavour-panel">
+            <Label fx:id="flavourLabel" text="flavor text flavor text flavor text"
+                   maxWidth="Infinity" styleClass="game-flavour-text"/>
+        </StackPane>
+    </HBox>
+
+    <ImageView fx:id="lightBulbView" fitWidth="1.0" fitHeight="1.0"
+               preserveRatio="true" visible="false" managed="false"/>
+
+</AnchorPane>

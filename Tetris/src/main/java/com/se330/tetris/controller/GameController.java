@@ -52,7 +52,13 @@ public class GameController {
     @FXML private Label bombsLabel;
     @FXML private VBox bombInventoryBox;
 
-    // --- Services ---
+    private javafx.scene.image.Image lightOnImage;
+    private javafx.scene.image.Image lightOffImage;
+    private javafx.scene.image.Image hardMainImage;
+    private javafx.scene.image.Image darkMainImage;
+    private javafx.scene.image.Image standardMainImage;
+    private javafx.scene.image.Image timeAttackMainImage;
+
     private SceneManager sceneManager;
     private GameContext gameContext;
 
@@ -117,26 +123,28 @@ public class GameController {
         gameContext = GameContext.getInstance();
         gameContext.reset();
 
-        loadImages();
+        gameGc = gameCanvas.getGraphicsContext2D();
+        nextGc1 = nextBlockCanvas1 != null ? nextBlockCanvas1.getGraphicsContext2D() : null;
+        nextGc2 = nextBlockCanvas2 != null ? nextBlockCanvas2.getGraphicsContext2D() : null;
+        nextGc3 = nextBlockCanvas3 != null ? nextBlockCanvas3.getGraphicsContext2D() : null;
 
-        boardEngine = new BoardEngine(gameContext, rng);
+        vfxGc = vfxCanvas.getGraphicsContext2D();
+        holdGc = holdBlockCanvas.getGraphicsContext2D();
+        // Sync vfxCanvas.layoutY to gameCanvas's actual post-layout position so
+        // their y=0 coordinates map to the same screen row.
+        Platform.runLater(() -> vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
+        bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
 
-        hardMode = new HardModeHandler(
-                rng,
-                () -> SoundManager.getInstance().pauseMusic(),
-                () -> SoundManager.getInstance().resumeMusic());
+        lightOnImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
+        lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
+        hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
+        darkMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/darkmain.png"));
+        standardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/standardmain.png"));
+        timeAttackMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/timeatkmain.png"));
 
-        timeAttack = new TimeAttackHandler(
-                gameContext, timeLabel, freezeLabel, timePanel,
-                this::handleGameOver);
+        applyGameModeTheme();
 
-        renderer = new GameRenderer(
-                gameCanvas, vfxCanvas, holdBlockCanvas,
-                nextBlockCanvas1, nextBlockCanvas2, nextBlockCanvas3,
-                gamePane, lightBulbView, mainFrameView,
-                bombSprite, lightOnImage, lightOffImage, hardMainImage, darkMainImage,
-                gameContext, boardEngine, hardMode, rng);
-
+        // HARD MODE
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
             fallIntervalNs = 300_000_000L;
             if (lightBulbView != null) { lightBulbView.setImage(lightOnImage); lightBulbView.setVisible(true); }
@@ -599,7 +607,412 @@ public class GameController {
     }
 
     private int getTargetPieceX(int targetColumn) {
-        int clamped = Math.max(0, Math.min(Constants.BOARD_WIDTH - 1, targetColumn));
+        int clampedTarget = Math.max(0, Math.min(Constants.BOARD_WIDTH - 1, targetColumn));
+        int rotation = currentPiece.getRotation();
+        int[][] shape = currentPiece.getType().getShape(rotation);
+
+        int minCol = 4;
+        int maxCol = -1;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    minCol = Math.min(minCol, col);
+                    maxCol = Math.max(maxCol, col);
+                }
+            }
+        }
+
+        if (maxCol < 0)
+            return currentPiece.getX();
+
+        int centerCol = (minCol + maxCol) / 2;
+        int desiredX = clampedTarget - centerCol;
+
+        int minX = -minCol;
+        int maxX = Constants.BOARD_WIDTH - 1 - maxCol;
+        return Math.max(minX, Math.min(maxX, desiredX));
+    }
+
+    private void handlePause() {
+        gamePaused = !gamePaused;
+        if (timeAttackTimeline != null) {
+            if (gamePaused) {
+                timeAttackTimeline.pause();
+            } else {
+                timeAttackTimeline.play();
+            }
+        }
+    }
+
+    private void handleExit() {
+        System.out.println("Exiting to main menu");
+        stopRandomBlockIfNeeded(currentPiece);
+        stopTimeAttackTimer();
+        stopFreezeTimer();
+
+        SoundManager.getInstance().stopLooping();
+
+        if (gameLoop != null) {
+            gameLoop.stop();
+        }
+        gameContext.reset();
+        sceneManager.clearSceneCache();
+        sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+    }
+
+    // ── Score popups ──────────────────────────────────────────────────────────
+
+    private static class ScorePopup {
+        String text;
+        double x, y, vx, vy, life;
+        Color color;
+        int fontSize;
+    }
+
+    private final java.util.List<ScorePopup> scorePopups = new java.util.ArrayList<>();
+
+    private void renderTopLayer() {
+        GraphicsContext gc = gameGc;
+        if (comboFloatAlpha > 0) {
+            double cx = comboFloatX + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount;
+            double cy = comboFloatY + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount * 0.4;
+            double flash = (Math.sin(comboFloatPhase * 3.0) + 1.0) / 2.0;
+            Color drawColor = comboColor.interpolate(Color.WHITE, flash);
+            int fontSize = (int) Math.min(75, 32 + comboDisplay * 7);
+            gc.setGlobalAlpha(comboFloatAlpha);
+            gc.setFont(Font.font("VT323", FontWeight.BOLD, fontSize));
+            gc.setFill(drawColor);
+            gc.fillText("COMBO x" + comboDisplay, cx, cy);
+            gc.setGlobalAlpha(1.0);
+        }
+        renderScorePopups();
+    }
+
+    private void renderScorePopups() {
+        if (scorePopups.isEmpty())
+            return;
+        GraphicsContext gc = gameGc;
+        for (ScorePopup p : scorePopups) {
+            gc.save();
+            gc.setGlobalAlpha(Math.max(0, p.life));
+            gc.setFont(Font.font("VT323", FontWeight.BOLD, p.fontSize));
+            gc.setFill(p.color);
+            gc.fillText(p.text, p.x, p.y);
+            gc.restore();
+        }
+    }
+
+    private void emitScorePopup(int cleared, int avgRow) {
+        int bonus = switch (cleared) {
+            case 1 -> 100;
+            case 2 -> 300;
+            case 3 -> 500;
+            case 4 -> 800;
+            default -> 0;
+        };
+        if (bonus == 0)
+            return;
+        double speed = 90 + rng.nextDouble() * 40;
+        double rad = Math.toRadians(30 + rng.nextDouble() * 120);
+        ScorePopup p = new ScorePopup();
+        p.text = "+" + bonus;
+        p.x = 8;
+        p.y = avgRow * Constants.BLOCK_SIZE - 4;
+        p.vx = Math.cos(rad) * speed;
+        p.vy = -Math.sin(rad) * speed;
+        p.life = 1.0;
+        p.fontSize = 20 + cleared * 3;
+        p.color = switch (cleared) {
+            case 4 -> Color.web("#00ffff");
+            case 3 -> Color.web("#ffaa00");
+            default -> Color.web("#ffffff");
+        };
+        scorePopups.add(p);
+    }
+
+    // Base background color components for gamePane (#0f0d1a)
+    private static final double BG_R = 0x0f / 255.0;
+    private static final double BG_G = 0x0d / 255.0;
+    private static final double BG_B = 0x1a / 255.0;
+    private static final String PANE_BASE_STYLE = "-fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;";
+
+    private void render() {
+        // Swap hard-mode UI panels to dark assets during blackout
+        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            boolean inBlackout = blackoutState == BlackoutState.BLACKOUT;
+            var classes = gamePane.getStyleClass();
+            if (inBlackout && !classes.contains("blackout")) {
+                classes.add("blackout");
+                if (mainFrameView != null)
+                    mainFrameView.setImage(darkMainImage);
+            } else if (!inBlackout && classes.contains("blackout")) {
+                classes.remove("blackout");
+                if (mainFrameView != null)
+                    mainFrameView.setImage(hardMainImage);
+            }
+        }
+
+        if (gameContext.getGameMode() != GameContext.GameMode.HARD_MODE) {
+            if (flashIntensity > 0) {
+                double r = BG_R + flashIntensity * (1.0 - BG_R);
+                double g = BG_G + flashIntensity * (1.0 - BG_G);
+                double b = BG_B + flashIntensity * (1.0 - BG_B);
+                String hex = String.format("#%02x%02x%02x", (int) (r * 255), (int) (g * 255), (int) (b * 255));
+                gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
+            } else {
+                gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
+            }
+        }
+
+        drawGameBoard();
+
+        if (glitchExplosionEffect != null)
+            glitchExplosionEffect.render(gameGc);
+
+        // --- XỬ LÝ RENDER THEO THỨ TỰ LỚP (Layering) ---
+        if (glitchTearEffect != null) {
+            vfxGc.clearRect(0, 0, vfxCanvas.getWidth(), vfxCanvas.getHeight());
+            glitchTearEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
+            double wa = glitchTearEffect.getWhiteoutAlpha();
+            if (wa > 0) {
+                flashIntensity = wa;
+                vfxGc.setFill(Color.color(1, 1, 1, wa));
+                vfxGc.fillRect(0, 0, vfxCanvas.getWidth(), vfxCanvas.getHeight());
+            }
+        } else {
+            if (levelUpEffect != null)
+                levelUpEffect.render(gameGc, gameCanvas.getWidth(), gameCanvas.getHeight());
+
+            particleSystem.render(gameGc);
+            particleSystem.renderBeams(vfxGc);
+
+            if (borderPulseEffect != null)
+                borderPulseEffect.render(gameGc, vfxGc, gameCanvas.getWidth(), gameCanvas.getHeight(), VFX_MARGIN);
+        }
+        renderTopLayer();
+        drawHoldBlock();
+        drawNextBlocks();
+        updateLightBulb();
+
+        // Flavour text render
+        if (lightsOutMode) {
+            // Vibrate the whole line
+            if (flavourHBox != null) {
+                flavourHBox.setTranslateX((rng.nextDouble() - 0.5) * 8);
+                flavourHBox.setTranslateY((rng.nextDouble() - 0.5) * 5);
+            }
+            // Per-char glitch: random opacity drops and color flashes
+            for (javafx.scene.control.Label l : flavourChars) {
+                if (rng.nextDouble() < 0.12) {
+                    l.setOpacity(rng.nextDouble() < 0.4 ? 0.0 : 1.0);
+                } else {
+                    l.setOpacity(1.0);
+                }
+                String col = rng.nextDouble() < 0.06
+                        ? (rng.nextBoolean() ? "#ffffff" : "#880000")
+                        : "#FF0000";
+                l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: " + col + ";");
+            }
+        } else if (darknessLoomsMode) {
+            if (flavourHBox != null) {
+                flavourHBox.setTranslateX(0);
+                flavourHBox.setTranslateY(0);
+            }
+            int nVisible = Math.min(flavourChars.size(), (int) (flavourTypeElapsed / (FLAVOUR_CHAR_DELAY * 1.8)));
+            for (int i = 0; i < flavourChars.size(); i++) {
+                javafx.scene.control.Label l = flavourChars.get(i);
+                boolean visible = i < nVisible;
+                // Subtle flicker on revealed chars
+                if (visible && rng.nextDouble() < 0.04)
+                    l.setOpacity(0.4 + rng.nextDouble() * 0.3);
+                else
+                    l.setOpacity(visible ? 1.0 : 0.0);
+                if (visible)
+                    l.setTranslateY(Math.sin(flavourWaveTime * 1.2 + i * 0.45) * 5.0);
+            }
+        } else {
+            if (flavourHBox != null) {
+                flavourHBox.setTranslateX(0);
+                flavourHBox.setTranslateY(0);
+            }
+            int nVisible = Math.min(flavourChars.size(), (int) (flavourTypeElapsed / FLAVOUR_CHAR_DELAY));
+            for (int i = 0; i < flavourChars.size(); i++) {
+                javafx.scene.control.Label l = flavourChars.get(i);
+                boolean visible = i < nVisible;
+                l.setOpacity(visible ? 1.0 : 0.0);
+                if (visible)
+                    l.setTranslateY(Math.sin(flavourWaveTime * 2.5 + i * 0.45) * 2.5);
+            }
+        }
+
+        renderStartupGlitch();
+    }
+
+    private void renderStartupGlitch() {
+        if (startupGlitchElapsed >= STARTUP_GLITCH_DUR || startupGc == null)
+            return;
+        double t = startupGlitchElapsed / STARTUP_GLITCH_DUR;
+        double alpha = (1.0 - t * t) * 0.55;
+        double w = startupCanvas.getWidth();
+        double h = startupCanvas.getHeight();
+
+        startupGc.clearRect(0, 0, w, h);
+
+        // clean scanline bands — each drifts sideways at its own phase
+        int bands = 6 + rng.nextInt(5);
+        for (int i = 0; i < bands; i++) {
+            double by = rng.nextDouble() * h;
+            double bh = rng.nextDouble() * (h * 0.05) + 1;
+            int pick = rng.nextInt(3);
+            double cr = pick == 0 ? 0 : 1;
+            double cg = pick == 0 ? 1 : 1;
+            double cb = pick == 0 ? 1 : 0;
+            double baseA = pick == 0 ? 0.5 : pick == 1 ? 0.4 : 0.3;
+            double xOffset = Math.sin(t * Math.PI * 5 + i * 1.9) * w * 0.18;
+            double pad = Math.abs(xOffset);
+            startupGc.setFill(Color.color(cr, cg, cb, Math.min(1, alpha * baseA)));
+            startupGc.fillRect(xOffset - pad, by, w + pad * 2, bh);
+            // a couple of bright accent pixels on the band
+            for (int j = 0; j < 3; j++) {
+                double hx = rng.nextDouble() * w + xOffset;
+                startupGc.setFill(Color.color(1, 1, 1, alpha * (0.6 + rng.nextDouble() * 0.4)));
+                startupGc.fillRect(hx, by, rng.nextDouble() * 6 + 2, bh);
+            }
+        }
+        // light pixel scatter
+        int pixels = (int) (250 * (1.0 - t));
+        for (int i = 0; i < pixels; i++) {
+            double px = rng.nextDouble() * w;
+            double py = rng.nextDouble() * h;
+            startupGc.setFill(Color.color(1, 1, 1, alpha * (rng.nextDouble() * 0.6 + 0.2)));
+            startupGc.fillRect(px, py, 2, 2);
+        }
+        // white flashes at t=0.0, 0.22, 0.48 — sharp spike then fast decay
+        double[] flashTimes = { 0.0, 0.14, 0.28 };
+        double[] flashPeaks = { 0.90, 0.42, 0.42 };
+        double flashHalf = 0.07;
+        double totalFlash = 0;
+        for (int fi = 0; fi < flashTimes.length; fi++) {
+            double d = Math.abs(t - flashTimes[fi]);
+            if (d < flashHalf)
+                totalFlash = Math.max(totalFlash, (1.0 - d / flashHalf) * flashPeaks[fi]);
+        }
+        if (totalFlash > 0) {
+            startupGc.setFill(Color.color(1, 1, 1, totalFlash));
+            startupGc.fillRect(0, 0, w, h);
+        }
+    }
+
+    public void drawGameBoard() {
+        GraphicsContext gc = gameGc;
+        double w = gameCanvas.getWidth();
+        double h = gameCanvas.getHeight();
+        int cs = Constants.BLOCK_SIZE;
+
+        // Background
+        boolean hardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
+        gc.setFill(Color.web(hardMode ? "#280C00" : "#0f0d1a"));
+        gc.fillRect(0, 0, w, h);
+
+        // Grid lines
+        gc.setStroke(Color.web(hardMode ? "#3d1500" : "#2b2740"));
+        gc.setLineWidth(0.5);
+        for (int x = 0; x <= Constants.BOARD_WIDTH; x++)
+            gc.strokeLine(x * cs, 0, x * cs, h);
+        for (int y = 0; y <= Constants.BOARD_HEIGHT; y++)
+            gc.strokeLine(0, y * cs, w, y * cs);
+
+        // Border — hidden in hard mode (wooden frame provides it)
+        if (gameContext.getGameMode() != GameContext.GameMode.HARD_MODE) {
+            gc.setStroke(Color.web("#00ff00"));
+            gc.setLineWidth(2);
+            gc.strokeRect(0, 0, w, h);
+        }
+
+        // HARD MODE
+        boolean isDark = false;
+        if (blackoutState == BlackoutState.FLICKER) {
+            // chớp nhanh: 10 lần / giây
+            isDark = ((int) (blackoutFlickerTimer * 10)) % 2 == 0;
+        }
+        if (blackoutState == BlackoutState.BLACKOUT) {
+            isDark = true;
+        }
+        if (!isDark) {
+            // Locked cells
+            for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
+                for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+                    if (board[y][x] != 0) {
+                        if (board[y][x] == TIME_BLOCK_ID) {
+                            drawTimeBlockCell(gc, x, y, cs);
+                            continue;
+                        }
+                        TetrominoType t = idToType(board[y][x]);
+                        if (t != null)
+                            drawCell(gc, x, y, t.getColor(), 1.0);
+                    }
+                }
+            }
+        }
+
+        // Locked cells
+        for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
+            for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+                if (board[y][x] != 0) {
+                    if (board[y][x] == TIME_BLOCK_ID) {
+                        drawTimeBlockCell(gc, x, y, cs);
+                        continue;
+                    }
+                    TetrominoType t = idToType(board[y][x]);
+                    if (t == null)
+                        continue;
+                    if (t == TetrominoType.BOMB)
+                        gc.drawImage(bombSprite, x * cs, y * cs, cs, cs);
+                    else
+                        drawCell(gc, x, y, t.getColor(), 1.0);
+                }
+            }
+        }
+
+        // Flash cleared rows white during Tetris freeze
+        if (frozenRowFlash != null && freezeUntil > 0) {
+            gc.setFill(Color.WHITE);
+            for (int row : frozenRowFlash) {
+                gc.fillRect(0, row * cs, w, cs);
+            }
+        }
+
+        // White flash on board at moment of game over
+        if (gameOverFlashAlpha > 0) {
+            gc.setFill(Color.color(1, 1, 1, gameOverFlashAlpha));
+            gc.fillRect(0, 0, w, h);
+        }
+
+        // Ghost + current piece hidden during game over (glitch effect takes over)
+        if (isGameOver)
+            return;
+
+        // Ghost
+        if (freezeUntil == 0) {
+            int drop = getDropDistance();
+            int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (ghostShape[row][col] == 1) {
+                        drawCell(gc,
+                                currentPiece.getX() + col,
+                                currentPiece.getY() + row + drop,
+                                currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25),
+                                1.0);
+                    }
+                }
+            }
+        }
+
+        renderSuspendedPieces(gc, cs);
+
+        // Current piece - apply rotation pulse brightness
+        // Current piece - always drawn on top, visible even during blackout
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         int minCol = 4, maxCol = -1;
         for (int row = 0; row < 4; row++)
@@ -630,12 +1043,207 @@ public class GameController {
             holdType = currentType;
             spawnPiece();
         } else {
-            TetrominoType swapped = holdType;
-            holdType = currentType;
-            currentPiece = new Piece(swapped, Constants.BOARD_WIDTH / 2 - 2, 0);
+            drawPreview(holdGc, holdBlockCanvas, null);
         }
-        if (!boardEngine.canMove(currentPiece, 0, 0, currentPiece.getRotation(), suspendedPieces)) {
-            isGameOver = true;
+    }
+
+    public void drawNextBlocks() {
+        java.util.Iterator<Piece> it = nextQueue.iterator();
+        if (nextGc1 != null)
+            drawPreview(nextGc1, nextBlockCanvas1, it.hasNext() ? it.next() : null);
+        else if (it.hasNext())
+            it.next();
+        if (nextGc2 != null)
+            drawPreview(nextGc2, nextBlockCanvas2, it.hasNext() ? it.next() : null);
+        else if (it.hasNext())
+            it.next();
+        if (nextGc3 != null)
+            drawPreview(nextGc3, nextBlockCanvas3, it.hasNext() ? it.next() : null);
+        else if (it.hasNext())
+            it.next();
+    }
+
+    private void drawPreview(GraphicsContext gc, Canvas canvas, Piece piece) {
+        double w = canvas.getWidth();
+        double h = canvas.getHeight();
+
+        gc.setFill(Color.web(
+                blackoutState == BlackoutState.BLACKOUT ? "#000000"
+                        : gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
+        gc.fillRect(0, 0, w, h);
+        // HARD MODE
+        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            drawQuestionMark(gc, canvas);
+            return;
+        }
+        // Xóa nền và vẽ viền
+
+        if (piece == null)
+            return;
+
+        boolean isRandomPreview = piece instanceof RandomBlock;
+        TetrominoType type = piece.getType();
+        int[][] shape = type.getShape(0); // Luôn vẽ ở góc xoay mặc định
+
+        // 1. Tính toán vùng bao (Bounding Box) để căn giữa khối gạch
+        int minRow = 4, maxRow = -1, minCol = 4, maxCol = -1;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    minRow = Math.min(minRow, row);
+                    maxRow = Math.max(maxRow, row);
+                    minCol = Math.min(minCol, col);
+                    maxCol = Math.max(maxCol, col);
+                }
+            }
+        }
+
+        if (maxRow < 0 || maxCol < 0)
+            return;
+
+        // 2. Tính toán vị trí vẽ để khối luôn nằm chính giữa Canvas
+        int previewCellSize = 24; // Kích thước ô nhỏ hơn cho vùng Preview
+        int pieceWidth = (maxCol - minCol + 1) * previewCellSize;
+        int pieceHeight = (maxRow - minRow + 1) * previewCellSize;
+        double offsetX = (w - pieceWidth) / 2.0;
+        double offsetY = (h - pieceHeight) / 2.0;
+
+        // 3. Vẽ từng ô của khối
+        for (int row = minRow; row <= maxRow; row++) {
+            for (int col = minCol; col <= maxCol; col++) {
+                if (shape[row][col] == 1) {
+                    double px = offsetX + (col - minCol) * previewCellSize;
+                    double py = offsetY + (row - minRow) * previewCellSize;
+                    if (type == TetrominoType.BOMB)
+                        gc.drawImage(bombSprite, px, py, previewCellSize, previewCellSize);
+                    else
+                        drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
+                }
+            }
+        }
+
+        if (isRandomPreview) {
+            gc.setStroke(Color.web("#00e5ff"));
+            gc.setLineWidth(2.0);
+            for (int row = minRow; row <= maxRow; row++) {
+                for (int col = minCol; col <= maxCol; col++) {
+                    if (shape[row][col] == 1) {
+                        double px = offsetX + (col - minCol) * previewCellSize;
+                        double py = offsetY + (row - minRow) * previewCellSize;
+                        gc.strokeRect(px + 1, py + 1, previewCellSize - 2, previewCellSize - 2);
+                    }
+                }
+            }
+        }
+    }
+
+    // Helper: vẽ 1 ô trên gameGc
+    private void drawCell(GraphicsContext gc, int x, int y, Color color, double opacity) {
+        drawCell(gc, x, y, color, opacity, gc, Constants.BLOCK_SIZE);
+    }
+
+    private void drawCell(GraphicsContext gc, int x, int y, Color color,
+            double opacity, GraphicsContext target, int cs) {
+        double px = x * cs;
+        double py = y * cs;
+        target.setFill(color.deriveColor(0, 1, 1, opacity));
+        target.fillRect(px, py, cs, cs);
+        target.setStroke(Color.web("#111111"));
+        target.setLineWidth(1);
+        target.strokeRect(px, py, cs, cs);
+    }
+
+    private void drawCellAtPixel(GraphicsContext target, double px, double py,
+            int size, Color color, double opacity) {
+        target.setFill(color.deriveColor(0, 1, 1, opacity));
+        target.fillRect(px, py, size, size);
+        target.setStroke(Color.web("#111111"));
+        target.setLineWidth(1);
+        target.strokeRect(px, py, size, size);
+    }
+
+    private void drawTimeBlockCell(GraphicsContext gc, int x, int y, int cs) {
+        drawCell(gc, x, y, TIME_BLOCK_COLOR, 1.0);
+        gc.setStroke(Color.web("#e6ffff"));
+        gc.setLineWidth(1.0);
+        double px = x * cs + 4;
+        double py = y * cs + 4;
+        gc.strokeOval(px, py, cs - 8, cs - 8);
+        gc.strokeLine(x * cs + cs / 2.0, y * cs + 6, x * cs + cs / 2.0, y * cs + cs / 2.0);
+        gc.strokeLine(x * cs + cs / 2.0, y * cs + cs / 2.0, x * cs + cs - 8, y * cs + cs / 2.0);
+    }
+
+    private void drawRandomBlockIndicator(Piece piece, GraphicsContext gc, int cs) {
+        int[][] shape = piece.getType().getShape(piece.getRotation());
+        gc.setStroke(Color.web("#00e5ff"));
+        gc.setLineWidth(2.2);
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    double px = (piece.getX() + col) * cs;
+                    double py = (piece.getY() + row) * cs;
+                    gc.strokeRect(px + 1, py + 1, cs - 2, cs - 2);
+                }
+            }
+        }
+    }
+
+    private void renderSuspendedPieces(GraphicsContext gc, int cs) {
+        if (suspendedPieces.isEmpty()) {
+            return;
+        }
+        for (Piece piece : suspendedPieces) {
+            int[][] shape = piece.getType().getShape(piece.getRotation());
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (shape[row][col] == 1) {
+                        int px = piece.getX() + col;
+                        int py = piece.getY() + row;
+                        if (piece.getType() == TetrominoType.BOMB) {
+                            gc.drawImage(bombSprite, px * cs, py * cs, cs, cs);
+                        } else {
+                            drawCell(gc, px, py, piece.getType().getColor(), 1.0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private int typeId(TetrominoType type) {
+        return switch (type) {
+            case I -> 1;
+            case O -> 2;
+            case T -> 3;
+            case S -> 4;
+            case Z -> 5;
+            case J -> 6;
+            case L -> 7;
+            case BOMB -> 8;
+            case TRANSPARENT -> 9;
+        };
+    }
+
+    private TetrominoType idToType(int id) {
+        return switch (id) {
+            case 1 -> TetrominoType.I;
+            case 2 -> TetrominoType.O;
+            case 3 -> TetrominoType.T;
+            case 4 -> TetrominoType.S;
+            case 5 -> TetrominoType.Z;
+            case 6 -> TetrominoType.J;
+            case 7 -> TetrominoType.L;
+            case 8 -> TetrominoType.BOMB;
+            case 9 -> TetrominoType.TRANSPARENT;
+            default -> null;
+        };
+    }
+
+    public void gameOver() {
+        stopRandomBlockIfNeeded(currentPiece);
+        stopTimeAttackTimer();
+        stopFreezeTimer();
+        if (gameLoop != null)
             gameLoop.stop();
             sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
         }
@@ -681,7 +1289,183 @@ public class GameController {
         sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
     }
 
-    public void gameOver() {
-        handleGameOver();
+    private void stopTimeAttackTimer() {
+        if (timeAttackTimeline != null) {
+            timeAttackTimeline.stop();
+        }
+    }
+
+    private void stopFreezeTimer() {
+        isFreezeActive = false;
+        if (freezeTimeline != null) {
+            freezeTimeline.stop();
+        }
+        if (freezeLabel != null) {
+            freezeLabel.setVisible(false);
+            freezeLabel.setManaged(false);
+        }
+    }
+
+    private void drawQuestionMark(GraphicsContext gc, Canvas canvas) {
+        double w = canvas.getWidth();
+        double h = canvas.getHeight();
+
+        gc.setFill(Color.web("#00ff00")); // cùng màu viền cho đồng bộ
+        gc.setFont(Font.font("VT323", FontWeight.BOLD, 40));
+
+        String text = "?";
+
+        // canh giữa tương đối
+        gc.fillText(text, w / 2 - 8, h / 2 + 12);
+        gc.setEffect(new DropShadow(10, Color.web("#00ff00")));
+    }
+
+    private void updateLightBulb() {
+        if (!lightBulbView.isVisible())
+            return;
+        boolean off = switch (blackoutState) {
+            case BLACKOUT -> true;
+            case FLICKER, POST_FLICKER -> ((int) blackoutFlickerTimer) % 2 == 0;
+            default -> false;
+        };
+        lightBulbView.setImage(off ? lightOffImage : lightOnImage);
+    }
+
+    private void buildFlavourChars() {
+        if (flavourLabel == null)
+            return;
+        flavourLabel.setVisible(false);
+        flavourPane = (javafx.scene.layout.StackPane) flavourLabel.getParent();
+        if (flavourPane == null)
+            return;
+        flavourHBox = new javafx.scene.layout.HBox(0);
+        flavourHBox.setAlignment(javafx.geometry.Pos.CENTER);
+        flavourPane.getChildren().add(flavourHBox);
+        rebuildFlavourChars(flavourLabel.getText());
+    }
+
+    private void rebuildFlavourChars(String text) {
+        darknessLoomsMode = false;
+        rebuildFlavourChars(text, null);
+    }
+
+    private void rebuildFlavourChars(String text, String hexColor) {
+        if (flavourHBox == null)
+            return;
+        flavourChars.clear();
+        flavourHBox.getChildren().clear();
+        for (char c : text.toCharArray()) {
+            javafx.scene.control.Label l = new javafx.scene.control.Label(String.valueOf(c));
+            l.getStyleClass().add("hard-flavour-text");
+            if (hexColor != null)
+                l.setStyle("-fx-text-fill: " + hexColor + ";");
+            l.setOpacity(0);
+            flavourChars.add(l);
+            flavourHBox.getChildren().add(l);
+        }
+        flavourTypeElapsed = 0;
+    }
+
+    private boolean trySetFlavour(String[] pool, double threshold) {
+        if (lightsOutMode || flavourCooldown > threshold || flavourHBox == null)
+            return false;
+        rebuildFlavourChars(pool[rng.nextInt(pool.length)]);
+        flavourCooldown = FLAVOUR_BASE_CD;
+        placesSinceFlavour = 0;
+        return true;
+    }
+
+    private int getStackTopRow() {
+        for (int r = 0; r < Constants.BOARD_HEIGHT; r++)
+            for (int c = 0; c < Constants.BOARD_WIDTH; c++)
+                if (board[r][c] != 0)
+                    return r;
+        return Constants.BOARD_HEIGHT;
+    }
+
+    private void setLightsOut() {
+        if (flavourHBox == null)
+            return;
+        lightsOutMode = true;
+        darknessLoomsMode = false;
+        flavourCooldown = Double.MAX_VALUE;
+        flavourChars.clear();
+        flavourHBox.getChildren().clear();
+        for (char c : "LIGHTS OUT".toCharArray()) {
+            javafx.scene.control.Label l = new javafx.scene.control.Label(String.valueOf(c));
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: #FF0000;");
+            l.setOpacity(1.0);
+            flavourChars.add(l);
+            flavourHBox.getChildren().add(l);
+        }
+    }
+
+    private void clearLightsOut() {
+        lightsOutMode = false;
+        if (flavourHBox != null) {
+            flavourHBox.setTranslateX(0);
+            flavourHBox.setTranslateY(0);
+        }
+        rebuildFlavourChars(FLAVOUR_POST_BLACKOUT[rng.nextInt(FLAVOUR_POST_BLACKOUT.length)]);
+        flavourCooldown = FLAVOUR_BASE_CD;
+    }
+
+    private void updateBlackout(double dt) {
+        blackoutTimer += dt;
+
+        switch (blackoutState) {
+
+            case NORMAL -> {
+                if (blackoutTimer >= 20.0) {
+                    blackoutTimer = 0;
+                    blackoutState = BlackoutState.FLICKER;
+                    blackoutDuration = 0.3;
+                    blackoutFlickerTimer = 0;
+                    darknessLoomsMode = true;
+                    rebuildFlavourChars("Darkness looms.", "#40A3FF");
+                    flavourCooldown = FLAVOUR_BASE_CD;
+                }
+            }
+
+            case FLICKER -> {
+                blackoutDuration -= dt;
+                blackoutFlickerTimer += dt * 10.0;
+                if (blackoutDuration <= 0) {
+                    blackoutState = BlackoutState.PRE_BLACKOUT;
+                    blackoutDuration = 5.0;
+                }
+            }
+
+            case PRE_BLACKOUT -> {
+                blackoutDuration -= dt;
+                if (blackoutDuration <= 0) {
+                    blackoutState = BlackoutState.BLACKOUT;
+                    blackoutDuration = 5.0;
+                    blackoutDropTimer = 0;
+                    SoundManager.getInstance().pauseMusic();
+                    setLightsOut();
+                }
+            }
+
+            case BLACKOUT -> {
+                blackoutDuration -= dt;
+                if (blackoutDuration <= 0) {
+                    blackoutState = BlackoutState.POST_FLICKER;
+                    blackoutDuration = 0.3;
+                    blackoutFlickerTimer = 0;
+                    SoundManager.getInstance().resumeMusic();
+                    clearLightsOut();
+                }
+            }
+
+            case POST_FLICKER -> {
+                blackoutDuration -= dt;
+                blackoutFlickerTimer += dt * 10.0;
+                if (blackoutDuration <= 0) {
+                    blackoutState = BlackoutState.NORMAL;
+                    blackoutTimer = 0;
+                }
+            }
+        }
     }
 }

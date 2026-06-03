@@ -219,6 +219,125 @@
     -fx-background-position: center;
 }
 
+.screen-standard-game {
+    -fx-background-color: #050515;
+    -fx-background-image: url("../assets/standard_bg.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: cover;
+    -fx-background-position: center;
+}
+
+.screen-timeatk-game {
+    -fx-background-color: #021f1e;
+    -fx-background-image: url("../assets/timeatk_bg.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: cover;
+    -fx-background-position: center;
+}
+
+.game-score-panel,
+.game-hold-panel,
+.game-next-panel,
+.game-time-panel,
+.game-flavour-panel,
+.game-bottom-bar {
+    -fx-background-color: transparent;
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.game-score-panel {
+    -fx-background-image: url("../assets/standardbar.png");
+}
+
+.game-hold-panel {
+    -fx-background-image: url("../assets/standardhold.png");
+}
+
+.game-next-panel {
+    -fx-background-image: url("../assets/standarddash.png");
+}
+
+.game-flavour-panel {
+    -fx-background-image: url("../assets/standardflavour.png");
+}
+
+.game-bottom-bar {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #050513 0%, #000000 48%, #000000 100%);
+}
+
+.screen-timeatk-game .game-score-panel {
+    -fx-background-image: url("../assets/timeatkbar.png");
+}
+
+.screen-timeatk-game .game-hold-panel {
+    -fx-background-image: url("../assets/timeatkhold.png");
+}
+
+.screen-timeatk-game .game-next-panel {
+    -fx-background-image: url("../assets/timeatkdash.png");
+}
+
+.screen-timeatk-game .game-time-panel {
+    -fx-background-image: url("../assets/timeatkclock.png");
+}
+
+.screen-timeatk-game .game-flavour-panel {
+    -fx-background-image: url("../assets/timeatkflavour.png");
+}
+
+.screen-timeatk-game .game-bottom-bar {
+    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #001918 0%, #000000 48%, #000000 100%);
+}
+
+.game-label-header {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: #ffffff;
+}
+
+.game-score-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 48;
+    -fx-text-fill: #EA96FF;
+}
+
+.game-small-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: #ffffff;
+}
+
+.game-combo-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: #FFF200;
+}
+
+.game-time-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 54;
+    -fx-text-fill: #FFF200;
+}
+
+.game-freeze-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 24;
+    -fx-text-fill: #72ffff;
+}
+
+.game-flavour-text {
+    -fx-font-family: "VT323";
+    -fx-font-size: 34;
+    -fx-text-fill: #B8BBFF;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.screen-timeatk-game .game-flavour-text {
+    -fx-text-fill: #00FFFF;
+}
+
 .hard-bar {
     -fx-background-color: transparent;
     -fx-background-image: url("../assets/hardbar.png");
