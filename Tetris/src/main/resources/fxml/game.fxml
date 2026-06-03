@@ -79,7 +79,7 @@
             </StackPane>
 
             <VBox fx:id="timePanel" alignment="CENTER" prefWidth="216.0" prefHeight="126.0"
-                  styleClass="game-time-panel">
+                  style="-fx-padding: 4 0 0 0;" styleClass="game-time-panel">
                 <Label fx:id="timeLabel" text="00:00" styleClass="game-time-value"/>
                 <Label fx:id="freezeLabel" text="FREEZE: 10s" visible="false" managed="false"
                        styleClass="game-freeze-value"/>

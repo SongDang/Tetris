@@ -387,12 +387,6 @@ class GameRenderer {
         for (int y = 0; y <= Constants.BOARD_HEIGHT; y++)
             gameGc.strokeLine(0, y * cs, w, y * cs);
 
-        if (!isHardMode) {
-            gameGc.setStroke(Color.web("#00ff00"));
-            gameGc.setLineWidth(2);
-            gameGc.strokeRect(0, 0, w, h);
-        }
-
         boolean isDark = false;
         HardModeHandler.BlackoutState bState = hardMode.blackoutState;
         if (bState == HardModeHandler.BlackoutState.FLICKER)
@@ -587,13 +581,16 @@ class GameRenderer {
     private void drawPreview(GraphicsContext gc, Canvas canvas, Piece piece) {
         double w = canvas.getWidth(), h = canvas.getHeight();
         HardModeHandler.BlackoutState bState = hardMode.blackoutState;
-        gc.setFill(Color.web(
-                bState == HardModeHandler.BlackoutState.BLACKOUT ? "#000000"
-                        : gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
-        gc.fillRect(0, 0, w, h);
-        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+
+        if (gameContext.getGameMode() != GameContext.GameMode.HARD_MODE) {
+            gc.clearRect(0, 0, w, h);
+        } else {
+            gc.setFill(Color.web(
+                    bState == HardModeHandler.BlackoutState.BLACKOUT ? "#000000" : "#280C00"));
+            gc.fillRect(0, 0, w, h);
             drawQuestionMark(gc, canvas); return;
         }
+
         if (piece == null) return;
         boolean isRandomPreview = piece instanceof RandomBlock;
         TetrominoType type = piece.getType();
