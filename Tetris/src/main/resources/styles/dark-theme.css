@@ -102,16 +102,12 @@
 
 .settings-main-panel {
     -fx-background-color: transparent;
-    -fx-background-image: url("../assets/rectangle-30.png");
-    -fx-background-repeat: no-repeat;
-    -fx-background-position: center;
-    -fx-background-size: 100% 100%;
     -fx-border-width: 0;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 4, 0.0, 0, 4);
+    -fx-effect: none;
 }
 
 .settings-overlay-backdrop {
-    -fx-background-color: rgba(0, 0, 0, 0.56);
+    -fx-background-color: rgba(0, 0, 0, 0.28);
 }
 
 .settings-popup-shell {
@@ -123,7 +119,18 @@
 }
 
 .settings-action-button {
-    -fx-font-size: 46;
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/setting_btn.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-border-width: 0;
+    -fx-padding: 0 0 7 0;
+    -fx-font-family: "VT323";
+    -fx-font-size: 40;
+    -fx-text-fill: #ffffff;
+    -fx-effect: none;
+    -fx-cursor: hand;
 }
 
 .settings-header-overlay {
@@ -132,32 +139,33 @@
 
 .settings-header-title {
     -fx-font-family: "VT323";
-    -fx-font-size: 64;
+    -fx-font-size: 45;
     -fx-text-fill: #ffffff;
 }
 
 .settings-score-label {
     -fx-font-family: "VT323";
-    -fx-font-size: 32;
+    -fx-font-size: 24;
     -fx-text-fill: #ffffff;
 }
 
 .settings-score-value {
     -fx-font-family: "VT323";
-    -fx-font-size: 64;
+    -fx-font-size: 42;
     -fx-text-fill: #96ffde;
 }
 
 .figma-slider .track {
     -fx-background-color: #ffffff;
-    -fx-pref-height: 10;
+    -fx-pref-height: 8;
 }
 
 .figma-slider .thumb {
     -fx-background-color: #ffffff;
     -fx-background-radius: 0;
-    -fx-pref-width: 14;
-    -fx-pref-height: 24;
+    -fx-pref-width: 0;
+    -fx-pref-height: 0;
+    -fx-padding: 0;
 }
 
 .figma-slider:focused {
