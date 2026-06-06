@@ -78,8 +78,15 @@
                     managed="false" layoutX="-124" layoutY="26" mouseTransparent="true"/>
         </StackPane>
 
-        <!-- Right spacer to balance left panel width so canvas stays centered -->
-        <Region prefWidth="216" minWidth="216"/>
+        <VBox fx:id="bombInventoryBox" prefWidth="216" prefHeight="176" styleClass="hard-dash-panel" alignment="CENTER">
+            <VBox alignment="TOP_LEFT" style="-fx-padding: 37 40 22 40;" spacing="8">
+                <Label text="BOMB SKILL" styleClass="hard-label-header"/>
+                <Label fx:id="bombsLabel" text="💣 READY" style="-fx-font-size: 32; -fx-text-fill: #ff5566; -fx-font-family: 'VT323';">
+                    <VBox.margin><Insets top="10"/></VBox.margin>
+                </Label>
+                <Label text="[ Press B ]" style="-fx-font-size: 14; -fx-text-fill: #666688; -fx-font-family: 'VT323';"/>
+            </VBox>
+        </VBox>
 
     </HBox>
 
