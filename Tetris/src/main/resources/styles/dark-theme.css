@@ -155,6 +155,13 @@
     -fx-text-fill: #96ffde;
 }
 
+.settings-volume-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 30;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center-left;
+}
+
 .figma-slider .track {
     -fx-background-color: #ffffff;
     -fx-pref-height: 8;
@@ -163,9 +170,16 @@
 .figma-slider .thumb {
     -fx-background-color: #ffffff;
     -fx-background-radius: 0;
-    -fx-pref-width: 0;
-    -fx-pref-height: 0;
-    -fx-padding: 0;
+    -fx-border-color: #bdbdbd;
+    -fx-border-width: 2;
+    -fx-pref-width: 22;
+    -fx-pref-height: 22;
+    -fx-padding: 0 0 0 0;
+}
+
+.figma-slider:hover .thumb {
+    -fx-background-color: #96ffde;
+    -fx-border-color: #ffffff;
 }
 
 .figma-slider:focused {

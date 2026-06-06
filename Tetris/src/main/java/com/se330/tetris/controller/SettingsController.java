@@ -61,6 +61,7 @@ public class SettingsController {
     private SceneManager sceneManager;
     private Runnable closeHandler;
     private Runnable quitHandler;
+    private boolean loadingSettings = false;
 
     @FXML
     private void initialize() {
@@ -82,26 +83,37 @@ public class SettingsController {
     }
 
     private void loadSettings() {
-        musicToggle.setSelected(true);
-        musicVolume.setValue(70);
-        musicVolumeLabel.setText("70%");
+        loadingSettings = true;
+        SoundManager soundManager = SoundManager.getInstance();
+        int musicPercent = Math.round(soundManager.getMusicVolume() * 100.0f);
+        int sfxPercent = Math.round(soundManager.getSEVolume() * 100.0f);
 
-        sfxToggle.setSelected(true);
-        sfxVolume.setValue(80);
-        sfxVolumeLabel.setText("80%");
+        musicToggle.setSelected(musicPercent > 0);
+        musicVolume.setValue(musicPercent);
+        musicVolumeLabel.setText(musicPercent + "%");
+        musicVolume.setDisable(musicPercent <= 0);
+
+        sfxToggle.setSelected(sfxPercent > 0);
+        sfxVolume.setValue(sfxPercent);
+        sfxVolumeLabel.setText(sfxPercent + "%");
+        sfxVolume.setDisable(sfxPercent <= 0);
 
         hardModeToggle.setSelected(false);
         gridToggle.setSelected(true);
 
-        System.out.println("Settings loaded (default values)");
+        syncAudioButtonState();
+        loadingSettings = false;
     }
 
     private void onMusicToggled(boolean enabled) {
+        if (loadingSettings) return;
         musicVolume.setDisable(!enabled);
         syncAudioButtonState();
-        System.out.println("Music: " + (enabled ? "enabled" : "disabled"));
 
         if (enabled) {
+            if (musicVolume.getValue() <= 0) {
+                musicVolume.setValue(70);
+            }
             SoundManager.getInstance().setMusicVolume((float) musicVolume.getValue() / 100.0f);
         } else {
             SoundManager.getInstance().setMusicVolume(0.0f);
@@ -109,11 +121,14 @@ public class SettingsController {
     }
 
     private void onSfxToggled(boolean enabled) {
+        if (loadingSettings) return;
         sfxVolume.setDisable(!enabled);
         syncAudioButtonState();
-        System.out.println("SFX: " + (enabled ? "enabled" : "disabled"));
 
         if (enabled) {
+            if (sfxVolume.getValue() <= 0) {
+                sfxVolume.setValue(80);
+            }
             SoundManager.getInstance().setSEVolume((float) sfxVolume.getValue() / 100.0f);
         } else {
             SoundManager.getInstance().setSEVolume(0.0f);
@@ -133,17 +148,29 @@ public class SettingsController {
     }
 
     private void onMusicVolumeChanged(int volume) {
+        if (loadingSettings) return;
         musicVolumeLabel.setText(volume + "%");
-        System.out.println("Music volume changed to: " + volume + "%");
-
-        SoundManager.getInstance().setMusicVolume(volume / 100.0f);
+        boolean enabled = volume > 0;
+        if (musicToggle.isSelected() != enabled) {
+            musicToggle.setSelected(enabled);
+            return;
+        }
+        musicVolume.setDisable(!enabled);
+        syncAudioButtonState();
+        SoundManager.getInstance().setMusicVolume(enabled ? volume / 100.0f : 0.0f);
     }
 
     private void onSfxVolumeChanged(int volume) {
+        if (loadingSettings) return;
         sfxVolumeLabel.setText(volume + "%");
-        System.out.println("SFX volume changed to: " + volume + "%");
-
-        SoundManager.getInstance().setSEVolume(volume / 100.0f);
+        boolean enabled = volume > 0;
+        if (sfxToggle.isSelected() != enabled) {
+            sfxToggle.setSelected(enabled);
+            return;
+        }
+        sfxVolume.setDisable(!enabled);
+        syncAudioButtonState();
+        SoundManager.getInstance().setSEVolume(enabled ? volume / 100.0f : 0.0f);
     }
 
     private void onHardModeToggled(boolean enabled) {
@@ -171,7 +198,6 @@ public class SettingsController {
     private void onCancelClicked() {
         SoundManager.getInstance().playSE(SoundType.CLICK);
         System.out.println("Settings changes discarded");
-        loadSettings();
         if (quitHandler != null) {
             quitHandler.run();
             return;

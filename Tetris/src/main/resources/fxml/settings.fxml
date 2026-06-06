@@ -51,10 +51,15 @@
             </graphic>
         </Button>
 
-        <Slider fx:id="musicVolume" layoutX="283.0" layoutY="194.0" prefWidth="330.0" prefHeight="18.0"
+        <Slider fx:id="musicVolume" layoutX="283.0" layoutY="194.0" prefWidth="280.0" prefHeight="18.0"
                 min="0" max="100" value="70" styleClass="figma-slider" />
-        <Slider fx:id="sfxVolume" layoutX="283.0" layoutY="264.0" prefWidth="330.0" prefHeight="18.0"
+        <Label fx:id="musicVolumeLabel" layoutX="585.0" layoutY="179.0"
+               prefWidth="70.0" prefHeight="42.0" text="70%" styleClass="settings-volume-value" />
+
+        <Slider fx:id="sfxVolume" layoutX="283.0" layoutY="264.0" prefWidth="280.0" prefHeight="18.0"
                 min="0" max="100" value="80" styleClass="figma-slider" />
+        <Label fx:id="sfxVolumeLabel" layoutX="585.0" layoutY="249.0"
+               prefWidth="70.0" prefHeight="42.0" text="80%" styleClass="settings-volume-value" />
 
         <Button fx:id="cancelBtn" onAction="#onCancelClicked" text="Quit"
                 layoutX="151.0" layoutY="330.0" prefWidth="190.0" prefHeight="109.0"
@@ -69,7 +74,5 @@
     <CheckBox fx:id="sfxToggle" selected="true" visible="false" managed="false" />
     <CheckBox fx:id="hardModeToggle" selected="false" visible="false" managed="false" />
     <CheckBox fx:id="gridToggle" selected="true" visible="false" managed="false" />
-    <Label fx:id="musicVolumeLabel" visible="false" managed="false" text="70%" />
-    <Label fx:id="sfxVolumeLabel" visible="false" managed="false" text="80%" />
 
 </AnchorPane>

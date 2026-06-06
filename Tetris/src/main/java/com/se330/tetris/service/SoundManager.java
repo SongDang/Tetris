@@ -124,13 +124,29 @@ public class SoundManager {
     }
 
     public void setMusicVolume(float volume) {
-        this.musicVolume = volume;
+        this.musicVolume = clampVolume(volume);
         if (musicClip != null && musicClip.isOpen()) {
             applyVolume(musicClip, musicVolume);
         }
     }
+
     public void setSEVolume(float volume) {
-        this.seVolume = volume;
+        this.seVolume = clampVolume(volume);
+        if (loopingClip != null && loopingClip.isOpen()) {
+            applyVolume(loopingClip, seVolume);
+        }
+    }
+
+    public float getMusicVolume() {
+        return musicVolume;
+    }
+
+    public float getSEVolume() {
+        return seVolume;
+    }
+
+    private float clampVolume(float volume) {
+        return Math.max(0.0f, Math.min(1.0f, volume));
     }
 
     private void applyVolume(Clip clip, float volume) {
