@@ -149,6 +149,22 @@
     -fx-cursor: hand;
 }
 
+.settings-action-button:hover {
+    -fx-background-image: url("../assets/setting_btn_var2.png");
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.settings-action-button:pressed {
+    -fx-background-image: url("../assets/setting_btn_var3.png");
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
 .settings-header-overlay {
     -fx-background-color: transparent;
 }
