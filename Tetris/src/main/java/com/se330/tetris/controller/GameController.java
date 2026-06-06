@@ -51,6 +51,8 @@ public class GameController {
     @FXML private javafx.scene.control.Label comboLabel;
     @FXML private Label bombsLabel;
     @FXML private VBox bombInventoryBox;
+    @FXML private javafx.scene.layout.AnchorPane settingsOverlay;
+    @FXML private SettingsController settingsPopupController;
 
     private javafx.scene.image.Image lightOnImage;
     private javafx.scene.image.Image lightOffImage;
@@ -177,6 +179,19 @@ public class GameController {
         spawnPiece();
         refreshLabels();
         timeAttack.setup();
+        if (settingsPopupController != null) {
+            settingsPopupController.setScoreVisible(true);
+            settingsPopupController.setCloseHandler(this::closePauseSettings);
+            settingsPopupController.setQuitHandler(this::quitToMainMenuFromSettings);
+        }
+        if (settingsOverlay != null) {
+            settingsOverlay.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+                if (event.getCode() == KeyCode.ESCAPE) {
+                    closePauseSettings();
+                }
+                event.consume();
+            });
+        }
 
         gamePane.setOnKeyPressed(this::handleKeyPressed);
         gamePane.setOnKeyReleased(e -> { if (e.getCode() == KeyCode.S) softDropping = false; });
@@ -540,6 +555,16 @@ public class GameController {
     private void handleKeyPressed(KeyEvent event) {
         if (isGameOver) return;
         KeyCode code = event.getCode();
+        if (code == KeyCode.ESCAPE) {
+            if (isSettingsOverlayVisible()) closePauseSettings();
+            else openPauseSettings();
+            event.consume();
+            return;
+        }
+        if (isSettingsOverlayVisible()) {
+            event.consume();
+            return;
+        }
         if (code == KeyCode.P) { handlePause(); event.consume(); return; }
         if (freezeUntil > 0) { event.consume(); return; }
         switch (code) {
@@ -574,7 +599,6 @@ public class GameController {
             case P -> {} // handled above
             case B -> useBombSkill();
             case C, SHIFT -> holdCurrentPiece();
-            case ESCAPE -> handleExit();
             default -> { return; }
         }
         event.consume();
@@ -745,7 +769,45 @@ public class GameController {
         if (gamePaused) timeAttack.pause(); else timeAttack.resume();
     }
 
-    private void handleExit() {
+    @FXML
+    private void onSettingsOverlayBackdropClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        closePauseSettings();
+    }
+
+    private void openPauseSettings() {
+        if (settingsOverlay == null) return;
+        if (!gamePaused) {
+            gamePaused = true;
+            timeAttack.pause();
+        }
+        if (settingsPopupController != null) {
+            settingsPopupController.setScoreVisible(true);
+            settingsPopupController.setScoreValue(gameContext.getScore());
+        }
+        settingsOverlay.setManaged(true);
+        settingsOverlay.setVisible(true);
+        settingsOverlay.toFront();
+        Platform.runLater(settingsOverlay::requestFocus);
+    }
+
+    private void closePauseSettings() {
+        if (settingsOverlay != null) {
+            settingsOverlay.setVisible(false);
+            settingsOverlay.setManaged(false);
+        }
+        if (gamePaused && !isGameOver) {
+            gamePaused = false;
+            timeAttack.resume();
+        }
+        Platform.runLater(gamePane::requestFocus);
+    }
+
+    private boolean isSettingsOverlayVisible() {
+        return settingsOverlay != null && settingsOverlay.isVisible();
+    }
+
+    private void quitToMainMenuFromSettings() {
         stopRandomBlockIfNeeded(currentPiece);
         timeAttack.stopAll();
         SoundManager.getInstance().stopLooping();

@@ -59,6 +59,8 @@ public class SettingsController {
     private Button sfxIconBtn;
 
     private SceneManager sceneManager;
+    private Runnable closeHandler;
+    private Runnable quitHandler;
 
     @FXML
     private void initialize() {
@@ -156,6 +158,10 @@ public class SettingsController {
     private void onSaveClicked() {
         SoundManager.getInstance().playSE(SoundType.CLICK);
         logSettings();
+        if (closeHandler != null) {
+            closeHandler.run();
+            return;
+        }
         if (!hideOverlayIfPresent()) {
             sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
         }
@@ -166,6 +172,10 @@ public class SettingsController {
         SoundManager.getInstance().playSE(SoundType.CLICK);
         System.out.println("Settings changes discarded");
         loadSettings();
+        if (quitHandler != null) {
+            quitHandler.run();
+            return;
+        }
         if (!hideOverlayIfPresent()) {
             sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
         }
@@ -211,5 +221,19 @@ public class SettingsController {
             settingsScoreValue.setVisible(visible);
             settingsScoreValue.setManaged(visible);
         }
+    }
+
+    public void setScoreValue(int score) {
+        if (settingsScoreValue != null) {
+            settingsScoreValue.setText(String.valueOf(score));
+        }
+    }
+
+    public void setCloseHandler(Runnable closeHandler) {
+        this.closeHandler = closeHandler;
+    }
+
+    public void setQuitHandler(Runnable quitHandler) {
+        this.quitHandler = quitHandler;
     }
 }
