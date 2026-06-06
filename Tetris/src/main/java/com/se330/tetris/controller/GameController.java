@@ -122,6 +122,7 @@ public class GameController {
         gameContext.reset();
         Platform.runLater(() -> vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
         bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
+        ghostSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/GhostBlock.png"));
 
         lightOnImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
         lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
@@ -152,6 +153,7 @@ public class GameController {
                 lightBulbView,
                 mainFrameView,
                 bombSprite,
+                ghostSprite,
                 lightOnImage,
                 lightOffImage,
                 hardMainImage,
