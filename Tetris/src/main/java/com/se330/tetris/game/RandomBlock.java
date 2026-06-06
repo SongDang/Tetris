@@ -1,5 +1,7 @@
 package com.se330.tetris.game;
 
+import com.se330.tetris.service.SoundManager;
+import com.se330.tetris.util.SoundType;
 import javafx.application.Platform;
 
 import java.util.ArrayList;
@@ -28,6 +30,8 @@ public class RandomBlock extends Piece {
     private volatile boolean transforming;
     private volatile long lastIndicatorToggleMs;
     private volatile boolean indicatorOn;
+    private volatile long lastChangeMs = System.currentTimeMillis();
+    private volatile TetrominoType nextType;
     private BiPredicate<RandomBlock, TetrominoType> typeValidator;
 
     public RandomBlock(TetrominoType initialType, int x, int y, long intervalMs) {
@@ -41,6 +45,7 @@ public class RandomBlock extends Piece {
         this.transforming = false;
         this.indicatorOn = true;
         this.lastIndicatorToggleMs = System.currentTimeMillis();
+        this.nextType = pickPreview(initialType);
     }
 
     public void setTypeValidator(BiPredicate<RandomBlock, TetrominoType> typeValidator) {
@@ -81,21 +86,47 @@ public class RandomBlock extends Piece {
         return indicatorOn;
     }
 
+    public TetrominoType getPreviewType() {
+        return nextType;
+    }
+
+    public double getMorphProgress() {
+        if (!transforming) return 0;
+        double elapsed = System.currentTimeMillis() - lastChangeMs;
+        return Math.min(1.0, elapsed / intervalMs);
+    }
+
+    private TetrominoType pickPreview(TetrominoType exclude) {
+        List<TetrominoType> candidates = new ArrayList<>(ALLOWED_TYPES);
+        candidates.remove(exclude);
+        java.util.Collections.shuffle(candidates, rng);
+        return candidates.isEmpty() ? exclude : candidates.get(0);
+    }
+
     private void changeTypeIfPossible() {
         if (!transforming) {
             return;
         }
-
-        TetrominoType current = getType();
-        List<TetrominoType> candidates = new ArrayList<>(ALLOWED_TYPES);
-        candidates.remove(current);
-        java.util.Collections.shuffle(candidates, rng);
-
-        for (TetrominoType candidate : candidates) {
-            if (typeValidator == null || typeValidator.test(this, candidate)) {
-                setType(candidate);
-                return;
+        // Transform to the pre-determined nextType if valid, else pick a new one
+        TetrominoType target = nextType;
+        if (target == null || (typeValidator != null && !typeValidator.test(this, target))) {
+            List<TetrominoType> candidates = new ArrayList<>(ALLOWED_TYPES);
+            candidates.remove(getType());
+            java.util.Collections.shuffle(candidates, rng);
+            target = null;
+            for (TetrominoType candidate : candidates) {
+                if (typeValidator == null || typeValidator.test(this, candidate)) {
+                    target = candidate;
+                    break;
+                }
             }
+        }
+        if (target != null) {
+            setType(target);
+            lastChangeMs = System.currentTimeMillis();
+            nextType = pickPreview(target);
+
+            SoundManager.getInstance().playSE(SoundType.RANDOM_PIECE);
         }
     }
 }

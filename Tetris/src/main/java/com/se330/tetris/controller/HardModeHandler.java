@@ -12,9 +12,9 @@ import java.util.Random;
 /**
  * Manages hard mode mechanics: blackout state machine and flavour text.
  */
-class HardModeHandler {
+public class HardModeHandler {
 
-    enum BlackoutState { NORMAL, FLICKER, PRE_BLACKOUT, BLACKOUT, POST_FLICKER }
+    public enum BlackoutState { NORMAL, FLICKER, PRE_BLACKOUT, BLACKOUT, POST_FLICKER }
 
     private static final double BLACKOUT_AUTO_DROP = 1.5;
     private static final double FLAVOUR_BASE_CD = 7.0;
@@ -50,28 +50,28 @@ class HardModeHandler {
     };
 
     // Blackout state
-    BlackoutState blackoutState = BlackoutState.NORMAL;
+    public BlackoutState blackoutState = BlackoutState.NORMAL;
     private double blackoutTimer = 0;
     private double blackoutDuration = 0;
-    double blackoutFlickerTimer = 0;
-    double blackoutDropTimer = 0;
+    public double blackoutFlickerTimer = 0;
+    public double blackoutDropTimer = 0;
 
     // Flavour text state
-    boolean lightsOutMode = false;
-    boolean darknessLoomsMode = false;
-    double flavourWaveTime = 0;
-    double flavourTypeElapsed = 0;
+    public boolean lightsOutMode = false;
+    public boolean darknessLoomsMode = false;
+    public double flavourWaveTime = 0;
+    public double flavourTypeElapsed = 0;
     private double flavourCooldown = 0;
-    int placesSinceFlavour = 0;
-    final List<Label> flavourChars = new ArrayList<>();
-    HBox flavourHBox;
+    public int placesSinceFlavour = 0;
+    public final List<Label> flavourChars = new ArrayList<>();
+    public HBox flavourHBox;
     private StackPane flavourPane;
 
     private final Random rng;
     private final Runnable onMusicPause;
     private final Runnable onMusicResume;
 
-    HardModeHandler(Random rng, Runnable onMusicPause, Runnable onMusicResume) {
+    public HardModeHandler(Random rng, Runnable onMusicPause, Runnable onMusicResume) {
         this.rng = rng;
         this.onMusicPause = onMusicPause;
         this.onMusicResume = onMusicResume;
@@ -79,7 +79,7 @@ class HardModeHandler {
 
     // --- Initialization ---
 
-    void buildFlavourChars(Label flavourLabel) {
+    public void buildFlavourChars(Label flavourLabel) {
         if (flavourLabel == null) return;
         flavourLabel.setVisible(false);
         flavourPane = (StackPane) flavourLabel.getParent();
@@ -92,7 +92,7 @@ class HardModeHandler {
 
     // --- Per-frame update ---
 
-    void update(double dt) {
+    public void update(double dt) {
         flavourWaveTime += dt;
         flavourTypeElapsed += dt;
         flavourCooldown -= dt;
@@ -100,7 +100,7 @@ class HardModeHandler {
     }
 
     /** Returns true if auto hard-drop should fire this frame. */
-    boolean tickBlackoutDrop(double dt) {
+    public boolean tickBlackoutDrop(double dt) {
         if (blackoutState != BlackoutState.BLACKOUT) return false;
         blackoutDropTimer += dt;
         if (blackoutDropTimer >= BLACKOUT_AUTO_DROP) {
@@ -163,26 +163,28 @@ class HardModeHandler {
         }
     }
 
-    void resetBlackoutOnSpawn() {
-        if (blackoutState != BlackoutState.NORMAL) {
+    /** Đã sửa đổi logic: Chỉ cho phép kết thúc trạng thái Blackout sớm nếu đã bước vào giai đoạn hồi đèn cuối cùng */
+    public void resetBlackoutOnSpawn() {
+        if (blackoutState == BlackoutState.POST_FLICKER) {
             blackoutState = BlackoutState.NORMAL;
             blackoutDuration = 0;
             blackoutFlickerTimer = 0;
+            blackoutTimer = 0;
         }
     }
 
     // --- Flavour text ---
 
-    boolean trySetFlavourPlace(int stackTopRow) {
+    public boolean trySetFlavourPlace(int stackTopRow) {
         boolean isHigh = stackTopRow < 7;
         return trySetFlavour(isHigh ? FLAVOUR_STACK : FLAVOUR_PLACE, 0.0);
     }
 
-    boolean trySetFlavourClear() { return trySetFlavour(FLAVOUR_CLEAR, 0.0); }
+    public boolean trySetFlavourClear() { return trySetFlavour(FLAVOUR_CLEAR, 0.0); }
 
-    boolean trySetFlavourTetris() { return trySetFlavour(FLAVOUR_TETRIS, FLAVOUR_BASE_CD); }
+    public boolean trySetFlavourTetris() { return trySetFlavour(FLAVOUR_TETRIS, FLAVOUR_BASE_CD); }
 
-    boolean trySetFlavourCombo() { return trySetFlavour(FLAVOUR_COMBO, 2.0); }
+    public boolean trySetFlavourCombo() { return trySetFlavour(FLAVOUR_COMBO, 2.0); }
 
     private boolean trySetFlavour(String[] pool, double threshold) {
         if (lightsOutMode || flavourCooldown > threshold || flavourHBox == null) return false;
@@ -227,10 +229,10 @@ class HardModeHandler {
         if (flavourHBox == null) return;
         flavourChars.clear();
         flavourHBox.getChildren().clear();
+        String baseColor = (hexColor != null) ? hexColor : "#00ff00"; // Mặc định xanh neon retro nếu không truyền màu
         for (char c : text.toCharArray()) {
             Label l = new Label(String.valueOf(c));
-            l.getStyleClass().add("hard-flavour-text");
-            if (hexColor != null) l.setStyle("-fx-text-fill: " + hexColor + ";");
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: " + baseColor + ";");
             l.setOpacity(0);
             flavourChars.add(l);
             flavourHBox.getChildren().add(l);
@@ -240,7 +242,7 @@ class HardModeHandler {
 
     // --- Render-time flavour update (called each frame during render) ---
 
-    void renderFlavourText(Random renderRng) {
+    public void renderFlavourText(Random renderRng) {
         if (lightsOutMode) {
             renderLightsOutFlavour(renderRng);
         } else if (darknessLoomsMode) {
@@ -279,6 +281,7 @@ class HardModeHandler {
             else
                 l.setOpacity(visible ? 1.0 : 0.0);
             if (visible) l.setTranslateY(Math.sin(flavourWaveTime * 1.2 + i * 0.45) * 5.0);
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: #40A3FF;");
         }
     }
 
@@ -290,6 +293,8 @@ class HardModeHandler {
             boolean visible = i < nVisible;
             l.setOpacity(visible ? 1.0 : 0.0);
             if (visible) l.setTranslateY(Math.sin(flavourWaveTime * 2.5 + i * 0.45) * 2.5);
+            // Đảm bảo ép font VT323 để không bị vỡ giao diện chữ châm biếm thông thường
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: #00ff00;");
         }
     }
 }

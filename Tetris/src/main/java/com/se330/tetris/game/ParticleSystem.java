@@ -43,9 +43,22 @@ public class ParticleSystem {
         boolean isDead()       { return life <= 0; }
     }
 
-    private final List<Particle>       particles = new ArrayList<>();
-    private final List<LightColumn>    columns   = new ArrayList<>();
-    private final List<HorizontalBeam> beams     = new ArrayList<>();
+    private static class RibbonParticle {
+        double x, y, vy, life, decay, width, height;
+        Color color;
+        RibbonParticle(double x, double y, double vy, double decay, Color color, double width, double height) {
+            this.x = x; this.y = y; this.vy = vy;
+            this.life = 1.0; this.decay = decay;
+            this.color = color; this.width = width; this.height = height;
+        }
+        void update(double dt) { y += vy * dt; life -= decay * dt; }
+        boolean isDead() { return life <= 0; }
+    }
+
+    private final List<Particle>        particles = new ArrayList<>();
+    private final List<LightColumn>     columns   = new ArrayList<>();
+    private final List<HorizontalBeam>  beams     = new ArrayList<>();
+    private final List<RibbonParticle>  ribbons   = new ArrayList<>();
     private final Random rng = new Random();
 
     public void emitLockParticles(double pixelX, double pixelY, Color color, int count) {
@@ -143,6 +156,49 @@ public class ParticleSystem {
         }
     }
 
+    public void emitRandomBlockSparks(double cx, double cy, double blockSize) {
+        int count = 2 + rng.nextInt(3);
+        for (int i = 0; i < count; i++) {
+            double angle  = rng.nextDouble() * Math.PI * 2;
+            double speed  = rng.nextDouble() * 140 + 60;
+            double px     = cx + (rng.nextDouble() - 0.5) * blockSize * 0.5;
+            double py     = cy + (rng.nextDouble() - 0.5) * blockSize * 0.5;
+            // alternate red and blue per particle
+            Color c = (i % 2 == 0) ? Color.web("#ff2222") : Color.web("#2266ff");
+            double decay  = rng.nextDouble() * 4.0 + 6.0;
+            double size   = rng.nextDouble() * 2.5 + 1.0;
+            particles.add(new Particle(px, py, Math.cos(angle) * speed, Math.sin(angle) * speed, decay, c, size));
+        }
+    }
+
+    public void emitGhostDrift(double cx, double cy, double blockSize) {
+        Color[] palette = { Color.web("#b39ddb"), Color.web("#ce93d8"), Color.web("#ede7f6"), Color.WHITE };
+        int count = 2 + rng.nextInt(3);
+        for (int i = 0; i < count; i++) {
+            double px    = cx + (rng.nextDouble() - 0.5) * blockSize;
+            double py    = cy + (rng.nextDouble() - 0.5) * blockSize;
+            double vx    = (rng.nextDouble() - 0.5) * 35;
+            double vy    = -(rng.nextDouble() * 60 + 25);
+            double decay = rng.nextDouble() * 1.5 + 1.8;
+            double size  = rng.nextDouble() * 5.0 + 2.5;
+            particles.add(new Particle(px, py, vx, vy, decay, palette[rng.nextInt(palette.length)], size));
+        }
+    }
+
+    public void emitGhostTrail(double cx, double cy, double blockSize) {
+        Color[] palette = { Color.web("#b39ddb"), Color.web("#d8b4fe"), Color.WHITE, Color.web("#e040fb") };
+        int count = 20 + rng.nextInt(10);
+        for (int i = 0; i < count; i++) {
+            double px     = cx + (rng.nextDouble() - 0.5) * blockSize * 0.9;
+            double py     = cy + (rng.nextDouble() - 0.5) * blockSize * 0.5;
+            double vy     = -(rng.nextDouble() * 180 + 80);
+            double decay  = rng.nextDouble() * 2.0 + 4.0;
+            double width  = rng.nextDouble() * 2.0 + 1.5;
+            double height = rng.nextDouble() * 18.0 + 10.0;
+            ribbons.add(new RibbonParticle(px, py, vy, decay, palette[rng.nextInt(palette.length)], width, height));
+        }
+    }
+
     public void emitRowBeams(double leftBaseX, double rightBaseX,
                               double rowY, double rowH, Color color) {
         double flashW = 120.0;
@@ -158,8 +214,11 @@ public class ParticleSystem {
         Iterator<LightColumn>    cit = columns.iterator();
         while (cit.hasNext()) { LightColumn c = cit.next(); c.update(dt); if (c.isDead()) cit.remove(); }
 
-        Iterator<HorizontalBeam> bit = beams.iterator();
+        Iterator<HorizontalBeam>  bit = beams.iterator();
         while (bit.hasNext()) { HorizontalBeam b = bit.next(); b.update(dt); if (b.isDead()) bit.remove(); }
+
+        Iterator<RibbonParticle>  rit = ribbons.iterator();
+        while (rit.hasNext()) { RibbonParticle r = rit.next(); r.update(dt); if (r.isDead()) rit.remove(); }
     }
 
     public void render(GraphicsContext gc) {
@@ -181,6 +240,11 @@ public class ParticleSystem {
             gc.setGlobalAlpha(Math.max(0, p.life));
             gc.setFill(p.color);
             gc.fillRect(p.x, p.y, p.size, p.size);
+        }
+        for (RibbonParticle r : ribbons) {
+            gc.setGlobalAlpha(Math.max(0, r.life));
+            gc.setFill(r.color);
+            gc.fillRect(r.x - r.width / 2, r.y, r.width, r.height);
         }
         gc.setGlobalAlpha(1.0);
     }

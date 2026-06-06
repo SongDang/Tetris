@@ -51,6 +51,7 @@ class GameRenderer {
 
     // Images
     private final Image bombSprite;
+    private final Image ghostSprite;
     private final Image lightOnImage;
     private final Image lightOffImage;
     private final Image hardMainImage;
@@ -76,6 +77,8 @@ class GameRenderer {
     double rotationPulse = 0;
     double flashIntensity = 0;
     double gameOverFlashAlpha = 0;
+    private double ghostParticleTimer = 0;
+    private double randomBlockSparkTimer = 0;
 
     // Startup glitch
     double startupGlitchElapsed = 0;
@@ -103,7 +106,7 @@ class GameRenderer {
     GameRenderer(Canvas gameCanvas, Canvas vfxCanvas, Canvas holdBlockCanvas,
                  Canvas nextBlockCanvas1, Canvas nextBlockCanvas2, Canvas nextBlockCanvas3,
                  Pane gamePane, ImageView lightBulbView, ImageView mainFrameView,
-                 Image bombSprite, Image lightOnImage, Image lightOffImage,
+                 Image bombSprite, Image ghostSprite, Image lightOnImage, Image lightOffImage,
                  Image hardMainImage, Image darkMainImage,
                  GameContext gameContext, BoardEngine boardEngine, HardModeHandler hardMode, Random rng) {
         this.gameCanvas = gameCanvas;
@@ -116,6 +119,7 @@ class GameRenderer {
         this.lightBulbView = lightBulbView;
         this.mainFrameView = mainFrameView;
         this.bombSprite = bombSprite;
+        this.ghostSprite = ghostSprite;
         this.lightOnImage = lightOnImage;
         this.lightOffImage = lightOffImage;
         this.hardMainImage = hardMainImage;
@@ -248,7 +252,7 @@ class GameRenderer {
 
     // --- Per-frame update ---
 
-    void update(double dt, boolean gamePaused, boolean isGameOver) {
+    void update(double dt, boolean gamePaused, boolean isGameOver, Piece currentPiece) {
         if (glitchTearEffect != null) glitchTearEffect.update(dt);
         if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
         if (startupGlitchElapsed < STARTUP_GLITCH_DUR) startupGlitchElapsed += dt;
@@ -264,6 +268,39 @@ class GameRenderer {
                 p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt / 0.7;
             }
             updateScreenShake(dt);
+
+            // --- HIỆU ỨNG HẠT CHO KHỐI TÀNG HÌNH (TRANSPARENT) ---
+            if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
+                int cs = Constants.BLOCK_SIZE;
+                int[][] gShape = currentPiece.getType().getShape(currentPiece.getRotation());
+                ghostParticleTimer -= dt;
+                if (ghostParticleTimer <= 0) {
+                    ghostParticleTimer = 0.06; // Khoảng 0.06s một lần
+                    for (int row = 0; row < 4; row++)
+                        for (int col = 0; col < 4; col++)
+                            if (gShape[row][col] == 1)
+                                particleSystem.emitGhostDrift(
+                                        (currentPiece.getX() + col + 0.5) * cs,
+                                        (currentPiece.getY() + row + 0.5) * cs, cs);
+                }
+            }
+
+            // --- HIỆU ỨNG TIA LỬA CHO KHỐI NGẪU NHIÊN (RANDOMBLOCK) ---
+            if (currentPiece instanceof RandomBlock) {
+                randomBlockSparkTimer -= dt;
+                if (randomBlockSparkTimer <= 0) {
+                    randomBlockSparkTimer = 0.05;
+                    int cs = Constants.BLOCK_SIZE;
+                    int[][] rbShape = currentPiece.getType().getShape(currentPiece.getRotation());
+                    for (int row = 0; row < 4; row++)
+                        for (int col = 0; col < 4; col++)
+                            if (rbShape[row][col] == 1)
+                                particleSystem.emitRandomBlockSparks(
+                                        (currentPiece.getX() + col + 0.5) * cs,
+                                        (currentPiece.getY() + row + 0.5) * cs, cs);
+                }
+            }
+
             if (rotationPulse > 0) rotationPulse = Math.max(0, rotationPulse - dt * 8.0);
             if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
             if (levelUpEffect != null) { levelUpEffect.update(dt); if (levelUpEffect.isDone()) levelUpEffect = null; }
@@ -367,7 +404,6 @@ class GameRenderer {
     }
 
     // --- Board rendering ---
-
     private void drawGameBoard(Piece currentPiece, List<Piece> suspendedPieces,
                                boolean gamePaused, boolean isGameOver,
                                long freezeUntil, int[] frozenRowFlash) {
@@ -394,26 +430,20 @@ class GameRenderer {
         if (bState == HardModeHandler.BlackoutState.BLACKOUT)
             isDark = true;
 
+        // Vẽ các khối tĩnh đã khóa trên bảng
         if (!isDark) {
             for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
                 for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                     if (board[y][x] != 0) {
                         if (board[y][x] == BoardEngine.TIME_BLOCK_ID) { drawTimeBlockCell(x, y, cs); continue; }
                         TetrominoType t = boardEngine.idToType(board[y][x]);
-                        if (t != null) drawCell(x, y, t.getColor(), 1.0);
-                    }
-                }
-            }
-        }
+                        if (t == null) continue;
 
-        for (int y = 0; y < Constants.BOARD_HEIGHT; y++) {
-            for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
-                if (board[y][x] != 0) {
-                    if (board[y][x] == BoardEngine.TIME_BLOCK_ID) { drawTimeBlockCell(x, y, cs); continue; }
-                    TetrominoType t = boardEngine.idToType(board[y][x]);
-                    if (t == null) continue;
-                    if (t == TetrominoType.BOMB) gameGc.drawImage(bombSprite, x * cs, y * cs, cs, cs);
-                    else drawCell(x, y, t.getColor(), 1.0);
+                        // Đổ Sprite đặc biệt cho khối tĩnh từ HEAD
+                        if (t == TetrominoType.BOMB) gameGc.drawImage(bombSprite, x * cs, y * cs, cs, cs);
+                        else if (t == TetrominoType.TRANSPARENT) gameGc.drawImage(ghostSprite, x * cs, y * cs, cs, cs);
+                        else drawCell(x, y, t.getColor(), 1.0);
+                    }
                 }
             }
         }
@@ -430,15 +460,22 @@ class GameRenderer {
 
         if (isGameOver) return;
 
-        // Ghost piece
+        // Ghost piece (Bóng đổ vị trí rơi)
         if (freezeUntil == 0) {
             int drop = boardEngine.getDropDistance(currentPiece, suspendedPieces);
             int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
             for (int row = 0; row < 4; row++)
                 for (int col = 0; col < 4; col++)
-                    if (ghostShape[row][col] == 1)
-                        drawCell(currentPiece.getX() + col, currentPiece.getY() + row + drop,
-                                currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25), 1.0);
+                    if (ghostShape[row][col] == 1) {
+                        if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
+                            gameGc.setGlobalAlpha(0.25);
+                            gameGc.drawImage(ghostSprite, (currentPiece.getX() + col) * cs, (currentPiece.getY() + row + drop) * cs, cs, cs);
+                            gameGc.setGlobalAlpha(1.0);
+                        } else {
+                            drawCell(currentPiece.getX() + col, currentPiece.getY() + row + drop,
+                                    currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25), 1.0);
+                        }
+                    }
         }
 
         renderSuspendedPieces(suspendedPieces, cs);
@@ -459,21 +496,9 @@ class GameRenderer {
     private void drawCurrentPiece(Piece currentPiece, HardModeHandler.BlackoutState bState, int cs) {
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         boolean isBomb = currentPiece.getType() == TetrominoType.BOMB;
+        boolean isGhost = currentPiece.getType() == TetrominoType.TRANSPARENT;
+        boolean isRandomBlock = currentPiece instanceof RandomBlock;
         boolean inBlackout = bState == HardModeHandler.BlackoutState.BLACKOUT;
-
-        // Floating combo during blackout
-        if (comboFloatAlpha > 0) {
-            double cx = comboFloatX + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount;
-            double cy = comboFloatY + (rng.nextDouble() - 0.5) * 2 * comboShakeAmount * 0.4;
-            double flash = (Math.sin(comboFloatPhase * 3.0) + 1.0) / 2.0;
-            Color drawColor = comboColor.interpolate(Color.WHITE, flash);
-            int fontSize = (int) Math.min(75, 32 + comboDisplay * 7);
-            gameGc.setGlobalAlpha(comboFloatAlpha);
-            gameGc.setFont(Font.font("VT323", FontWeight.BOLD, fontSize));
-            gameGc.setFill(drawColor);
-            gameGc.fillText("COMBO x" + comboDisplay, cx, cy);
-            gameGc.setGlobalAlpha(1.0);
-        }
 
         // Blackout overlays
         double w = gameCanvas.getWidth(), h = gameCanvas.getHeight();
@@ -523,7 +548,7 @@ class GameRenderer {
             gameGc.setGlobalAlpha(1.0);
         }
 
-        // Chromatic aberration during blackout
+        // Chromatic aberration (Sắc sai RGB) during blackout
         if (inBlackout) {
             double caOffset = 3.0 + charge * 7.0;
             Color base = currentPiece.getType().getColor();
@@ -544,6 +569,10 @@ class GameRenderer {
             gameGc.setGlobalAlpha(1.0);
         }
 
+        // Vẽ khối đang điều khiển hiện tại kèm hiệu ứng nâng cao từ HEAD
+        long timeFactor = System.currentTimeMillis();
+        double timeSec = timeFactor / 1000.0;
+
         for (int row = 0; row < 4; row++) {
             for (int col = 0; col < 4; col++) {
                 if (shape[row][col] == 1) {
@@ -555,6 +584,43 @@ class GameRenderer {
                         gameGc.rotate(currentPiece.getRotation() * 90.0);
                         gameGc.drawImage(bombSprite, -cs / 2.0, -cs / 2.0, cs, cs);
                         gameGc.restore();
+                    } else if (isGhost) {
+                        // Khôi phục hiệu ứng phân tách ảnh ảo màu tím/trắng đặc trưng của khối tàng hình
+                        double gx = px * cs, gy = py * cs;
+                        double dx1 = Math.sin(timeSec * 35.0) * 5;
+                        double dy1 = Math.cos(timeSec * 28.0) * 4;
+                        double dx2 = -Math.sin(timeSec * 42.0 + 1.2) * 4;
+                        double dy2 = -Math.cos(timeSec * 38.0) * 3;
+
+                        gameGc.save();
+                        gameGc.setGlobalAlpha(0.55);
+                        gameGc.drawImage(ghostSprite, gx + dx1, gy + dy1, cs, cs);
+                        gameGc.setFill(Color.web("#9966cc", 0.5));
+                        gameGc.fillRect(gx + dx1, gy + dy1, cs, cs);
+
+                        gameGc.setGlobalAlpha(0.45);
+                        gameGc.drawImage(ghostSprite, gx + dx2, gy + dy2, cs, cs);
+                        gameGc.setFill(Color.web("#ffffff", 0.45));
+                        gameGc.fillRect(gx + dx2, gy + dy2, cs, cs);
+
+                        gameGc.setGlobalAlpha(1.0);
+                        gameGc.drawImage(ghostSprite, gx, gy, cs, cs);
+                        gameGc.restore();
+                    } else if (isRandomBlock) {
+                        // Khôi phục hiệu ứng rung nhấp nháy ma mị của khối ngẫu nhiên
+                        double erratic = Math.sin(timeSec * 23.0) * Math.sin(timeSec * 11.7) * Math.sin(timeSec * 5.3);
+                        double shift = 2.0 + Math.abs(erratic) * 8.0;
+                        double redOffY  = Math.sin(timeSec * 17.0) * 2.5;
+                        double blueOffY = Math.sin(timeSec * 13.3 + 1.1) * 2.5;
+                        gameGc.save();
+                        gameGc.setGlobalAlpha(0.35 + Math.abs(erratic) * 0.3);
+                        gameGc.setFill(Color.color(1, 0, 0));
+                        gameGc.fillRect(px * cs - shift, py * cs + redOffY, cs, cs);
+                        gameGc.setFill(Color.color(0, 0.4, 1));
+                        gameGc.fillRect(px * cs + shift, py * cs + blueOffY, cs, cs);
+                        gameGc.setGlobalAlpha(1.0);
+                        gameGc.restore();
+                        drawCell(px, py, pieceColor, 1.0);
                     } else {
                         drawCell(px, py, pieceColor, 1.0);
                     }
@@ -562,6 +628,36 @@ class GameRenderer {
             }
         }
         gameGc.restore();
+
+        // --- KHÔI PHỤC HIỆU ỨNG GLITCH DỰ ĐOÁN HÌNH DẠNG (MORPH HINT) CỦA RANDOMBLOCK ---
+        if (isRandomBlock) {
+            RandomBlock rb = (RandomBlock) currentPiece;
+            TetrominoType preview = rb.getPreviewType();
+            double progress = rb.getMorphProgress();
+            if (preview != null && progress > 0.3) {
+                double glitch = Math.sin(timeSec * 19.0) * Math.sin(timeSec * 7.3) * Math.sin(timeSec * 31.0);
+                double threshold = 0.35 - progress * 0.32;
+                if (glitch > threshold) {
+                    double flashAlpha = Math.min(1.0, (glitch - threshold) / (1.0 - threshold) * 2.0);
+                    int[][] previewShape = preview.getShape(currentPiece.getRotation());
+                    gameGc.save();
+                    for (int row = 0; row < 4; row++) {
+                        if (previewShape[row][0] + previewShape[row][1] + previewShape[row][2] + previewShape[row][3] == 0) continue;
+                        double rowGlitch = (rng.nextDouble() - 0.5) * 10 * (1.0 - progress);
+                        for (int col = 0; col < 4; col++) {
+                            if (previewShape[row][col] != 1) continue;
+                            double cx = (currentPiece.getX() + col) * cs + rowGlitch;
+                            double cy = (currentPiece.getY() + row) * cs;
+                            gameGc.setGlobalAlpha(Math.min(1.0, flashAlpha * (0.75 + rng.nextDouble() * 0.5)));
+                            gameGc.setFill(Color.WHITE);
+                            gameGc.fillRect(cx, cy, cs, cs);
+                        }
+                    }
+                    gameGc.setGlobalAlpha(1.0);
+                    gameGc.restore();
+                }
+            }
+        }
     }
 
     void drawHoldBlock(TetrominoType holdType) {

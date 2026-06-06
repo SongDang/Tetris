@@ -113,15 +113,13 @@ public class GameController {
     private String bombInventoryBaseStyle = "";
 
     private javafx.scene.image.Image bombSprite;
+    private javafx.scene.image.Image ghostSprite;
 
     @FXML
     private void initialize() {
         sceneManager = SceneManager.getInstance();
         gameContext = GameContext.getInstance();
         gameContext.reset();
-
-        // Sync vfxCanvas.layoutY to gameCanvas's actual post-layout position so
-        // their y=0 coordinates map to the same screen row.
         Platform.runLater(() -> vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
         bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
 
@@ -220,6 +218,7 @@ public class GameController {
 
     private void loadImages() {
         bombSprite    = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
+        ghostSprite    = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/GhostBlock.png"));
         lightOnImage  = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
         lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
         hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
@@ -239,7 +238,7 @@ public class GameController {
 
                 handleTetrisFreezeExpiry(now);
                 handleGameOverFreeze(now);
-                renderer.update(dt, gamePaused, isGameOver);
+                renderer.update(dt, gamePaused, isGameOver, currentPiece);
 
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     applyMouseTarget();
@@ -431,6 +430,15 @@ public class GameController {
                 nextQueue.addLast(candidate);
             }
         }
+
+        // --- GỘP LOGIC ÂM THANH KHI SPAWN TỪ HEAD ---
+        if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
+            SoundManager.getInstance().playSE(SoundType.TRANSPARENT_PIECE);
+        }
+        if (currentPiece instanceof RandomBlock) {
+            SoundManager.getInstance().playSE(SoundType.RANDOM_PIECE);
+        }
+
         currentPiece.setX(Constants.BOARD_WIDTH / 2 - 2);
         currentPiece.setY(0);
         nextQueue.addLast(randomPiece());
