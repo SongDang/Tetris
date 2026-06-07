@@ -4,6 +4,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +72,12 @@ public class HardModeHandler {
     private final Runnable onMusicPause;
     private final Runnable onMusicResume;
 
+    //bomb cooldown
+    private static final double BOMB_COOLDOWN_MAX = 15.0;
+    private double bombCooldownTimer = 0;
+    //private Label bombLabelRef;
+    private Label bombLabelRef;
+
     public HardModeHandler(Random rng, Runnable onMusicPause, Runnable onMusicResume) {
         this.rng = rng;
         this.onMusicPause = onMusicPause;
@@ -96,7 +103,38 @@ public class HardModeHandler {
         flavourWaveTime += dt;
         flavourTypeElapsed += dt;
         flavourCooldown -= dt;
+
+        if (bombCooldownTimer > 0) {
+            bombCooldownTimer = Math.max(0, bombCooldownTimer - dt);
+            updateBombLabel();
+        }
+
         updateBlackout(dt);
+    }
+
+    public void setupBombUI(Label bombLabel, VBox bombPanel) {
+        this.bombLabelRef = bombLabel;
+        if (bombPanel != null) {
+            bombPanel.setVisible(true);
+            bombPanel.setManaged(true);
+        }
+        updateBombLabel();
+    }
+
+    public boolean canUseBomb() {
+        return bombCooldownTimer <= 0;
+    }
+    public void triggerBombCooldown() {
+        bombCooldownTimer = BOMB_COOLDOWN_MAX;
+        updateBombLabel();
+    }
+    private void updateBombLabel() {
+        if (bombLabelRef == null) return;
+        if (bombCooldownTimer > 0) {
+            bombLabelRef.setText(String.format("⏳ %.1fs", bombCooldownTimer));
+        } else {
+            bombLabelRef.setText("💣 READY");
+        }
     }
 
     /** Returns true if auto hard-drop should fire this frame. */
