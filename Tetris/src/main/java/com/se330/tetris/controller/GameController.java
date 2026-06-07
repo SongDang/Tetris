@@ -128,7 +128,7 @@ public class GameController {
                 () -> SoundManager.getInstance().resumeMusic());
 
         timeAttack = new TimeAttackHandler(
-                gameContext, timeLabel, freezeLabel, timePanel,
+                gameContext, timeLabel, freezeLabel, bombsLabel, timePanel, bombInventoryBox,
                 this::handleGameOver);
 
         renderer = new GameRenderer(
@@ -680,9 +680,9 @@ public class GameController {
 
     private void changeCurrentPieceToBomb() {
         stopRandomBlockIfNeeded(currentPiece);
+
         currentPiece = new Piece(TetrominoType.BOMB, currentPiece.getX(), currentPiece.getY());
 
-        // Tạo hiệu ứng nhấp nháy viền phát sáng (Glow Visual) trên thanh vật phẩm
         if (bombInventoryBox != null) {
             bombInventoryBox.setStyle(bombInventoryBaseStyle
                     + "; -fx-border-color: #ffcc00; -fx-border-width: 2;"
