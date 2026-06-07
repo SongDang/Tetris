@@ -57,7 +57,6 @@
                 </VBox>
             </StackPane>
 
-            <!-- Hold frame -->
             <StackPane prefWidth="216" prefHeight="176" styleClass="hard-hold-panel">
                 <VBox alignment="TOP_LEFT" spacing="4" style="-fx-padding: 37 10 10 41;">
                     <Label text="HOLD" styleClass="hard-label-header"/>
@@ -65,8 +64,17 @@
                 </VBox>
             </StackPane>
 
-        </VBox>
+            <VBox fx:id="bombInventoryBox" prefWidth="216" prefHeight="176" styleClass="hard-dash-panel" alignment="CENTER">
+                <VBox alignment="TOP_LEFT" style="-fx-padding: 37 40 22 40;" spacing="8">
+                    <Label text="BOMB SKILL" styleClass="hard-label-header"/>
+                    <Label fx:id="bombsLabel" text="💣 READY" style="-fx-font-size: 32; -fx-text-fill: #ff5566; -fx-font-family: 'VT323';">
+                        <VBox.margin><Insets top="10"/></VBox.margin>
+                    </Label>
+                    <Label text="[ Press B ]" style="-fx-font-size: 14; -fx-text-fill: #666688; -fx-font-family: 'VT323';"/>
+                </VBox>
+            </VBox>
 
+        </VBox>
 
         <StackPane prefWidth="352" prefHeight="652">
             <ImageView fx:id="mainFrameView" fitWidth="352" fitHeight="652" preserveRatio="false"
@@ -78,12 +86,10 @@
                     managed="false" layoutX="-124" layoutY="26" mouseTransparent="true"/>
         </StackPane>
 
-        <!-- Right spacer to balance left panel width so canvas stays centered -->
         <Region prefWidth="216" minWidth="216"/>
 
     </HBox>
 
-    <!-- Lightbulb: floats independently so it never affects canvas position -->
     <VBox alignment="TOP_CENTER"
           AnchorPane.topAnchor="259" AnchorPane.rightAnchor="150">
         <ImageView fitWidth="10" fitHeight="610" preserveRatio="false"
@@ -95,11 +101,9 @@
                    preserveRatio="true" visible="false"/>
     </VBox>
 
-    <!-- Bottom bar -->
     <Region styleClass="hard-bar" prefHeight="204"
             AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"/>
 
-    <!-- Flavour panel centred inside the bar -->
     <HBox alignment="CENTER" prefHeight="112"
           AnchorPane.bottomAnchor="46" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
         <StackPane prefWidth="700" prefHeight="112" styleClass="hard-flavour-panel">
