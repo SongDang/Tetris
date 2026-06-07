@@ -7,7 +7,6 @@
     <list default="true" id="0ffe6569-419a-42ea-bc36-bf7a20a6e1f6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GameController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GameController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/HardModeHandler.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/HardModeHandler.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Tetris/src/main/resources/fxml/hardgame.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/resources/fxml/hardgame.fxml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -54,7 +53,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "dev",
+    "git-widget-placeholder": "feature/bomb-cooldown",
     "kotlin-language-version-configured": "true",
     "project.structure.last.edited": "SDKs",
     "project.structure.proportion": "0.15",

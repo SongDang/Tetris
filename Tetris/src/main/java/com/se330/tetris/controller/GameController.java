@@ -150,6 +150,11 @@ public class GameController {
         for (int i = 0; i < 4; i++) nextQueue.addLast(randomPiece());
         spawnPiece();
         refreshLabels();
+
+        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+            hardMode.setupBombUI(bombsLabel, bombInventoryBox);
+        }
+
         timeAttack.setup();
 
         gamePane.setOnKeyPressed(this::handleKeyPressed);
@@ -653,13 +658,31 @@ public class GameController {
     }
 
     private void useBombSkill() {
-        if (gameContext.getGameMode() != GameContext.GameMode.TIME_ATTACK) return;
-        if (isGameOver || gamePaused || bombsRemaining <= 0 || currentPiece == null
-                || currentPiece.getType() == TetrominoType.BOMB) return;
-        bombsRemaining--;
+        if (isGameOver || gamePaused || currentPiece == null || currentPiece.getType() == TetrominoType.BOMB) return;
+
+        GameContext.GameMode currentMode = gameContext.getGameMode();
+
+        if (currentMode == GameContext.GameMode.TIME_ATTACK) {
+            if (bombsRemaining <= 0) return;
+            bombsRemaining--;
+            if (bombsLabel != null) bombsLabel.setText("💣 x" + bombsRemaining);
+
+            changeCurrentPieceToBomb();
+        }
+        else if (currentMode == GameContext.GameMode.HARD_MODE) {
+            if (!hardMode.canUseBomb()) return;
+
+            hardMode.triggerBombCooldown();
+
+            changeCurrentPieceToBomb();
+        }
+    }
+
+    private void changeCurrentPieceToBomb() {
         stopRandomBlockIfNeeded(currentPiece);
         currentPiece = new Piece(TetrominoType.BOMB, currentPiece.getX(), currentPiece.getY());
-        if (bombsLabel != null) bombsLabel.setText("💣 x" + bombsRemaining);
+
+        // Tạo hiệu ứng nhấp nháy viền phát sáng (Glow Visual) trên thanh vật phẩm
         if (bombInventoryBox != null) {
             bombInventoryBox.setStyle(bombInventoryBaseStyle
                     + "; -fx-border-color: #ffcc00; -fx-border-width: 2;"
