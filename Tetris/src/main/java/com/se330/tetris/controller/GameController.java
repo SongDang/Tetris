@@ -1,4 +1,4 @@
-﻿package com.se330.tetris.controller;
+package com.se330.tetris.controller;
 
 import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.Constants;
