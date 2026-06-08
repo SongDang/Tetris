@@ -1,5 +1,7 @@
 package com.se330.tetris.game;
 
+import com.se330.tetris.service.SoundManager;
+import com.se330.tetris.util.SoundType;
 import javafx.application.Platform;
 
 import java.util.ArrayList;
@@ -123,6 +125,8 @@ public class RandomBlock extends Piece {
             setType(target);
             lastChangeMs = System.currentTimeMillis();
             nextType = pickPreview(target);
+
+            SoundManager.getInstance().playSE(SoundType.RANDOM_PIECE);
         }
     }
 }

@@ -32,6 +32,13 @@
             <Label text="LINES" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
             <Label fx:id="linesLabel" text="0" style="-fx-font-size: 26; -fx-text-fill: #ffcc00; -fx-font-family: 'Courier New';"/>
         </VBox>
+
+        <VBox fx:id="timePanel" style="-fx-alignment: center; -fx-spacing: 6; -fx-padding: 14; -fx-border-color: #334455; -fx-background-color: #1a1830; -fx-background-radius: 4;">
+            <Label text="TIME" style="-fx-text-fill: #8899aa; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Label fx:id="timeLabel" text="00:30" style="-fx-font-size: 26; -fx-text-fill: #00ccff; -fx-font-family: 'Courier New';"/>
+            <Label fx:id="freezeLabel" text="FREEZE: 10s" visible="false"
+                   style="-fx-font-size: 12; -fx-text-fill: #66ffff; -fx-font-family: 'Courier New';"/>
+        </VBox>
     </VBox>
 
     <VBox style="-fx-alignment: center; -fx-spacing: 10;">
@@ -52,6 +59,22 @@
             <Canvas fx:id="nextBlockCanvas1" width="100" height="100"/>
             <Canvas fx:id="nextBlockCanvas2" width="100" height="100"/>
             <Canvas fx:id="nextBlockCanvas3" width="100" height="100"/>
+        </VBox>
+
+        <!-- Bomb inventory -->
+        <VBox fx:id="bombInventoryBox"
+              visible="false"
+              managed="false"
+              style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14;
+                     -fx-border-color: #aa3344; -fx-border-width: 1;
+                     -fx-background-color: #2a1620; -fx-background-radius: 4;
+                     -fx-border-radius: 4;">
+            <Label text="BOMB"
+                   style="-fx-font-size: 11; -fx-text-fill: #ff9aa8;
+                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Label fx:id="bombsLabel" text="💣 x3"
+                   style="-fx-font-size: 24; -fx-text-fill: #ff5566;
+                          -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
         </VBox>
 
         <ImageView fx:id="lightBulbView" fitWidth="180" fitHeight="180" preserveRatio="true" visible="false"/>
