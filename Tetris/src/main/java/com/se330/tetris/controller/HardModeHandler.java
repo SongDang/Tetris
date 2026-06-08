@@ -126,6 +126,10 @@ public class HardModeHandler {
         return getPhase() >= 2;
     }
 
+    public boolean shouldSpawnTransparentInBag() {
+        return getPhase() >= 2;
+    }
+
     public double getRandomBlockChance() {
         int phase = getPhase();
         if (phase < 3) return 0.0;

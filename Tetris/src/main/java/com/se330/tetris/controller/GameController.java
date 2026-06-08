@@ -460,6 +460,8 @@ public class GameController {
             for (TetrominoType t : TetrominoType.values()) {
                 if (t == TetrominoType.BOMB && (isStandard || (isHardMode && !hardMode.shouldSpawnBombInBag())))
                     continue;
+                if (t == TetrominoType.TRANSPARENT && isHardMode && !hardMode.shouldSpawnTransparentInBag())
+                    continue;
                 bag.add(t);
             }
             Collections.shuffle(bag);
