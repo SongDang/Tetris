@@ -8,17 +8,31 @@
             prefWidth="692.0" prefHeight="487.0" styleClass="settings-popup-content">
 
     <AnchorPane layoutX="0.0" layoutY="0.0" prefWidth="692.0" prefHeight="487.0" styleClass="settings-main-panel">
-        <StackPane layoutX="177.0" layoutY="-34.0" prefWidth="337.0" prefHeight="100.0" styleClass="figma-button,settings-header-overlay">
+        <ImageView fitWidth="692.0" fitHeight="487.0" preserveRatio="false" mouseTransparent="true">
+            <image>
+                <Image url="@../assets/setting_frame.png" />
+            </image>
+        </ImageView>
+
+        <StackPane layoutX="160.0" layoutY="-48.0" prefWidth="372.0" prefHeight="135.0"
+                   styleClass="settings-header-overlay">
+            <ImageView fitWidth="372.0" fitHeight="135.0" preserveRatio="false" mouseTransparent="true">
+                <image>
+                    <Image url="@../assets/setting_label.png" />
+                </image>
+            </ImageView>
             <Label text="Settings" styleClass="settings-header-title" />
         </StackPane>
 
-        <Label fx:id="settingsScoreLabel" layoutX="253.0" layoutY="131.0" prefWidth="93.0" prefHeight="41.0" text="SCORE" styleClass="settings-score-label" />
-        <Label fx:id="settingsScoreValue" layoutX="297.0" layoutY="157.0" prefWidth="186.0" prefHeight="50.0" text="366767" styleClass="settings-score-value" />
+        <Label fx:id="settingsScoreLabel" layoutX="310.0" layoutY="91.0"
+               prefWidth="82.0" prefHeight="24.0" text="SCORE" styleClass="settings-score-label" />
+        <Label fx:id="settingsScoreValue" layoutX="279.0" layoutY="112.0"
+               prefWidth="185.0" prefHeight="42.0" text="366767" styleClass="settings-score-value" />
 
         <Button fx:id="musicIconBtn" onAction="#onMusicIconClicked" focusTraversable="false"
-                layoutX="131.0" layoutY="208.0" prefWidth="84.0" prefHeight="84.0" styleClass="audio-icon-button">
+                layoutX="183.0" layoutY="173.0" prefWidth="58.0" prefHeight="58.0" styleClass="audio-icon-button">
             <graphic>
-                <ImageView fitWidth="84.0" fitHeight="84.0" preserveRatio="true">
+                <ImageView fitWidth="58.0" fitHeight="58.0" preserveRatio="true">
                     <image>
                         <Image url="@../assets/tune_icon.png" />
                     </image>
@@ -27,9 +41,9 @@
         </Button>
 
         <Button fx:id="sfxIconBtn" onAction="#onSfxIconClicked" focusTraversable="false"
-                layoutX="131.0" layoutY="285.0" prefWidth="81.0" prefHeight="72.0" styleClass="audio-icon-button">
+                layoutX="184.0" layoutY="243.0" prefWidth="58.0" prefHeight="58.0" styleClass="audio-icon-button">
             <graphic>
-                <ImageView fitWidth="81.0" fitHeight="72.0" preserveRatio="true">
+                <ImageView fitWidth="58.0" fitHeight="58.0" preserveRatio="true">
                     <image>
                         <Image url="@../assets/volume_icon.png" />
                     </image>
@@ -37,25 +51,28 @@
             </graphic>
         </Button>
 
-        <Slider fx:id="musicVolume" layoutX="236.0" layoutY="240.0" prefWidth="324.0" prefHeight="28.0"
+        <Slider fx:id="musicVolume" layoutX="283.0" layoutY="194.0" prefWidth="280.0" prefHeight="18.0"
                 min="0" max="100" value="70" styleClass="figma-slider" />
-        <Slider fx:id="sfxVolume" layoutX="236.0" layoutY="312.0" prefWidth="324.0" prefHeight="28.0"
+        <Label fx:id="musicVolumeLabel" layoutX="585.0" layoutY="179.0"
+               prefWidth="70.0" prefHeight="42.0" text="70%" styleClass="settings-volume-value" />
+
+        <Slider fx:id="sfxVolume" layoutX="283.0" layoutY="264.0" prefWidth="280.0" prefHeight="18.0"
                 min="0" max="100" value="80" styleClass="figma-slider" />
+        <Label fx:id="sfxVolumeLabel" layoutX="585.0" layoutY="249.0"
+               prefWidth="70.0" prefHeight="42.0" text="80%" styleClass="settings-volume-value" />
 
         <Button fx:id="cancelBtn" onAction="#onCancelClicked" text="Quit"
-            layoutX="52.0" layoutY="381.0" prefWidth="252.0" prefHeight="74.0"
-            styleClass="figma-button,settings-action-button" />
+                layoutX="151.0" layoutY="330.0" prefWidth="190.0" prefHeight="109.0"
+                styleClass="settings-action-button" />
 
         <Button fx:id="saveBtn" onAction="#onSaveClicked" text="Save"
-            layoutX="388.0" layoutY="381.0" prefWidth="252.0" prefHeight="74.0"
-            styleClass="figma-button,settings-action-button" />
+                layoutX="391.0" layoutY="330.0" prefWidth="190.0" prefHeight="109.0"
+                styleClass="settings-action-button" />
     </AnchorPane>
 
     <CheckBox fx:id="musicToggle" selected="true" visible="false" managed="false" />
     <CheckBox fx:id="sfxToggle" selected="true" visible="false" managed="false" />
     <CheckBox fx:id="hardModeToggle" selected="false" visible="false" managed="false" />
     <CheckBox fx:id="gridToggle" selected="true" visible="false" managed="false" />
-    <Label fx:id="musicVolumeLabel" visible="false" managed="false" text="70%" />
-    <Label fx:id="sfxVolumeLabel" visible="false" managed="false" text="80%" />
 
 </AnchorPane>

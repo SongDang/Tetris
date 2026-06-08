@@ -31,48 +31,36 @@ import java.util.Random;
 public class GameController {
 
     // --- FXML fields ---
-    @FXML
-    private Pane gamePane;
-    @FXML
-    private Canvas gameCanvas;
-    @FXML
-    private Canvas vfxCanvas;
-    @FXML
-    private Canvas nextBlockCanvas;
-    @FXML
-    private Canvas nextBlockCanvas1;
-    @FXML
-    private Canvas nextBlockCanvas2;
-    @FXML
-    private Canvas nextBlockCanvas3;
-    @FXML
-    private Label scoreLabel;
-    @FXML
-    private Label levelLabel;
-    @FXML
-    private Label linesLabel;
-    @FXML
-    private Label timeLabel;
-    @FXML
-    private VBox timePanel;
-    @FXML
-    private Label freezeLabel;
-    @FXML
-    private Canvas holdBlockCanvas;
-    @FXML
-    private javafx.scene.image.ImageView lightBulbView;
-    @FXML
-    private javafx.scene.image.ImageView mainFrameView;
-    @FXML
-    private javafx.scene.control.Label flavourLabel;
-    @FXML
-    private javafx.scene.control.Label comboLabel;
-    @FXML
-    private Label bombsLabel;
-    @FXML
-    private VBox bombInventoryBox;
+    @FXML private Pane gamePane;
+    @FXML private Canvas gameCanvas;
+    @FXML private Canvas vfxCanvas;
+    @FXML private Canvas nextBlockCanvas;
+    @FXML private Canvas nextBlockCanvas1;
+    @FXML private Canvas nextBlockCanvas2;
+    @FXML private Canvas nextBlockCanvas3;
+    @FXML private Label scoreLabel;
+    @FXML private Label levelLabel;
+    @FXML private Label linesLabel;
+    @FXML private Label timeLabel;
+    @FXML private VBox timePanel;
+    @FXML private Label freezeLabel;
+    @FXML private Canvas holdBlockCanvas;
+    @FXML private javafx.scene.image.ImageView lightBulbView;
+    @FXML private javafx.scene.image.ImageView mainFrameView;
+    @FXML private javafx.scene.control.Label flavourLabel;
+    @FXML private javafx.scene.control.Label comboLabel;
+    @FXML private Label bombsLabel;
+    @FXML private VBox bombInventoryBox;
+    @FXML private javafx.scene.layout.AnchorPane settingsOverlay;
+    @FXML private SettingsController settingsPopupController;
 
-    // --- Services ---
+    private javafx.scene.image.Image lightOnImage;
+    private javafx.scene.image.Image lightOffImage;
+    private javafx.scene.image.Image hardMainImage;
+    private javafx.scene.image.Image darkMainImage;
+    private javafx.scene.image.Image standardMainImage;
+    private javafx.scene.image.Image timeAttackMainImage;
+
     private SceneManager sceneManager;
     private GameContext gameContext;
 
@@ -124,11 +112,6 @@ public class GameController {
     private int bombsRemaining = 3;
     private String bombInventoryBaseStyle = "";
 
-    // --- Images ---
-    private javafx.scene.image.Image lightOnImage;
-    private javafx.scene.image.Image lightOffImage;
-    private javafx.scene.image.Image hardMainImage;
-    private javafx.scene.image.Image darkMainImage;
     private javafx.scene.image.Image bombSprite;
     private javafx.scene.image.Image ghostSprite;
 
@@ -137,27 +120,49 @@ public class GameController {
         sceneManager = SceneManager.getInstance();
         gameContext = GameContext.getInstance();
         gameContext.reset();
+        Platform.runLater(() -> vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
+        bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
+        ghostSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/GhostBlock.png"));
 
-        loadImages();
+        lightOnImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
+        lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
+        hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
+        darkMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/darkmain.png"));
+        standardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/standardmain.png"));
+        timeAttackMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/timeatkmain.png"));
 
         boardEngine = new BoardEngine(gameContext, rng);
-
         hardMode = new HardModeHandler(
                 rng,
                 () -> SoundManager.getInstance().pauseMusic(),
                 () -> SoundManager.getInstance().resumeMusic());
-
         timeAttack = new TimeAttackHandler(
                 gameContext, timeLabel, freezeLabel, bombsLabel, timePanel, bombInventoryBox,
                 this::handleGameOver);
-
         renderer = new GameRenderer(
-                gameCanvas, vfxCanvas, holdBlockCanvas,
-                nextBlockCanvas1, nextBlockCanvas2, nextBlockCanvas3,
-                gamePane, lightBulbView, mainFrameView,
-                bombSprite, ghostSprite, lightOnImage, lightOffImage, hardMainImage, darkMainImage,
-                gameContext, boardEngine, hardMode, rng);
+                gameCanvas,
+                vfxCanvas,
+                holdBlockCanvas,
+                nextBlockCanvas1,
+                nextBlockCanvas2,
+                nextBlockCanvas3,
+                gamePane,
+                lightBulbView,
+                mainFrameView,
+                bombSprite,
+                ghostSprite,
+                lightOnImage,
+                lightOffImage,
+                hardMainImage,
+                darkMainImage,
+                gameContext,
+                boardEngine,
+                hardMode,
+                rng);
 
+        applyGameModeTheme();
+
+        // HARD MODE
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
             fallIntervalNs = 300_000_000L;
             if (lightBulbView != null) {
@@ -180,6 +185,19 @@ public class GameController {
         }
 
         timeAttack.setup();
+        if (settingsPopupController != null) {
+            settingsPopupController.setScoreVisible(true);
+            settingsPopupController.setCloseHandler(this::closePauseSettings);
+            settingsPopupController.setQuitHandler(this::quitToMainMenuFromSettings);
+        }
+        if (settingsOverlay != null) {
+            settingsOverlay.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+                if (event.getCode() == KeyCode.ESCAPE) {
+                    closePauseSettings();
+                }
+                event.consume();
+            });
+        }
 
         gamePane.setOnKeyPressed(this::handleKeyPressed);
         gamePane.setOnKeyReleased(e -> {
@@ -571,15 +589,18 @@ public class GameController {
         if (isGameOver)
             return;
         KeyCode code = event.getCode();
-        if (code == KeyCode.P) {
-            handlePause();
+        if (code == KeyCode.ESCAPE) {
+            if (isSettingsOverlayVisible()) closePauseSettings();
+            else openPauseSettings();
             event.consume();
             return;
         }
-        if (freezeUntil > 0) {
+        if (isSettingsOverlayVisible()) {
             event.consume();
             return;
         }
+        if (code == KeyCode.P) { handlePause(); event.consume(); return; }
+        if (freezeUntil > 0) { event.consume(); return; }
         switch (code) {
             case LEFT, A -> {
                 mouseTargetColumn = -1;
@@ -613,10 +634,7 @@ public class GameController {
             } // handled above
             case B -> useBombSkill();
             case C, SHIFT -> holdCurrentPiece();
-            case ESCAPE -> handleExit();
-            default -> {
-                return;
-            }
+            default -> { return; }
         }
         event.consume();
     }
@@ -674,20 +692,62 @@ public class GameController {
     }
 
     private int getTargetPieceX(int targetColumn) {
-        int clamped = Math.max(0, Math.min(Constants.BOARD_WIDTH - 1, targetColumn));
-        int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
-        int minCol = 4, maxCol = -1;
-        for (int row = 0; row < 4; row++)
-            for (int col = 0; col < 4; col++)
+        int clampedTarget = Math.max(0, Math.min(Constants.BOARD_WIDTH - 1, targetColumn));
+        int rotation = currentPiece.getRotation();
+        int[][] shape = currentPiece.getType().getShape(rotation);
+
+        int minCol = 4;
+        int maxCol = -1;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
                 if (shape[row][col] == 1) {
                     minCol = Math.min(minCol, col);
                     maxCol = Math.max(maxCol, col);
                 }
+            }
+        }
+
         if (maxCol < 0)
             return currentPiece.getX();
+
         int centerCol = (minCol + maxCol) / 2;
-        int desired = clamped - centerCol;
-        return Math.max(-minCol, Math.min(Constants.BOARD_WIDTH - 1 - maxCol, desired));
+        int desiredX = clampedTarget - centerCol;
+
+        int minX = -minCol;
+        int maxX = Constants.BOARD_WIDTH - 1 - maxCol;
+        return Math.max(minX, Math.min(maxX, desiredX));
+    }
+
+    private void applyGameModeTheme() {
+        gamePane.getStyleClass().removeAll(
+                "screen-standard-game",
+                "screen-timeatk-game",
+                "screen-hard-game",
+                "blackout");
+
+        GameContext.GameMode mode = gameContext.getGameMode();
+        if (mode == GameContext.GameMode.TIME_ATTACK) {
+            gamePane.getStyleClass().add("screen-timeatk-game");
+            if (mainFrameView != null) {
+                mainFrameView.setImage(timeAttackMainImage);
+            }
+            if (flavourLabel != null) {
+                flavourLabel.setText("Hey, time's running out");
+            }
+        } else if (mode == GameContext.GameMode.HARD_MODE) {
+            gamePane.getStyleClass().add("screen-hard-game");
+            if (mainFrameView != null) {
+                mainFrameView.setImage(hardMainImage);
+            }
+        } else {
+            gamePane.getStyleClass().add("screen-standard-game");
+            if (mainFrameView != null) {
+                mainFrameView.setImage(standardMainImage);
+            }
+            if (flavourLabel != null) {
+                flavourLabel.setText("flavor text flavor text flavor text");
+            }
+        }
     }
 
     // --- Actions ---
@@ -701,24 +761,32 @@ public class GameController {
     }
 
     private void holdCurrentPiece() {
-        if (!canHold || currentPiece == null || isGameOver || currentPiece.getType() == TetrominoType.BOMB)
+        if (!canHold || currentPiece == null || isGameOver || currentPiece.getType() == TetrominoType.BOMB) {
             return;
+        }
+
         canHold = false;
         stopRandomBlockIfNeeded(currentPiece);
         TetrominoType currentType = currentPiece.getType();
+
         if (holdType == null) {
             holdType = currentType;
             spawnPiece();
         } else {
-            TetrominoType swapped = holdType;
+            TetrominoType swapType = holdType;
             holdType = currentType;
-            currentPiece = new Piece(swapped, Constants.BOARD_WIDTH / 2 - 2, 0);
+            currentPiece = new Piece(swapType, Constants.BOARD_WIDTH / 2 - 2, 0);
+            dropStartRow = -1;
+            if (!boardEngine.canMove(currentPiece, 0, 0, currentPiece.getRotation(), suspendedPieces)) {
+                isGameOver = true;
+                stopRandomBlockIfNeeded(currentPiece);
+                gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
+                renderer.onGameOver();
+            }
         }
-        if (!boardEngine.canMove(currentPiece, 0, 0, currentPiece.getRotation(), suspendedPieces)) {
-            isGameOver = true;
-            gameLoop.stop();
-            sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
-        }
+    }
+    public void gameOver() {
+        handleGameOver();
     }
 
     private void useBombSkill() {
@@ -763,7 +831,45 @@ public class GameController {
             timeAttack.resume();
     }
 
-    private void handleExit() {
+    @FXML
+    private void onSettingsOverlayBackdropClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        closePauseSettings();
+    }
+
+    private void openPauseSettings() {
+        if (settingsOverlay == null) return;
+        if (!gamePaused) {
+            gamePaused = true;
+            timeAttack.pause();
+        }
+        if (settingsPopupController != null) {
+            settingsPopupController.setScoreVisible(true);
+            settingsPopupController.setScoreValue(gameContext.getScore());
+        }
+        settingsOverlay.setManaged(true);
+        settingsOverlay.setVisible(true);
+        settingsOverlay.toFront();
+        Platform.runLater(settingsOverlay::requestFocus);
+    }
+
+    private void closePauseSettings() {
+        if (settingsOverlay != null) {
+            settingsOverlay.setVisible(false);
+            settingsOverlay.setManaged(false);
+        }
+        if (gamePaused && !isGameOver) {
+            gamePaused = false;
+            timeAttack.resume();
+        }
+        Platform.runLater(gamePane::requestFocus);
+    }
+
+    private boolean isSettingsOverlayVisible() {
+        return settingsOverlay != null && settingsOverlay.isVisible();
+    }
+
+    private void quitToMainMenuFromSettings() {
         stopRandomBlockIfNeeded(currentPiece);
         timeAttack.stopAll();
         SoundManager.getInstance().stopLooping();
@@ -784,7 +890,7 @@ public class GameController {
         gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
     }
 
-    public void gameOver() {
+    private void handleTimeAttackTimeout() {
         handleGameOver();
     }
 }

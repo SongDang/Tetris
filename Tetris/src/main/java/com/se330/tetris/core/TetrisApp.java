@@ -26,6 +26,7 @@ public class TetrisApp extends Application {
         String initialScene = switch (requested) {
             case SceneManager.GAMEMODES_SCENE -> SceneManager.GAMEMODES_SCENE;
             case SceneManager.GAME_SCENE -> SceneManager.GAME_SCENE;
+            case SceneManager.HARD_GAME_SCENE -> SceneManager.HARD_GAME_SCENE;
             case SceneManager.RESULTS_SCENE -> SceneManager.RESULTS_SCENE;
             case SceneManager.SETTINGS_SCENE -> SceneManager.SETTINGS_SCENE;
             default -> SceneManager.MAIN_MENU_SCENE;
