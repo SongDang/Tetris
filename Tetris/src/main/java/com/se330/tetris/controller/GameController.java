@@ -619,10 +619,7 @@ public class GameController {
             stopRandomBlockIfNeeded(currentPiece);
             SoundManager.getInstance().playSE(SoundType.GAME_OVER);
             SoundManager.getInstance().stopMusic();
-            gameLoop.stop();
-            sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
             gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
-            gameOverFlashAlpha = 0.6;
         }
     }
 
@@ -949,8 +946,9 @@ public class GameController {
 
         if (!canMove(0, 0, currentPiece.getRotation())) {
             isGameOver = true;
-            gameLoop.stop();
-            sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+            SoundManager.getInstance().playSE(SoundType.GAME_OVER);
+            SoundManager.getInstance().stopMusic();
+            gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
         }
     }
 
@@ -1836,10 +1834,12 @@ public class GameController {
     }
 
     public void gameOver() {
+        if (isGameOver) return;
+        isGameOver = true;
         stopRandomBlockIfNeeded(currentPiece);
-        if (gameLoop != null)
-            gameLoop.stop();
-        sceneManager.switchToScene(SceneManager.RESULTS_SCENE);
+        SoundManager.getInstance().playSE(SoundType.GAME_OVER);
+        SoundManager.getInstance().stopMusic();
+        gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
     }
 
     private void drawQuestionMark(GraphicsContext gc, Canvas canvas) {
