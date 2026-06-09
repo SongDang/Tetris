@@ -816,19 +816,21 @@ class GameRenderer {
     private void drawCell(int x, int y, Color color, double opacity) {
         int cs = Constants.BLOCK_SIZE;
         double px = x * cs, py = y * cs;
+        double arc = cs * 0.25;
         gameGc.setFill(color.deriveColor(0, 1, 1, opacity));
-        gameGc.fillRect(px, py, cs, cs);
+        gameGc.fillRoundRect(px, py, cs, cs, arc, arc);
         gameGc.setStroke(Color.web("#111111"));
         gameGc.setLineWidth(1);
-        gameGc.strokeRect(px, py, cs, cs);
+        gameGc.strokeRoundRect(px, py, cs, cs, arc, arc);
     }
 
     private void drawCellAtPixel(GraphicsContext target, double px, double py, int size, Color color, double opacity) {
+        double arc = size * 0.25;
         target.setFill(color.deriveColor(0, 1, 1, opacity));
-        target.fillRect(px, py, size, size);
+        target.fillRoundRect(px, py, size, size, arc, arc);
         target.setStroke(Color.web("#111111"));
         target.setLineWidth(1);
-        target.strokeRect(px, py, size, size);
+        target.strokeRoundRect(px, py, size, size, arc, arc);
     }
 
     private void drawTimeBlockCell(int x, int y, int cs) {
