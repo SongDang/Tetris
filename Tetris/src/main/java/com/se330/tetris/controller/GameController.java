@@ -183,8 +183,15 @@ public class GameController {
                 hardMode,
                 rng);
 
-        if (bgEffectCanvas != null)
+        if (bgEffectCanvas != null) {
             renderer.setBgEffectCanvas(bgEffectCanvas);
+            gamePane.widthProperty().addListener((obs, old, nw) -> bgEffectCanvas.setWidth(nw.doubleValue()));
+            gamePane.heightProperty().addListener((obs, old, nw) -> bgEffectCanvas.setHeight(nw.doubleValue()));
+            Platform.runLater(() -> {
+                bgEffectCanvas.setWidth(gamePane.getWidth());
+                bgEffectCanvas.setHeight(gamePane.getHeight());
+            });
+        }
 
         applyGameModeTheme();
 
@@ -409,6 +416,7 @@ public class GameController {
                 pendingTetrisClear = frozenRowFlash;
                 pendingTetrisClearHasTimeBlock = hasTimeBlock;
                 freezeUntil = System.nanoTime() + 300_000_000L;
+                renderer.triggerTetrisFlash(frozenRowFlash);
                 SoundManager.getInstance().playSE(SoundType.TETRIS);
                 PauseTransition delay = new PauseTransition(Duration.millis(300));
                 delay.setOnFinished(e -> SoundManager.getInstance().playSE(SoundType.TETRIS2));

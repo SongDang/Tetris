@@ -78,6 +78,8 @@ class GameRenderer {
     double rotationPulse = 0;
     double flashIntensity = 0;
     double gameOverFlashAlpha = 0;
+    private double tetrisFlashAlpha = 0;
+    private int[] tetrisFlashRows = null;
     private double ghostParticleTimer = 0;
     private double randomBlockSparkTimer = 0;
 
@@ -109,7 +111,7 @@ class GameRenderer {
     // Side-strip particle burst on line clear / bomb
     private static final double PARTICLE_GRAVITY = 750.0;
     private static final double CENTER_LEFT_X = 260.0;
-    private static final double CENTER_RIGHT_X = 1180.0;
+    private double centerRightX() { return bgEffectCanvas != null ? bgEffectCanvas.getWidth() - STRIP_W : 1180.0; }
     private static final Color[] SPARK_COLORS = {
         Color.web("#FF8C00"), Color.web("#FFA500"), Color.web("#FF6B00"),
         Color.web("#FF4500"), Color.web("#FFD700"), Color.web("#FF3300")
@@ -218,9 +220,10 @@ class GameRenderer {
             // Try up to 12 positions to avoid overlap
             double bx = 0, by = 0;
             for (int attempt = 0; attempt < 12; attempt++) {
+                double cw = bgEffectCanvas.getWidth();
                 bx = left
                         ? STRIP_W * (0.1 + rng.nextDouble() * 0.8)
-                        : (1440 - STRIP_W) + STRIP_W * (0.1 + rng.nextDouble() * 0.8);
+                        : (cw - STRIP_W) + STRIP_W * (0.1 + rng.nextDouble() * 0.8);
                 by = ch * rng.nextDouble();
                 boolean overlaps = false;
                 for (EyeInstance ex : eyes) {
@@ -312,8 +315,13 @@ class GameRenderer {
         renderSideParticles(dt);
         if (gameOverFlashAlpha > 0) {
             bgGc.setFill(Color.color(1, 1, 1, gameOverFlashAlpha));
-            bgGc.fillRect(CENTER_LEFT_X, 0, CENTER_RIGHT_X - CENTER_LEFT_X, bgEffectCanvas.getHeight());
+            bgGc.fillRect(CENTER_LEFT_X, 0, centerRightX() - CENTER_LEFT_X, bgEffectCanvas.getHeight());
         }
+    }
+
+    void triggerTetrisFlash(int[] rows) {
+        tetrisFlashRows = rows;
+        tetrisFlashAlpha = 1.0;
     }
 
     void triggerSideParticles(int intensity) {
@@ -326,7 +334,7 @@ class GameRenderer {
         };
         double canvasH = bgEffectCanvas.getHeight();
         for (int side = 0; side < 2; side++) {
-            double originX = side == 0 ? CENTER_LEFT_X : CENTER_RIGHT_X;
+            double originX = side == 0 ? CENTER_LEFT_X : centerRightX();
             double dirX = side == 0 ? -1 : 1;
             for (int i = 0; i < count; i++) {
                 SideParticle p = new SideParticle();
@@ -527,6 +535,7 @@ class GameRenderer {
 
             if (rotationPulse > 0) rotationPulse = Math.max(0, rotationPulse - dt * 8.0);
             if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
+            if (tetrisFlashAlpha > 0) tetrisFlashAlpha = Math.max(0, tetrisFlashAlpha - dt * 4.0);
             if (levelUpEffect != null) { levelUpEffect.update(dt); if (levelUpEffect.isDone()) levelUpEffect = null; }
             if (borderPulseEffect != null) {
                 borderPulseEffect.update(dt);
@@ -689,6 +698,13 @@ class GameRenderer {
             for (int row : frozenRowFlash) gameGc.fillRect(0, row * cs, w, cs);
         }
 
+        if (tetrisFlashRows != null && tetrisFlashAlpha > 0) {
+            gameGc.setGlobalAlpha(tetrisFlashAlpha);
+            gameGc.setFill(Color.WHITE);
+            for (int row : tetrisFlashRows) gameGc.fillRect(0, row * cs, w, cs);
+            gameGc.setGlobalAlpha(1.0);
+        }
+
         if (gameOverFlashAlpha > 0) {
             gameGc.setFill(Color.color(1, 1, 1, gameOverFlashAlpha));
             gameGc.fillRect(0, 0, w, h);
@@ -717,8 +733,7 @@ class GameRenderer {
         renderSuspendedPieces(suspendedPieces, cs);
         drawCurrentPiece(currentPiece, bState, cs);
 
-        if (currentPiece instanceof RandomBlock randomBlock && randomBlock.isIndicatorOn())
-            drawRandomBlockIndicator(randomBlock, cs);
+
 
         if (gamePaused) {
             gameGc.setFill(Color.color(0, 0, 0, 0.5));
@@ -787,16 +802,14 @@ class GameRenderer {
         // Chromatic aberration (Sắc sai RGB) during blackout
         if (inBlackout) {
             double caOffset = 3.0 + charge * 7.0;
-            Color base = currentPiece.getType().getColor();
             gameGc.setGlobalAlpha(0.50);
-            gameGc.setFill(Color.color(Math.min(1.0, base.getRed() + 0.4), 0, 0));
+            gameGc.setFill(Color.web("#AC2547"));
             for (int row = 0; row < 4; row++)
                 for (int col = 0; col < 4; col++)
                     if (shape[row][col] == 1)
                         gameGc.fillRect((currentPiece.getX() + col) * cs - caOffset,
                                 (currentPiece.getY() + row) * cs, cs, cs);
-            gameGc.setFill(Color.color(0, Math.min(1.0, base.getGreen() * 0.2 + 0.6),
-                    Math.min(1.0, base.getBlue() + 0.4)));
+            gameGc.setFill(Color.web("#EEA9BA"));
             for (int row = 0; row < 4; row++)
                 for (int col = 0; col < 4; col++)
                     if (shape[row][col] == 1)
@@ -866,7 +879,7 @@ class GameRenderer {
         gameGc.restore();
 
         // --- KHÔI PHỤC HIỆU ỨNG GLITCH DỰ ĐOÁN HÌNH DẠNG (MORPH HINT) CỦA RANDOMBLOCK ---
-        if (isRandomBlock) {
+        if (isRandomBlock && !inBlackout) {
             RandomBlock rb = (RandomBlock) currentPiece;
             TetrominoType preview = rb.getPreviewType();
             double progress = rb.getMorphProgress();
@@ -956,17 +969,6 @@ class GameRenderer {
                     if (type == TetrominoType.BOMB) gc.drawImage(bombSprite, px, py, previewCellSize, previewCellSize);
                     else drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
                 }
-        if (isRandomPreview) {
-            gc.setStroke(Color.web("#00e5ff"));
-            gc.setLineWidth(2.0);
-            for (int row = minRow; row <= maxRow; row++)
-                for (int col = minCol; col <= maxCol; col++)
-                    if (shape[row][col] == 1) {
-                        double px = offsetX + (col - minCol) * previewCellSize;
-                        double py = offsetY + (row - minRow) * previewCellSize;
-                        gc.strokeRect(px + 1, py + 1, previewCellSize - 2, previewCellSize - 2);
-                    }
-        }
     }
 
     private void renderSuspendedPieces(List<Piece> suspendedPieces, int cs) {
@@ -1111,17 +1113,6 @@ class GameRenderer {
         gameGc.drawImage(timeBlockSprite, x * cs, y * cs, cs, cs);
     }
 
-    private void drawRandomBlockIndicator(Piece piece, int cs) {
-        int[][] shape = piece.getType().getShape(piece.getRotation());
-        gameGc.setStroke(Color.web("#00e5ff"));
-        gameGc.setLineWidth(2.2);
-        for (int row = 0; row < 4; row++)
-            for (int col = 0; col < 4; col++)
-                if (shape[row][col] == 1) {
-                    double px = (piece.getX() + col) * cs, py = (piece.getY() + row) * cs;
-                    gameGc.strokeRect(px + 1, py + 1, cs - 2, cs - 2);
-                }
-    }
 
     private void drawQuestionMark(GraphicsContext gc, Canvas canvas) {
         double w = canvas.getWidth(), h = canvas.getHeight();
@@ -1137,9 +1128,9 @@ class GameRenderer {
         return new DropShadow(javafx.scene.effect.BlurType.GAUSSIAN, Color.web("#FFE8A0"), 100, 0.0, 0, 20);
     }
 
-    private static final double BULB_GLOW_X = 1045;
-    private static final double BULB_GLOW_Y = 400;
     private static final double BULB_GLOW_RADIUS = 700;
+    private double cachedBulbGlowX = -1, cachedBulbGlowY = -1;
+    private javafx.scene.paint.RadialGradient cachedBulbAmbientGlow = null;
 
     private void renderBulbGlow() {
         if (hardMode == null || lightBulbView == null || !lightBulbView.isVisible()) return;
@@ -1150,16 +1141,22 @@ class GameRenderer {
             default -> false;
         };
         if (off) return;
-        javafx.scene.paint.RadialGradient grad = new javafx.scene.paint.RadialGradient(
-            0, 0, BULB_GLOW_X, BULB_GLOW_Y, BULB_GLOW_RADIUS, false,
-            javafx.scene.paint.CycleMethod.NO_CYCLE,
-            new javafx.scene.paint.Stop(0.0, Color.web("#FFE8A0", 0.50)),
-            new javafx.scene.paint.Stop(0.3, Color.web("#FFD060", 0.18)),
-            new javafx.scene.paint.Stop(1.0, Color.TRANSPARENT)
-        );
-        bgGc.setFill(grad);
-        bgGc.fillRect(BULB_GLOW_X - BULB_GLOW_RADIUS, BULB_GLOW_Y - BULB_GLOW_RADIUS,
-                      BULB_GLOW_RADIUS * 2, BULB_GLOW_RADIUS * 2);
+        javafx.geometry.Bounds b = lightBulbView.getBoundsInParent();
+        double gx = b.getMinX() + b.getWidth() * 0.5;
+        double gy = b.getMinY() + b.getHeight() * 0.62;
+        if (cachedBulbAmbientGlow == null || Math.abs(gx - cachedBulbGlowX) > 1 || Math.abs(gy - cachedBulbGlowY) > 1) {
+            cachedBulbGlowX = gx;
+            cachedBulbGlowY = gy;
+            cachedBulbAmbientGlow = new javafx.scene.paint.RadialGradient(
+                0, 0, gx, gy, BULB_GLOW_RADIUS, false,
+                javafx.scene.paint.CycleMethod.NO_CYCLE,
+                new javafx.scene.paint.Stop(0.0, Color.web("#FFE8A0", 0.50)),
+                new javafx.scene.paint.Stop(0.3, Color.web("#FFD060", 0.18)),
+                new javafx.scene.paint.Stop(1.0, Color.TRANSPARENT)
+            );
+        }
+        bgGc.setFill(cachedBulbAmbientGlow);
+        bgGc.fillRect(CENTER_LEFT_X, 0, centerRightX() - CENTER_LEFT_X, bgEffectCanvas.getHeight());
     }
 
     private void updateLightBulb() {
