@@ -307,6 +307,7 @@ class GameRenderer {
         double dt = lastBgRenderNs == 0 ? 0 : (now - lastBgRenderNs) / 1_000_000_000.0;
         lastBgRenderNs = now;
         bgGc.clearRect(0, 0, bgEffectCanvas.getWidth(), bgEffectCanvas.getHeight());
+        renderBulbGlow();
         renderEyes(dt);
         renderSideParticles(dt);
         if (gameOverFlashAlpha > 0) {
@@ -1130,6 +1131,37 @@ class GameRenderer {
         gc.setEffect(new DropShadow(10, Color.web("#00ff00")));
     }
 
+    private static final DropShadow BULB_GLOW = createBulbGlow();
+    private static DropShadow createBulbGlow() {
+        // capped at ~127px by JavaFX internally — just for the close-up halo on the image
+        return new DropShadow(javafx.scene.effect.BlurType.GAUSSIAN, Color.web("#FFE8A0"), 100, 0.0, 0, 20);
+    }
+
+    private static final double BULB_GLOW_X = 1045;
+    private static final double BULB_GLOW_Y = 400;
+    private static final double BULB_GLOW_RADIUS = 700;
+
+    private void renderBulbGlow() {
+        if (hardMode == null || lightBulbView == null || !lightBulbView.isVisible()) return;
+        HardModeHandler.BlackoutState bState = hardMode.blackoutState;
+        boolean off = switch (bState) {
+            case BLACKOUT -> true;
+            case FLICKER, POST_FLICKER -> ((int) hardMode.blackoutFlickerTimer) % 2 == 0;
+            default -> false;
+        };
+        if (off) return;
+        javafx.scene.paint.RadialGradient grad = new javafx.scene.paint.RadialGradient(
+            0, 0, BULB_GLOW_X, BULB_GLOW_Y, BULB_GLOW_RADIUS, false,
+            javafx.scene.paint.CycleMethod.NO_CYCLE,
+            new javafx.scene.paint.Stop(0.0, Color.web("#FFE8A0", 0.50)),
+            new javafx.scene.paint.Stop(0.3, Color.web("#FFD060", 0.18)),
+            new javafx.scene.paint.Stop(1.0, Color.TRANSPARENT)
+        );
+        bgGc.setFill(grad);
+        bgGc.fillRect(BULB_GLOW_X - BULB_GLOW_RADIUS, BULB_GLOW_Y - BULB_GLOW_RADIUS,
+                      BULB_GLOW_RADIUS * 2, BULB_GLOW_RADIUS * 2);
+    }
+
     private void updateLightBulb() {
         if (lightBulbView == null || !lightBulbView.isVisible()) return;
         HardModeHandler.BlackoutState bState = hardMode.blackoutState;
@@ -1139,5 +1171,6 @@ class GameRenderer {
             default -> false;
         };
         lightBulbView.setImage(off ? lightOffImage : lightOnImage);
+        lightBulbView.setEffect(off ? null : BULB_GLOW);
     }
 }
