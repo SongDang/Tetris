@@ -265,28 +265,31 @@
 
 /* ── Hard Mode UI ─────────────────────────────────────────────── */
 
-.screen-hard-game {
-    -fx-background-color: #1a0a06;
-    -fx-background-image: url("../assets/hardbg.png");
+.screen-hard-game,
+.screen-standard-game,
+.screen-timeatk-game {
+    -fx-background-color: #000000;
+}
+
+.game-bg-center {
     -fx-background-repeat: no-repeat;
     -fx-background-size: cover;
     -fx-background-position: center;
 }
 
-.screen-standard-game {
+.screen-standard-game .game-bg-center {
     -fx-background-color: #050515;
     -fx-background-image: url("../assets/standard_bg.png");
-    -fx-background-repeat: no-repeat;
-    -fx-background-size: cover;
-    -fx-background-position: center;
 }
 
-.screen-timeatk-game {
+.screen-timeatk-game .game-bg-center {
     -fx-background-color: #021f1e;
     -fx-background-image: url("../assets/timeatk_bg.png");
-    -fx-background-repeat: no-repeat;
-    -fx-background-size: cover;
-    -fx-background-position: center;
+}
+
+.screen-hard-game .game-bg-center {
+    -fx-background-color: #1a0a06;
+    -fx-background-image: url("../assets/hardbg.png");
 }
 
 .game-score-panel,
@@ -438,14 +441,14 @@
 .hard-flavour-text {
     -fx-font-family: "VT323";
     -fx-font-size: 32;
-    -fx-text-fill: #FFE940;
+    -fx-text-fill: #FF8C00;
     -fx-alignment: center;
     -fx-text-alignment: center;
 }
 
 /* ── Hard Mode Blackout ───────────────────────────────────────── */
 
-.screen-hard-game.blackout {
+.blackout .game-bg-center {
     -fx-background-image: url("../assets/darkbg.png");
 }
 

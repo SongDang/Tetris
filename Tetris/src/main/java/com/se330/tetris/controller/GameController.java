@@ -1,15 +1,25 @@
 package com.se330.tetris.controller;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+import com.se330.tetris.game.BoardEngine;
+import com.se330.tetris.game.BulbSwingEffect;
+import com.se330.tetris.game.Piece;
+import com.se330.tetris.game.RandomBlock;
+import com.se330.tetris.game.TetrominoType;
+import com.se330.tetris.service.GameContext;
+import com.se330.tetris.service.SceneManager;
 import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.Constants;
 import com.se330.tetris.util.SoundType;
-import com.se330.tetris.game.*;
-import com.se330.tetris.service.GameContext;
-import com.se330.tetris.service.SceneManager;
+
 import javafx.animation.AnimationTimer;
 import javafx.animation.PauseTransition;
-import javafx.scene.layout.VBox;
-import javafx.util.Duration;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
@@ -19,14 +29,9 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import javafx.util.Duration;
 
 public class GameController {
 
@@ -52,6 +57,7 @@ public class GameController {
     @FXML private Label bombsLabel;
     @FXML private VBox bombInventoryBox;
     @FXML private javafx.scene.layout.AnchorPane settingsOverlay;
+    @FXML private Canvas bgEffectCanvas;
     @FXML private SettingsController settingsPopupController;
 
     private javafx.scene.image.Image lightOnImage;
@@ -69,6 +75,7 @@ public class GameController {
     private GameRenderer renderer;
     private HardModeHandler hardMode;
     private TimeAttackHandler timeAttack;
+    private BulbSwingEffect bulbSwing;
 
     // --- Piece state ---
     private Piece currentPiece;
@@ -104,6 +111,22 @@ public class GameController {
     private boolean fuseLoopPlaying = false;
     private int mouseTargetColumn = -1;
     private int dropStartRow = -1;
+
+    // --- Flavour text ---
+    private static final String[] STANDARD_TIPS = {
+        "soft drop [ S ]   •   hard drop [ SPACE ]",
+        "hold a piece with [ C ] or [ SHIFT ]",
+        "rotate with [ W ] or [ UP ]",
+        "right-click to rotate   •   left-click to hard drop"
+    };
+    private static final String[] TIME_ATTACK_TIPS = {
+        "hey, time's running out",
+        "clear rows with time blocks to freeze the clock",
+        "tetris gives the most time back",
+        "use bomb skill [ B ] to clear the field"
+    };
+    private int flavourTipIndex = 0;
+    private javafx.animation.Timeline flavourTimeline;
 
     // --- Scoring / combo ---
     private int comboCount = 0;
@@ -160,6 +183,9 @@ public class GameController {
                 hardMode,
                 rng);
 
+        if (bgEffectCanvas != null)
+            renderer.setBgEffectCanvas(bgEffectCanvas);
+
         applyGameModeTheme();
 
         // HARD MODE
@@ -168,6 +194,7 @@ public class GameController {
             if (lightBulbView != null) {
                 lightBulbView.setImage(lightOnImage);
                 lightBulbView.setVisible(true);
+                bulbSwing = new BulbSwingEffect(lightBulbView);
             }
             Platform.runLater(() -> hardMode.buildFlavourChars(flavourLabel));
         }
@@ -273,7 +300,7 @@ public class GameController {
                 timeAttack.setGameState(gamePaused, isGameOver);
 
                 renderer.render(currentPiece, nextQueue, holdType, suspendedPieces,
-                        gamePaused, isGameOver, freezeUntil, frozenRowFlash);
+                        gamePaused, isGameOver, freezeUntil, frozenRowFlash, timeAttack.isFreezeActive);
             }
         };
         gameLoop.start();
@@ -386,8 +413,12 @@ public class GameController {
                 PauseTransition delay = new PauseTransition(Duration.millis(300));
                 delay.setOnFinished(e -> SoundManager.getInstance().playSE(SoundType.TETRIS2));
                 delay.play();
-                if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE)
+                if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
                     hardMode.trySetFlavourTetris();
+                    if (bulbSwing != null)
+                        bulbSwing.trigger(4);
+                    renderer.triggerSideParticles(4);
+                }
                 return;
             }
 
@@ -403,6 +434,9 @@ public class GameController {
                 boolean flavSet = comboCount >= 2 && hardMode.trySetFlavourCombo();
                 if (!flavSet)
                     hardMode.trySetFlavourClear();
+                if (bulbSwing != null)
+                    bulbSwing.trigger(cleared);
+                renderer.triggerSideParticles(cleared);
             }
         } else {
             comboCount = 0;
@@ -503,6 +537,9 @@ public class GameController {
         fuseLoopPlaying = false;
         renderer.onBombExplode((centerX + 0.5) * cs, (centerY + 0.5) * cs, cs, cells);
         SoundManager.getInstance().playSE(SoundType.BOMB_EXPLODE);
+        if (bulbSwing != null)
+            bulbSwing.trigger(4);
+        renderer.triggerSideParticles(4);
     }
 
     private void updateSuspendedFall() {
@@ -718,6 +755,20 @@ public class GameController {
         return Math.max(minX, Math.min(maxX, desiredX));
     }
 
+    private void startFlavourTextCycle(String[] tips) {
+        if (flavourLabel == null || tips.length == 0) return;
+        flavourTipIndex = 0;
+        flavourLabel.setText(tips[0]);
+        if (tips.length == 1) return;
+        flavourTimeline = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(Duration.seconds(7), e -> {
+                    flavourTipIndex = (flavourTipIndex + 1) % tips.length;
+                    flavourLabel.setText(tips[flavourTipIndex]);
+                }));
+        flavourTimeline.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+        flavourTimeline.play();
+    }
+
     private void applyGameModeTheme() {
         gamePane.getStyleClass().removeAll(
                 "screen-standard-game",
@@ -728,25 +779,15 @@ public class GameController {
         GameContext.GameMode mode = gameContext.getGameMode();
         if (mode == GameContext.GameMode.TIME_ATTACK) {
             gamePane.getStyleClass().add("screen-timeatk-game");
-            if (mainFrameView != null) {
-                mainFrameView.setImage(timeAttackMainImage);
-            }
-            if (flavourLabel != null) {
-                flavourLabel.setText("Hey, time's running out");
-            }
+            if (mainFrameView != null) mainFrameView.setImage(timeAttackMainImage);
+            startFlavourTextCycle(TIME_ATTACK_TIPS);
         } else if (mode == GameContext.GameMode.HARD_MODE) {
             gamePane.getStyleClass().add("screen-hard-game");
-            if (mainFrameView != null) {
-                mainFrameView.setImage(hardMainImage);
-            }
+            if (mainFrameView != null) mainFrameView.setImage(hardMainImage);
         } else {
             gamePane.getStyleClass().add("screen-standard-game");
-            if (mainFrameView != null) {
-                mainFrameView.setImage(standardMainImage);
-            }
-            if (flavourLabel != null) {
-                flavourLabel.setText("flavor text flavor text flavor text");
-            }
+            if (mainFrameView != null) mainFrameView.setImage(standardMainImage);
+            startFlavourTextCycle(STANDARD_TIPS);
         }
     }
 
@@ -872,6 +913,7 @@ public class GameController {
     private void quitToMainMenuFromSettings() {
         stopRandomBlockIfNeeded(currentPiece);
         timeAttack.stopAll();
+        if (flavourTimeline != null) flavourTimeline.stop();
         SoundManager.getInstance().stopLooping();
         if (gameLoop != null)
             gameLoop.stop();

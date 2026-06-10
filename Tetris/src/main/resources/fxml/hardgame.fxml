@@ -18,6 +18,14 @@
             styleClass="screen-hard-game"
             prefWidth="1440" prefHeight="1024">
 
+    <Region styleClass="game-bg-center"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="260"
+            AnchorPane.rightAnchor="260" AnchorPane.bottomAnchor="0"/>
+
+    <Canvas fx:id="bgEffectCanvas" width="1440" height="1024"
+            mouseTransparent="true"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"/>
+
     <HBox alignment="TOP_CENTER" spacing="20"
           AnchorPane.topAnchor="20" AnchorPane.leftAnchor="0"
           AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="204">
@@ -91,7 +99,7 @@
     </HBox>
 
     <VBox alignment="TOP_CENTER"
-          AnchorPane.topAnchor="259" AnchorPane.rightAnchor="150">
+          AnchorPane.topAnchor="259" AnchorPane.rightAnchor="220">
         <ImageView fitWidth="10" fitHeight="610" preserveRatio="false"
                    managed="false" translateX="170" translateY="-580"
                    mouseTransparent="true">
