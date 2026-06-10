@@ -7,7 +7,9 @@ import com.se330.tetris.game.*;
 import com.se330.tetris.service.GameContext;
 import com.se330.tetris.service.SceneManager;
 import javafx.animation.AnimationTimer;
+import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
+import javafx.animation.Timeline;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import javafx.application.Platform;
@@ -100,6 +102,7 @@ public class GameController {
     private AnimationTimer gameLoop;
     private boolean gamePaused = false;
     private boolean isGameOver = false;
+    private boolean isCountingDown = false;
     private long lastFallTime = 0;
     private long lastFrameTime = 0;
     private long fallIntervalNs = 500_000_000L;
@@ -206,7 +209,37 @@ public class GameController {
             });
         });
 
+        startCountdown();
+    }
+
+    private void startCountdown() {
+        isCountingDown = true;
         startGameLoop();
+
+        double glitchDoneMs = 900;
+        Timeline cdt = new Timeline(
+                new KeyFrame(Duration.millis(glitchDoneMs), e -> {
+                    renderer.setCountdown("3");
+                    SoundManager.getInstance().playSE(SoundType.CLICK);
+                }),
+                new KeyFrame(Duration.millis(glitchDoneMs + 700), e -> {
+                    renderer.setCountdown("2");
+                    SoundManager.getInstance().playSE(SoundType.CLICK);
+                }),
+                new KeyFrame(Duration.millis(glitchDoneMs + 1400), e -> {
+                    renderer.setCountdown("1");
+                    SoundManager.getInstance().playSE(SoundType.CLICK);
+                }),
+                new KeyFrame(Duration.millis(glitchDoneMs + 2050), e -> {
+                    renderer.setCountdown("GO!");
+                    SoundManager.getInstance().playSE(SoundType.ENTER_MODE);
+                }),
+                new KeyFrame(Duration.millis(glitchDoneMs + 2750), e -> {
+                    renderer.setCountdown(null);
+                    isCountingDown = false;
+                })
+        );
+        cdt.play();
     }
 
     private void loadImages() {
@@ -233,7 +266,7 @@ public class GameController {
                 handleGameOverFreeze(now);
                 renderer.update(dt, gamePaused, isGameOver, currentPiece);
 
-                if (!gamePaused && !isGameOver && freezeUntil == 0) {
+                if (!gamePaused && !isGameOver && !isCountingDown && freezeUntil == 0) {
                     applyMouseTarget();
                     if (!timeAttack.isFreezeActive) {
                         if (hardMode.tickBlackoutDrop(dt)) {
@@ -570,7 +603,7 @@ public class GameController {
 
     @FXML
     private void handleKeyPressed(KeyEvent event) {
-        if (isGameOver)
+        if (isGameOver || isCountingDown)
             return;
         KeyCode code = event.getCode();
         if (code == KeyCode.P) {
@@ -643,7 +676,7 @@ public class GameController {
     }
 
     private void handleMouseClicked(MouseEvent event) {
-        if (gamePaused || isGameOver)
+        if (gamePaused || isGameOver || isCountingDown)
             return;
         if (freezeUntil > 0) {
             event.consume();

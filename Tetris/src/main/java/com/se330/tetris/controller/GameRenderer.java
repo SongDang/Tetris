@@ -85,6 +85,11 @@ class GameRenderer {
     private Canvas startupCanvas;
     private GraphicsContext startupGc;
 
+    // Countdown
+    private String countdownText = null;
+    private double countdownPulse = 0;
+    private Font countdownFont;
+
     // Combo float
     private int comboDisplay = 0;
     private double comboFloatX = 0;
@@ -141,6 +146,15 @@ class GameRenderer {
         this.startupCanvas = canvas;
         this.startupGc = canvas.getGraphicsContext2D();
         this.startupGlitchElapsed = 0;
+        countdownFont = Font.loadFont(
+                getClass().getResourceAsStream("/fonts/VT323-Regular.ttf"), 14);
+    }
+
+    void setCountdown(String text) {
+        this.countdownText = text;
+        this.countdownPulse = 0;
+        if (text == null && startupGc != null)
+            startupGc.clearRect(0, 0, startupCanvas.getWidth(), startupCanvas.getHeight());
     }
 
     // --- Triggered events from game logic ---
@@ -256,6 +270,7 @@ class GameRenderer {
         if (glitchTearEffect != null) glitchTearEffect.update(dt);
         if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
         if (startupGlitchElapsed < STARTUP_GLITCH_DUR) startupGlitchElapsed += dt;
+        if (countdownText != null) countdownPulse += dt;
         if (glitchExplosionEffect != null) {
             glitchExplosionEffect.update(dt);
             if (glitchExplosionEffect.isDone()) glitchExplosionEffect = null;
@@ -401,6 +416,7 @@ class GameRenderer {
         if (hardModeActive) hardMode.renderFlavourText(rng);
 
         renderStartupGlitch();
+        renderCountdown();
     }
 
     // --- Board rendering ---
@@ -809,6 +825,36 @@ class GameRenderer {
             startupGc.setFill(Color.color(1, 1, 1, totalFlash));
             startupGc.fillRect(0, 0, w, h);
         }
+    }
+
+    private void renderCountdown() {
+        if (countdownText == null || startupGc == null) return;
+        double w = startupCanvas.getWidth(), h = startupCanvas.getHeight();
+        startupGc.clearRect(0, 0, w, h);
+
+        boolean isGo = "GO!".equals(countdownText);
+        double scale = 1.0 + Math.sin(countdownPulse * Math.PI * 3.0) * 0.06;
+        double fontSize = (isGo ? 110 : 130) * scale;
+
+        startupGc.setFill(Color.color(0, 0, 0, 0.5));
+        startupGc.fillRect(0, 0, w, h);
+
+        Font font = countdownFont != null
+                ? Font.font("VT323", fontSize)
+                : Font.font("Courier New", FontWeight.BOLD, fontSize * 0.65);
+        startupGc.setFont(font);
+
+        double estimatedWidth = countdownText.length() * fontSize * 0.58;
+        double tx = (w - estimatedWidth) / 2.0;
+        double ty = h / 2.0 + fontSize * 0.32;
+
+        Color glowColor = isGo ? Color.color(0, 0.9, 0.45, 0.55) : Color.color(0.85, 0.85, 1.0, 0.45);
+        startupGc.setFill(glowColor);
+        startupGc.fillText(countdownText, tx + 4, ty + 4);
+        startupGc.fillText(countdownText, tx - 4, ty + 4);
+
+        startupGc.setFill(isGo ? Color.web("#00ff88") : Color.WHITE);
+        startupGc.fillText(countdownText, tx, ty);
     }
 
     // --- Cell drawing helpers ---
