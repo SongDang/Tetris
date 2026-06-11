@@ -830,7 +830,7 @@ class GameRenderer {
     private void renderCountdown() {
         if (countdownText == null || startupGc == null) return;
         double w = startupCanvas.getWidth(), h = startupCanvas.getHeight();
-        startupGc.clearRect(0, 0, w, h);
+        if (startupGlitchElapsed >= STARTUP_GLITCH_DUR) startupGc.clearRect(0, 0, w, h);
 
         boolean isGo = "GO!".equals(countdownText);
         double scale = 1.0 + Math.sin(countdownPulse * Math.PI * 3.0) * 0.06;

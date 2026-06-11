@@ -216,25 +216,24 @@ public class GameController {
         isCountingDown = true;
         startGameLoop();
 
-        double glitchDoneMs = 900;
         Timeline cdt = new Timeline(
-                new KeyFrame(Duration.millis(glitchDoneMs), e -> {
+                new KeyFrame(Duration.millis(0), e -> {
                     renderer.setCountdown("3");
                     SoundManager.getInstance().playSE(SoundType.CLICK);
                 }),
-                new KeyFrame(Duration.millis(glitchDoneMs + 700), e -> {
+                new KeyFrame(Duration.millis(700), e -> {
                     renderer.setCountdown("2");
                     SoundManager.getInstance().playSE(SoundType.CLICK);
                 }),
-                new KeyFrame(Duration.millis(glitchDoneMs + 1400), e -> {
+                new KeyFrame(Duration.millis(1400), e -> {
                     renderer.setCountdown("1");
                     SoundManager.getInstance().playSE(SoundType.CLICK);
                 }),
-                new KeyFrame(Duration.millis(glitchDoneMs + 2050), e -> {
+                new KeyFrame(Duration.millis(2050), e -> {
                     renderer.setCountdown("GO!");
                     SoundManager.getInstance().playSE(SoundType.ENTER_MODE);
                 }),
-                new KeyFrame(Duration.millis(glitchDoneMs + 2750), e -> {
+                new KeyFrame(Duration.millis(2750), e -> {
                     renderer.setCountdown(null);
                     isCountingDown = false;
                 })
