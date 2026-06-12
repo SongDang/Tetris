@@ -33,6 +33,7 @@
     -fx-background-repeat: no-repeat;
     -fx-background-position: 20% 50%;
     -fx-background-size: 175% 175%;
+    -fx-font-family: "VT323";
 }
 
 .figma-main-title {
@@ -560,7 +561,7 @@
 
 .results-panel-halloffame {
     -fx-background-color: transparent;
-    -fx-background-image: url("../assets/rectangle-2.png");
+    -fx-background-image: url("../assets/hof.png");
     -fx-background-repeat: no-repeat;
     -fx-background-position: center;
     -fx-background-size: 100% 100%;
@@ -577,5 +578,70 @@
     -fx-background-size: 100% 100%;
     -fx-background-insets: 0;
     -fx-border-width: 0;
-    -fx-padding: 40;
+    -fx-padding: 40 40 40 40;
+}
+
+/* ── Results screen table ─────────────────────────────────────── */
+
+#highScoreTable,
+#highScoreTable .table-view {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+#highScoreTable .column-header-background {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+}
+
+#highScoreTable .column-header {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-size: 36;
+}
+
+#highScoreTable #colName,
+#highScoreTable #colScore {
+    -fx-border-color: transparent white transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+#highScoreTable .column-header .label {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: white;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-border-color: transparent;
+}
+
+#highScoreTable .filler {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+}
+
+#highScoreTable .table-row-cell {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+}
+
+#highScoreTable .table-row-cell:selected {
+    -fx-background-color: #222222;
+}
+
+#highScoreTable .table-cell {
+    -fx-font-family: "VT323";
+    -fx-font-size: 20;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-padding: 4 8 4 8;
+    -fx-background-color: transparent;
+    -fx-alignment: center;
+}
+
+#highScoreTable .results-table-divider-cell {
+    -fx-border-color: transparent white transparent transparent;
+    -fx-border-width: 0 1 0 0;
 }

@@ -17,7 +17,7 @@
 
         <!-- CỘT TRÁI FINAL SCORE -->
         <VBox spacing="25" alignment="TOP_CENTER" prefWidth="550.0">
-            <Label text="GAME OVER" style="-fx-font-size: 60px; -fx-text-fill: #ff4444; -fx-font-weight: bold;"/>
+            <Label text="GAME OVER" style="-fx-font-family: 'VT323'; -fx-font-size: 60px; -fx-text-fill: #ff4444;"/>
 
             <VBox spacing="10" alignment="CENTER" styleClass="results-panel">
                 <Label text="FINAL SCORE" styleClass="results-title" style="-fx-font-size: 24px;"/>
@@ -26,26 +26,26 @@
                 <Separator opacity="0.2" prefWidth="400"/>
 
                 <GridPane vgap="15" hgap="30" alignment="CENTER">
-                    <Label text="MODE:" GridPane.rowIndex="0" GridPane.columnIndex="0" style="-fx-text-fill: #8899aa; -fx-font-size: 24px;"/>
-                    <Label fx:id="gameModeLabel" text="NORMAL" GridPane.rowIndex="0" GridPane.columnIndex="1" style="-fx-text-fill: #ffffff; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+                    <Label text="MODE:" GridPane.rowIndex="0" GridPane.columnIndex="0" style="-fx-font-family: 'VT323'; -fx-text-fill: #8899aa; -fx-font-size: 24px;"/>
+                    <Label fx:id="gameModeLabel" text="NORMAL" GridPane.rowIndex="0" GridPane.columnIndex="1" style="-fx-font-family: 'VT323'; -fx-text-fill: #ffffff; -fx-font-size: 24px;"/>
 
-                    <Label text="LINES:" GridPane.rowIndex="1" GridPane.columnIndex="0" style="-fx-text-fill: #8899aa; -fx-font-size: 24px;"/>
-                    <Label fx:id="linesLabel" text="0" GridPane.rowIndex="1" GridPane.columnIndex="1" style="-fx-text-fill: #ffcc00; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+                    <Label text="LINES:" GridPane.rowIndex="1" GridPane.columnIndex="0" style="-fx-font-family: 'VT323'; -fx-text-fill: #8899aa; -fx-font-size: 24px;"/>
+                    <Label fx:id="linesLabel" text="0" GridPane.rowIndex="1" GridPane.columnIndex="1" style="-fx-font-family: 'VT323'; -fx-text-fill: #ffcc00; -fx-font-size: 24px;"/>
 
-                    <Label text="LEVEL:" GridPane.rowIndex="2" GridPane.columnIndex="0" style="-fx-text-fill: #8899aa; -fx-font-size: 24px;"/>
-                    <Label fx:id="levelLabel" text="1" GridPane.rowIndex="2" GridPane.columnIndex="1" style="-fx-text-fill: #00ff88; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+                    <Label text="LEVEL:" GridPane.rowIndex="2" GridPane.columnIndex="0" style="-fx-font-family: 'VT323'; -fx-text-fill: #8899aa; -fx-font-size: 24px;"/>
+                    <Label fx:id="levelLabel" text="1" GridPane.rowIndex="2" GridPane.columnIndex="1" style="-fx-font-family: 'VT323'; -fx-text-fill: #00ff88; -fx-font-size: 24px;"/>
                 </GridPane>
             </VBox>
 
             <!-- KHU VỰC NHẬP TÊN -->
-            <VBox fx:id="newRecordBox" spacing="15" alignment="CENTER" styleClass="results-panel-newachieve">
-                <Label text="NEW ACHIEVEMENT!" style="-fx-text-fill: #00ff88; -fx-font-size: 22px; -fx-font-weight: bold;"/>
-                <HBox spacing="15" alignment="CENTER">
+            <VBox fx:id="newRecordBox" spacing="5" alignment="CENTER" styleClass="results-panel-newachieve">
+                <Label text="NEW ACHIEVEMENT!" style="-fx-font-family: 'VT323'; -fx-text-fill: #00ff88; -fx-font-size: 20px;"/>
+                <HBox spacing="10" alignment="CENTER">
                     <TextField fx:id="playerNameInput" promptText="NAME (MAX 9)"
-                               prefWidth="220.0" prefHeight="50.0"
-                               style="-fx-background-color: #0f0d1a; -fx-text-fill: white; -fx-border-color: #444; -fx-font-size: 18px; -fx-font-family: 'Courier New';"/>
+                               prefWidth="160.0" prefHeight="40.0"
+                               style="-fx-background-color: #000000; -fx-text-fill: white; -fx-border-color: #444; -fx-font-size: 20px; -fx-font-family: 'VT323';"/>
                     <Button fx:id="saveBtn" text="SAVE" onAction="#onSaveClicked"
-                            prefWidth="110.0" prefHeight="50.0" styleClass="figma-button" />
+                            prefWidth="90.0" prefHeight="40.0" styleClass="figma-button" style="-fx-font-size: 24px;" />
                 </HBox>
             </VBox>
 
@@ -63,10 +63,10 @@
         <!-- CỘT PHẢI BẢNG THÀNH TỰU -->
         <VBox spacing="20" alignment="TOP_CENTER" prefWidth="600.0" styleClass="results-panel-halloffame">
 
-            <Label text="HALL OF FAME" style="-fx-font-size: 36px; -fx-text-fill: #00ff88; -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
+            <Label text="HALL OF FAME" style="-fx-font-family: 'VT323'; -fx-font-size: 36px; -fx-text-fill: #00ff88;"/>
 
             <TableView fx:id="highScoreTable" prefHeight="450.0" prefWidth="520.0"
-                       style="-fx-background-color: transparent; -fx-font-family: 'Courier New'; -fx-font-size: 18px;">
+                       style="-fx-background-color: #000000;">
                 <columns>
                     <TableColumn fx:id="colName" text="PLAYER" prefWidth="160.0" />
                     <TableColumn fx:id="colScore" text="SCORE" prefWidth="160.0" />
@@ -78,7 +78,7 @@
             </TableView>
 
             <Hyperlink fx:id="resetAllBtn" text="Reset all scores" onAction="#onResetAllClicked"
-                       style="-fx-text-fill: #ff4444; -fx-font-family: 'Courier New'; -fx-font-size: 16px; -fx-underline: true; -fx-border-color: transparent;" />
+                       style="-fx-text-fill: #ff4444; -fx-font-family: 'VT323'; -fx-font-size: 20px; -fx-underline: true; -fx-border-color: transparent;" />
         </VBox>
     </HBox>
 
