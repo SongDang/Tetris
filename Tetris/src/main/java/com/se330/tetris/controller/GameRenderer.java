@@ -1141,9 +1141,10 @@ class GameRenderer {
             default -> false;
         };
         if (off) return;
-        javafx.geometry.Bounds b = lightBulbView.getBoundsInParent();
-        double gx = b.getMinX() + b.getWidth() * 0.5;
-        double gy = b.getMinY() + b.getHeight() * 0.62;
+        javafx.geometry.Bounds bScene = lightBulbView.localToScene(lightBulbView.getBoundsInLocal());
+        javafx.geometry.Bounds bCanvas = bgEffectCanvas.sceneToLocal(bScene);
+        double gx = bCanvas.getMinX() + bCanvas.getWidth() * 0.5;
+        double gy = bCanvas.getMinY() + bCanvas.getHeight() * 0.62;
         if (cachedBulbAmbientGlow == null || Math.abs(gx - cachedBulbGlowX) > 1 || Math.abs(gy - cachedBulbGlowY) > 1) {
             cachedBulbGlowX = gx;
             cachedBulbGlowY = gy;
