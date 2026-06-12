@@ -782,6 +782,10 @@ class GameRenderer {
                     }
         }
 
+        if (currentPiece.getType() == TetrominoType.BOMB && freezeUntil == 0
+                && bState != HardModeHandler.BlackoutState.BLACKOUT)
+            drawBombImpactZone(currentPiece, suspendedPieces, cs);
+
         renderSuspendedPieces(suspendedPieces, cs);
         drawCurrentPiece(currentPiece, bState, cs);
 
@@ -1142,6 +1146,32 @@ class GameRenderer {
     }
 
     // --- Cell drawing helpers ---
+
+    private void drawBombImpactZone(Piece bomb, List<Piece> suspended, int cs) {
+        int drop = boardEngine.getDropDistance(bomb, suspended);
+        int cx   = bomb.getX();
+        int cy   = bomb.getY() + drop;
+
+        double pulse = 0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 1000.0 * 7.0);
+
+        // Tint each cell in the 3x3 zone
+        gameGc.setFill(Color.web("#ff4400", 0.08 + pulse * 0.12));
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++) {
+                int bx = cx + dx, by = cy + dy;
+                if (bx >= 0 && bx < Constants.BOARD_WIDTH && by >= 0 && by < Constants.BOARD_HEIGHT)
+                    gameGc.fillRect(bx * cs, by * cs, cs, cs);
+            }
+
+        // Pulsing border around the full 3x3 area
+        int x1 = Math.max(0,                     cx - 1) * cs;
+        int y1 = Math.max(0,                     cy - 1) * cs;
+        int x2 = Math.min(Constants.BOARD_WIDTH,  cx + 2) * cs;
+        int y2 = Math.min(Constants.BOARD_HEIGHT, cy + 2) * cs;
+        gameGc.setStroke(Color.web("#ff6600", 0.45 + pulse * 0.45));
+        gameGc.setLineWidth(2);
+        gameGc.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    }
 
     private void drawCell(int x, int y, Color color, double opacity) {
         int cs = Constants.BLOCK_SIZE;
