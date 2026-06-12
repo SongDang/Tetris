@@ -108,6 +108,17 @@ class GameRenderer {
     private static final double EYE_SPAWN_INTERVAL = 0.2;
     private static final double STRIP_W = 260.0;
 
+    // Bulb motes
+    private static class BulbMote {
+        double baseX, y;    // baseX is the sine-wave center
+        double sineAmp, sineFreq, sinePhase;
+        double vy, life, maxLife, size;
+        boolean white;
+        double x() { return baseX + Math.sin(sinePhase + life * sineFreq) * sineAmp; }
+    }
+    private final List<BulbMote> bulbMotes = new ArrayList<>();
+    private double bulbMoteTimer = 0;
+
     // Side-strip particle burst on line clear / bomb
     private static final double PARTICLE_GRAVITY = 750.0;
     private static final double CENTER_LEFT_X = 260.0;
@@ -311,6 +322,7 @@ class GameRenderer {
         lastBgRenderNs = now;
         bgGc.clearRect(0, 0, bgEffectCanvas.getWidth(), bgEffectCanvas.getHeight());
         renderBulbGlow();
+        renderBulbMotes(dt);
         renderEyes(dt);
         renderSideParticles(dt);
         if (gameOverFlashAlpha > 0) {
@@ -353,6 +365,46 @@ class GameRenderer {
                 sideParticles.add(p);
             }
         }
+    }
+
+    private void renderBulbMotes(double dt) {
+        if (lightBulbView == null || !lightBulbView.isVisible()) return;
+        if (hardMode != null && hardMode.blackoutState == HardModeHandler.BlackoutState.BLACKOUT) {
+            bulbMotes.clear();
+            return;
+        }
+        javafx.geometry.Bounds bScene = lightBulbView.localToScene(lightBulbView.getBoundsInLocal());
+        javafx.geometry.Bounds bCanvas = bgEffectCanvas.sceneToLocal(bScene);
+        double bulbCx = bCanvas.getMinX() + bCanvas.getWidth() * 0.5;
+        double bulbBottom = bCanvas.getMinY() + bCanvas.getHeight() * 0.78;
+
+        bulbMoteTimer -= dt;
+        if (bulbMoteTimer <= 0) {
+            bulbMoteTimer = 0.15 + rng.nextDouble() * 0.20;
+            BulbMote m = new BulbMote();
+            m.baseX = bulbCx + (rng.nextDouble() - 0.5) * 30;
+            m.y = bulbBottom + rng.nextDouble() * 10;
+            m.vy = 18 + rng.nextDouble() * 28;
+            m.sineAmp = 8 + rng.nextDouble() * 22;
+            m.sineFreq = 1.2 + rng.nextDouble() * 2.0;
+            m.sinePhase = rng.nextDouble() * Math.PI * 2;
+            m.maxLife = 2.0 + rng.nextDouble() * 2.5;
+            m.life = 0;
+            m.size = 1.5 + rng.nextDouble() * 1.5;
+            m.white = rng.nextDouble() < 0.35;
+            bulbMotes.add(m);
+        }
+        bulbMotes.removeIf(m -> m.life >= m.maxLife);
+        for (BulbMote m : bulbMotes) {
+            m.life += dt;
+            m.y += m.vy * dt;
+            double t = m.life / m.maxLife;
+            double alpha = t < 0.12 ? t / 0.12 : (t > 0.65 ? (1.0 - t) / 0.35 : 1.0);
+            bgGc.setGlobalAlpha(alpha * 0.85);
+            bgGc.setFill(m.white ? Color.web("#FFFDE0") : Color.web("#FFD966"));
+            bgGc.fillRect(m.x(), m.y, m.size, m.size);
+        }
+        bgGc.setGlobalAlpha(1.0);
     }
 
     private void renderSideParticles(double dt) {
