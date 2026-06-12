@@ -17,6 +17,7 @@ public class SceneManager {
     public static final String GAME_SCENE = "game";
     public static final String HARD_GAME_SCENE  = "hardgame";
     public static final String HARD_INTRO_SCENE = "hardintro";
+    public static final String TIME_INTRO_SCENE = "timeintro";
     public static final String RESULTS_SCENE = "results";
     public static final String SETTINGS_SCENE = "settings";
 
@@ -79,6 +80,7 @@ public class SceneManager {
             case GAME_SCENE -> Constants.FXML_GAME;
             case HARD_GAME_SCENE  -> Constants.FXML_HARDGAME;
             case HARD_INTRO_SCENE -> Constants.FXML_HARD_INTRO;
+            case TIME_INTRO_SCENE -> Constants.FXML_TIME_INTRO;
             case RESULTS_SCENE -> Constants.FXML_RESULTS;
             case SETTINGS_SCENE -> Constants.FXML_SETTINGS;
             default -> throw new IllegalArgumentException("Unknown scene name: " + sceneName);

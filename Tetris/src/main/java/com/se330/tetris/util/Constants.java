@@ -16,6 +16,7 @@ public class Constants {
     public static final String FXML_GAME = "/fxml/game.fxml";
     public static final String FXML_HARDGAME       = "/fxml/hardgame.fxml";
     public static final String FXML_HARD_INTRO     = "/fxml/hardmode_intro.fxml";
+    public static final String FXML_TIME_INTRO     = "/fxml/timeattack_intro.fxml";
     public static final String FXML_RESULTS = "/fxml/results.fxml";
     public static final String FXML_SETTINGS = "/fxml/settings.fxml";
 

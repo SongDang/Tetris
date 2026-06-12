@@ -141,7 +141,7 @@ public class GamemodesController {
         gameContext.setGameMode(GameContext.GameMode.TIME_ATTACK);
         gameContext.reset();
         sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.GAME_SCENE);
+        sceneManager.switchToScene(SceneManager.TIME_INTRO_SCENE);
     }
 
     @FXML
