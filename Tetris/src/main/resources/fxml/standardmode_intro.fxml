@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.canvas.Canvas?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="introPane"
+            fx:controller="com.se330.tetris.controller.StandardModeIntroController"
+            prefWidth="1440.0" prefHeight="1024.0"
+            style="-fx-background-color: #040119;">
+
+    <Canvas fx:id="mainCanvas" width="1440.0" height="1024.0"
+            mouseTransparent="true"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"/>
+
+</AnchorPane>
