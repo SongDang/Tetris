@@ -151,7 +151,7 @@ public class GamemodesController {
         gameContext.setGameMode(GameContext.GameMode.HARD_MODE);
         gameContext.reset();
         sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.HARD_GAME_SCENE);
+        sceneManager.switchToScene(SceneManager.HARD_INTRO_SCENE);
     }
 
     @FXML
