@@ -517,3 +517,65 @@
     -fx-scale-x: 1.0;
     -fx-scale-y: 1.0;
 }
+
+.results-button {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-30.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-font-family: "VT323";
+    -fx-font-size: 36;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+.results-button:hover {
+    -fx-opacity: 0.75;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.results-button:pressed {
+    -fx-opacity: 0.55;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.results-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-30.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 50;
+}
+
+.results-panel-halloffame {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-2.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 60;
+}
+
+.results-panel-newachieve {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/quote_rec.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 40;
+}

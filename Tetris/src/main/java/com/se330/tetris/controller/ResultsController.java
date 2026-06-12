@@ -61,6 +61,9 @@ public class ResultsController {
     private Button menuBtn;
 
     @FXML
+    private Label commentLabel;
+
+    @FXML
     private VBox newRecordBox;
     @FXML
     private TextField playerNameInput;
@@ -149,19 +152,20 @@ public class ResultsController {
     }
 
     private void buildCharLabels() {
-        /*// Note text — hide original label, add per-char HBox centered in the same StackPane
-        noteLabel.setVisible(false);
+        if (commentLabel == null) return;
+        commentLabel.setVisible(false);
+        StackPane notePanel = (StackPane) commentLabel.getParent();
+        if (notePanel == null) return;
         HBox noteBox = new HBox(0);
         noteBox.setAlignment(Pos.CENTER);
-        for (char c : noteLabel.getText().toCharArray()) {
+        for (char c : commentLabel.getText().toCharArray()) {
             Label l = new Label(String.valueOf(c));
-            l.setFont(Font.font("VT323", 32));
-            l.setTextFill(Color.WHITE);
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 42; -fx-text-fill: #ffffff;");
             l.setOpacity(0);
             noteChars.add(l);
             noteBox.getChildren().add(l);
         }
-        notePanel.getChildren().add(noteBox);*/
+        notePanel.getChildren().add(noteBox);
     }
 
     private void tick(double dt) {
@@ -258,6 +262,15 @@ public class ResultsController {
         gameModeLabel.setText(mode);
         levelLabel.setText(String.valueOf(level));
         linesLabel.setText(String.valueOf(lines));
+
+        if (commentLabel != null) {
+            String comment;
+            if (score < 1000) comment = "Pitiful.";
+            else if (score < 3000) comment = "That's all you've got?";
+            else if (score < 5000) comment = "Could've been better.";
+            else comment = "Impressive.";
+            commentLabel.setText(comment);
+        }
 
         System.out.println("Results displayed:");
         System.out.println("  Final Score: " + score);
