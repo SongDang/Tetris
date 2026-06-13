@@ -7,6 +7,9 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.RadialGradient;
+import javafx.scene.paint.Stop;
 import com.se330.tetris.service.SceneManager;
 
 import java.util.ArrayList;
@@ -29,9 +32,9 @@ public class TimeAttackIntroController {
     private boolean shardsSpawned = false;
     private final Random rng = new Random();
 
-    private static final int    FRAMES          = 4;
-    private static final double FRAME_DUR       = 0.80;
-    private static final double SECOND_LAST_EXTRA = 0.70;
+    private static final int    FRAMES          = 8;
+    private static final double FRAME_DUR       = 0.50;
+    private static final double SECOND_LAST_EXTRA = 0.75;
     private static final double LAST_FRAME_START = (FRAMES - 1) * FRAME_DUR + SECOND_LAST_EXTRA;
     private static final double DONE_AT         = LAST_FRAME_START + FRAME_DUR + 0.80;
 
@@ -92,6 +95,7 @@ public class TimeAttackIntroController {
             spawnShards(cx, cy);
         }
 
+        drawGlow(cx, cy);
         drawClock(cx, cy);
         renderShards(dt);
 
@@ -101,13 +105,27 @@ public class TimeAttackIntroController {
         }
     }
 
+    private void drawGlow(double cx, double cy) {
+        double pulse = 0.18 + 0.06 * Math.sin(elapsed * 2.5);
+        RadialGradient glow = new RadialGradient(0, 0, cx, cy, 320, false,
+            CycleMethod.NO_CYCLE,
+            new Stop(0.0, Color.web("#00CCCC", pulse)),
+            new Stop(1.0, Color.web("#00CCCC", 0))
+        );
+        gc.setFill(glow);
+        gc.fillOval(cx - 320, cy - 320, 640, 640);
+    }
+
     private void drawClock(double cx, double cy) {
         if (sheet == null) return;
         int frame;
-        if      (elapsed < FRAME_DUR)                           frame = 0;
-        else if (elapsed < 2 * FRAME_DUR)                       frame = 1;
-        else if (elapsed < (FRAMES - 1) * FRAME_DUR + SECOND_LAST_EXTRA) frame = 2;
-        else                                                     frame = 3;
+        if (elapsed < (FRAMES - 2) * FRAME_DUR) {
+            frame = (int)(elapsed / FRAME_DUR);
+        } else if (elapsed < LAST_FRAME_START) {
+            frame = FRAMES - 2;
+        } else {
+            frame = FRAMES - 1;
+        }
         double sx = cx - displayW / 2;
         double sy = cy - displayH / 2;
         gc.drawImage(sheet, 0, frame * frameH, frameW, frameH, sx, sy, displayW, displayH);
