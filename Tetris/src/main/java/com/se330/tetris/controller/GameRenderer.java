@@ -79,13 +79,18 @@ class GameRenderer {
     double flashIntensity = 0;
     double gameOverFlashAlpha = 0;
     private double tetrisFlashAlpha = 0;
-    private int[] tetrisFlashRows = null;
+    private int[]  tetrisFlashRows  = null;
+    private double postClearAlpha   = 0;
+    private int[]  postClearRows    = null;
     private double ghostParticleTimer = 0;
     private double randomBlockSparkTimer = 0;
 
     // Startup glitch
     double startupGlitchElapsed = 0;
     private Canvas startupCanvas;
+
+    // Pause glitch
+    private double pauseGlitchElapsed = 0;
     private GraphicsContext startupGc;
 
     // Eye animation during blackout
@@ -336,6 +341,12 @@ class GameRenderer {
         tetrisFlashAlpha = 1.0;
     }
 
+    void triggerPostClearFlash(int[] rows) {
+        postClearRows  = rows;
+        postClearAlpha = 1.0;
+        tetrisFlashAlpha = 1.0;
+    }
+
     void triggerSideParticles(int intensity) {
         if (bgGc == null) return;
         int count = switch (intensity) {
@@ -536,7 +547,10 @@ class GameRenderer {
 
     // --- Per-frame update ---
 
-    void update(double dt, boolean gamePaused, boolean isGameOver, Piece currentPiece) {
+    void update(double dt, boolean gamePaused, boolean isGameOver, Piece currentPiece, long freezeUntil) {
+        if (gamePaused && !isGameOver) pauseGlitchElapsed += dt;
+        else pauseGlitchElapsed = 0;
+
         if (glitchTearEffect != null) glitchTearEffect.update(dt);
         if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
         if (startupGlitchElapsed < STARTUP_GLITCH_DUR) startupGlitchElapsed += dt;
@@ -551,7 +565,12 @@ class GameRenderer {
             for (ScorePopup p : scorePopups) {
                 p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt / 0.7;
             }
-            updateScreenShake(dt);
+            if (freezeUntil > 0) {
+                gameCanvas.setTranslateX(0); gameCanvas.setTranslateY(0);
+                vfxCanvas.setTranslateX(0); vfxCanvas.setTranslateY(0);
+            } else {
+                updateScreenShake(dt);
+            }
 
             // --- HIỆU ỨNG HẠT CHO KHỐI TÀNG HÌNH (TRANSPARENT) ---
             if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
@@ -587,7 +606,8 @@ class GameRenderer {
 
             if (rotationPulse > 0) rotationPulse = Math.max(0, rotationPulse - dt * 8.0);
             if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
-            if (tetrisFlashAlpha > 0) tetrisFlashAlpha = Math.max(0, tetrisFlashAlpha - dt * 1.5);
+            if (tetrisFlashAlpha > 0) tetrisFlashAlpha = Math.max(0, tetrisFlashAlpha - dt * 5.0);
+            if (postClearAlpha  > 0) postClearAlpha   = Math.max(0, postClearAlpha  - dt * 5.0);
             if (levelUpEffect != null) { levelUpEffect.update(dt); if (levelUpEffect.isDone()) levelUpEffect = null; }
             if (borderPulseEffect != null) {
                 borderPulseEffect.update(dt);
@@ -698,6 +718,20 @@ class GameRenderer {
         }
 
         renderStartupGlitch();
+
+        if (startupGc != null && startupGlitchElapsed >= STARTUP_GLITCH_DUR) {
+            double sw = startupCanvas.getWidth(), sh = startupCanvas.getHeight();
+            startupGc.clearRect(0, 0, sw, sh);
+            if (gamePaused && !isGameOver) {
+                drawPauseGlitch();
+            } else if (frozenRowFlash != null && freezeUntil > 0) {
+                startupGc.setFill(Color.color(1, 1, 1, 0.10));
+                startupGc.fillRect(0, 0, sw, sh);
+            } else if (tetrisFlashAlpha > 0) {
+                startupGc.setFill(Color.color(1, 1, 1, tetrisFlashAlpha));
+                startupGc.fillRect(0, 0, sw, sh);
+            }
+        }
     }
 
     // --- Board rendering ---
@@ -745,18 +779,21 @@ class GameRenderer {
             }
         }
 
+
         if (frozenRowFlash != null && freezeUntil > 0) {
-            double blink = 0.55 + 0.45 * Math.sin(System.nanoTime() / 28_000_000.0);
-            gameGc.setGlobalAlpha(blink);
             gameGc.setFill(Color.WHITE);
             for (int row : frozenRowFlash) gameGc.fillRect(0, row * cs, w, cs);
-            gameGc.setGlobalAlpha(1.0);
         }
 
-        if (tetrisFlashRows != null && tetrisFlashAlpha > 0) {
-            gameGc.setGlobalAlpha(tetrisFlashAlpha);
-            gameGc.setFill(Color.WHITE);
-            for (int row : tetrisFlashRows) gameGc.fillRect(0, row * cs, w, cs);
+        if (postClearRows != null && postClearAlpha > 0) {
+            Color modeColor = switch (gameContext.getGameMode()) {
+                case TIME_ATTACK -> Color.web("#00CCCC");
+                case HARD_MODE   -> Color.web("#FF6600");
+                default          -> Color.web("#6655EE");
+            };
+            gameGc.setGlobalAlpha(postClearAlpha);
+            gameGc.setFill(modeColor);
+            for (int row : postClearRows) gameGc.fillRect(0, row * cs, w, cs);
             gameGc.setGlobalAlpha(1.0);
         }
 
@@ -794,13 +831,6 @@ class GameRenderer {
 
 
 
-        if (gamePaused) {
-            gameGc.setFill(Color.color(0, 0, 0, 0.5));
-            gameGc.fillRect(0, 0, w, h);
-            gameGc.setFill(Color.web("#00ff00"));
-            gameGc.setFont(Font.font("Courier New", 28));
-            gameGc.fillText("PAUSED", w / 2 - 55, h / 2);
-        }
     }
 
     private void drawCurrentPiece(Piece currentPiece, HardModeHandler.BlackoutState bState, int cs) {
@@ -1145,6 +1175,61 @@ class GameRenderer {
             };
             gameGc.setFill(c);
             gameGc.fillOval(s.x - s.size / 2, s.y - s.size / 2, s.size, s.size);
+        }
+    }
+
+    private void drawPauseGlitch() {
+        if (startupGc == null) return;
+        double w = startupCanvas.getWidth();
+        double h = startupCanvas.getHeight();
+        double burst = Math.max(0.0, 1.0 - pauseGlitchElapsed / 0.35);
+        double t = System.nanoTime() / 1_000_000_000.0;
+
+        // Dark overlay — heavier on entry
+        startupGc.setFill(Color.color(0, 0, 0, 0.42 + burst * 0.25));
+        startupGc.fillRect(0, 0, w, h);
+
+        // Pulse: periodic glitch spikes after the burst settles
+        double pulse = Math.max(0, Math.sin(t * 2.1) * Math.sin(t * 5.9));
+        double noise = burst + pulse * 0.6;
+
+        // Chromatic aberration horizontal bands
+        int numBands = (int)(3 + burst * 6 + noise * 5);
+        for (int i = 0; i < numBands; i++) {
+            double by   = rng.nextDouble() * h;
+            double bh   = 1 + rng.nextDouble() * h * 0.04;
+            double xOff = (rng.nextDouble() - 0.5) * w * (0.18 + burst * 0.28);
+            double a    = (0.12 + rng.nextDouble() * 0.22) * Math.max(0.2, noise);
+            startupGc.setFill(Color.color(1.0, 0.08, 0.08, Math.min(1, a)));
+            startupGc.fillRect(xOff - 7, by, w + 14, bh);
+            startupGc.setFill(Color.color(0.08, 1.0, 1.0, Math.min(1, a * 0.9)));
+            startupGc.fillRect(xOff + 7, by, w + 14, bh);
+            startupGc.setFill(Color.color(1.0, 1.0, 1.0, Math.min(1, a * 0.55)));
+            startupGc.fillRect(xOff, by, w, bh);
+        }
+
+        // Noise pixels
+        int pixCount = (int)(12 + 40 * Math.max(noise, 0.15));
+        for (int i = 0; i < pixCount; i++) {
+            double nx = Math.floor(rng.nextDouble() * w / 2) * 2;
+            double ny = Math.floor(rng.nextDouble() * h / 2) * 2;
+            startupGc.setFill(Color.color(1, 1, 1, 0.2 + rng.nextDouble() * 0.6));
+            startupGc.fillRect(nx, ny, 2, 2);
+        }
+
+        // Occasional full-screen flicker
+        double flicker = Math.sin(t * 17.1) * Math.sin(t * 43.3);
+        double threshold = 0.72 - burst * 0.25;
+        if (flicker > threshold) {
+            double fa = (flicker - threshold) / (1.0 - threshold) * (0.22 + burst * 0.35);
+            startupGc.setFill(Color.color(1, 1, 1, Math.min(1, fa)));
+            startupGc.fillRect(0, 0, w, h);
+        }
+
+        // Entry burst flash
+        if (burst > 0) {
+            startupGc.setFill(Color.color(1, 1, 1, burst * 0.55));
+            startupGc.fillRect(0, 0, w, h);
         }
     }
 

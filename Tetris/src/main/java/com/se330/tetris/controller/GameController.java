@@ -57,6 +57,7 @@ public class GameController {
     @FXML private Label bombsLabel;
     @FXML private VBox bombInventoryBox;
     @FXML private javafx.scene.layout.AnchorPane settingsOverlay;
+    @FXML private javafx.scene.layout.AnchorPane settingsPopupShell;
     @FXML private Canvas bgEffectCanvas;
     @FXML private SettingsController settingsPopupController;
 
@@ -251,10 +252,8 @@ public class GameController {
             gamePane.getChildren().add(startupCanvas);
             renderer.setStartupCanvas(startupCanvas);
             gamePane.layoutBoundsProperty().addListener((obs, o, n) -> {
-                if (renderer.startupGlitchElapsed < 0.75) {
-                    startupCanvas.setWidth(n.getWidth());
-                    startupCanvas.setHeight(n.getHeight());
-                }
+                startupCanvas.setWidth(n.getWidth());
+                startupCanvas.setHeight(n.getHeight());
             });
         });
 
@@ -283,7 +282,7 @@ public class GameController {
 
                 handleTetrisFreezeExpiry(now);
                 handleGameOverFreeze(now);
-                renderer.update(dt, gamePaused, isGameOver, currentPiece);
+                renderer.update(dt, gamePaused, isGameOver, currentPiece, freezeUntil);
 
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     applyMouseTarget();
@@ -328,6 +327,7 @@ public class GameController {
                 for (int r : rows)
                     rowList.add(r);
                 Collections.sort(rowList, Collections.reverseOrder());
+                renderer.triggerPostClearFlash(rows);
                 boardEngine.clearRows(rowList);
                 addScore(4);
                 addLines(4);
@@ -896,7 +896,13 @@ public class GameController {
             settingsPopupController.setScoreVisible(true);
             settingsPopupController.setScoreValue(gameContext.getScore());
         }
-        settingsOverlay.setManaged(true);
+        double ow = gamePane.getWidth(), oh = gamePane.getHeight();
+        settingsOverlay.resize(ow, oh);
+        if (settingsPopupShell != null) {
+            settingsPopupShell.setLayoutX((ow - settingsPopupShell.getPrefWidth()) / 2);
+            settingsPopupShell.setLayoutY((oh - settingsPopupShell.getPrefHeight()) / 2);
+        }
+        settingsOverlay.layout();
         settingsOverlay.setVisible(true);
         settingsOverlay.toFront();
         Platform.runLater(settingsOverlay::requestFocus);
@@ -905,7 +911,6 @@ public class GameController {
     private void closePauseSettings() {
         if (settingsOverlay != null) {
             settingsOverlay.setVisible(false);
-            settingsOverlay.setManaged(false);
         }
         if (gamePaused && !isGameOver) {
             gamePaused = false;

@@ -8,10 +8,6 @@ import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import com.se330.tetris.service.SceneManager;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-
 public class StandardModeIntroController {
 
     @FXML private AnchorPane introPane;
@@ -21,7 +17,6 @@ public class StandardModeIntroController {
     private AnimationTimer timer;
     private double elapsed = 0;
     private long lastNano = 0;
-    private final Random rng = new Random();
 
     private static final double SPIN_START = 0.5;
     private static final double STEP_DUR   = 0.70;
@@ -41,23 +36,8 @@ public class StandardModeIntroController {
         {0, -1}, {-1, 0}, {0, 0}, {1, 0}
     };
 
-    private static final Color[] SPARK_COLORS = {
-        Color.web("#5244AA"), Color.web("#8070DD"),
-        Color.web("#A090FF"), Color.WHITE,
-        Color.web("#30285B"), Color.web("#6858CC")
-    };
-
-    private static class Spark {
-        double x, y, vx, vy, alpha, life, maxLife;
-        int size;
-        Color color;
-    }
-    private final List<Spark> sparks = new ArrayList<>();
-
-    private double rotAngle  = 0;
-    private double scale     = 0;
-    private double emitAccum = 0;
-    private int    lastStep  = -1;
+    private double rotAngle = 0;
+    private double scale    = 0;
 
     @FXML
     private void initialize() {
@@ -94,18 +74,7 @@ public class StandardModeIntroController {
             rotAngle = NUM_STEPS * (Math.PI / 2);
         }
 
-        if (elapsed >= SPIN_START && elapsed < FLASH_AT) {
-            int currStep = Math.min((int)((elapsed - SPIN_START) / STEP_DUR), NUM_STEPS - 1);
-            if (currStep > lastStep) { burstSparks(cx, cy, 20); lastStep = currStep; }
-            emitAccum += dt;
-            while (emitAccum > 0.035) {
-                emitAccum -= 0.035;
-                emitSparks(cx, cy, 2);
-            }
-        }
-
         gc.clearRect(0, 0, w, h);
-        renderSparks(dt);
 
         gc.save();
         gc.translate(cx, cy);
@@ -149,76 +118,5 @@ public class StandardModeIntroController {
             double s = CELL - GAP * 2;
             gc.fillRect(x, y, s, s);
         }
-    }
-
-    private void emitSparks(double cx, double cy, int count) {
-        double[] cell = T_CELLS[rng.nextInt(T_CELLS.length)];
-        double half = CELL / 2.0;
-        double bx = cell[0] * CELL, by = cell[1] * CELL + CY_OFFSET;
-        double t  = rng.nextDouble();
-        double lx, ly;
-        switch (rng.nextInt(4)) {
-            case 0 -> { lx = bx - half + t * CELL; ly = by - half; }
-            case 1 -> { lx = bx + half;             ly = by - half + t * CELL; }
-            case 2 -> { lx = bx - half + t * CELL; ly = by + half; }
-            default -> { lx = bx - half;            ly = by - half + t * CELL; }
-        }
-        spawnSparks(cx, cy, lx, ly, count, 50, 180);
-    }
-
-    private void burstSparks(double cx, double cy, int total) {
-        for (double[] cell : T_CELLS) {
-            double bx = cell[0] * CELL, by = cell[1] * CELL + CY_OFFSET;
-            for (int corner = 0; corner < 4; corner++) {
-                double lx = bx + (corner % 2 == 0 ? -CELL / 2.0 : CELL / 2.0);
-                double ly = by + (corner < 2      ? -CELL / 2.0 : CELL / 2.0);
-                spawnSparks(cx, cy, lx, ly, total / 4, 100, 340);
-            }
-        }
-    }
-
-    private void spawnSparks(double cx, double cy,
-                              double lx, double ly,
-                              int count, double minSpeed, double maxSpeed) {
-        double cos = Math.cos(rotAngle), sin = Math.sin(rotAngle);
-        double wx  = cx + scale * (cos * lx - sin * ly);
-        double wy  = cy + scale * (sin * lx + cos * ly);
-        double out = Math.atan2(ly, lx) + rotAngle;
-
-        for (int i = 0; i < count; i++) {
-            Spark s   = new Spark();
-            s.x       = Math.floor(wx / 2) * 2;
-            s.y       = Math.floor(wy / 2) * 2;
-            double a  = out + (rng.nextDouble() - 0.5) * 1.6;
-            double sp = minSpeed + rng.nextDouble() * (maxSpeed - minSpeed);
-            s.vx      = Math.cos(a) * sp;
-            s.vy      = Math.sin(a) * sp;
-            s.size    = (1 + rng.nextInt(4)) * 2;
-            s.alpha   = 0.7 + rng.nextDouble() * 0.3;
-            s.maxLife = 0.2 + rng.nextDouble() * 0.5;
-            s.life    = 0;
-            s.color   = SPARK_COLORS[rng.nextInt(SPARK_COLORS.length)];
-            sparks.add(s);
-        }
-    }
-
-    private void renderSparks(double dt) {
-        sparks.removeIf(s -> s.life >= s.maxLife);
-        for (Spark s : sparks) {
-            s.life += dt;
-            s.x    += s.vx * dt;
-            s.y    += s.vy * dt;
-            s.vy   += 120 * dt;
-            double t  = s.life / s.maxLife;
-            double a  = t < 0.7 ? s.alpha : s.alpha * (1.0 - (t - 0.7) / 0.3);
-            int    px = (int)(Math.floor(s.x / 2) * 2);
-            int    py = (int)(Math.floor(s.y / 2) * 2);
-            gc.save();
-            gc.setGlobalAlpha(a);
-            gc.setFill(s.color);
-            gc.fillRect(px, py, s.size, s.size);
-            gc.restore();
-        }
-        gc.setGlobalAlpha(1.0);
     }
 }

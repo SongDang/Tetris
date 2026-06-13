@@ -120,4 +120,16 @@
         </StackPane>
     </HBox>
 
+    <AnchorPane fx:id="settingsOverlay"
+                visible="false" managed="false" focusTraversable="true"
+                prefWidth="1440.0" prefHeight="1024.0"
+                styleClass="settings-overlay-host,settings-overlay-from-game">
+        <Region styleClass="settings-overlay-backdrop" onMouseClicked="#onSettingsOverlayBackdropClicked"
+                AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
+                AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"/>
+        <AnchorPane fx:id="settingsPopupShell" prefWidth="692.0" prefHeight="487.0" styleClass="settings-popup-shell">
+            <fx:include fx:id="settingsPopup" source="settings.fxml" />
+        </AnchorPane>
+    </AnchorPane>
+
 </AnchorPane>
