@@ -587,7 +587,7 @@ class GameRenderer {
 
             if (rotationPulse > 0) rotationPulse = Math.max(0, rotationPulse - dt * 8.0);
             if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
-            if (tetrisFlashAlpha > 0) tetrisFlashAlpha = Math.max(0, tetrisFlashAlpha - dt * 4.0);
+            if (tetrisFlashAlpha > 0) tetrisFlashAlpha = Math.max(0, tetrisFlashAlpha - dt * 1.5);
             if (levelUpEffect != null) { levelUpEffect.update(dt); if (levelUpEffect.isDone()) levelUpEffect = null; }
             if (borderPulseEffect != null) {
                 borderPulseEffect.update(dt);
@@ -746,8 +746,11 @@ class GameRenderer {
         }
 
         if (frozenRowFlash != null && freezeUntil > 0) {
+            double blink = 0.55 + 0.45 * Math.sin(System.nanoTime() / 28_000_000.0);
+            gameGc.setGlobalAlpha(blink);
             gameGc.setFill(Color.WHITE);
             for (int row : frozenRowFlash) gameGc.fillRect(0, row * cs, w, cs);
+            gameGc.setGlobalAlpha(1.0);
         }
 
         if (tetrisFlashRows != null && tetrisFlashAlpha > 0) {

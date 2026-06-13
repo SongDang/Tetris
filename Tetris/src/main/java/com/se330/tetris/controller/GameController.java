@@ -415,7 +415,7 @@ public class GameController {
                 frozenRowFlash = fullRows.stream().mapToInt(Integer::intValue).toArray();
                 pendingTetrisClear = frozenRowFlash;
                 pendingTetrisClearHasTimeBlock = hasTimeBlock;
-                freezeUntil = System.nanoTime() + 300_000_000L;
+                freezeUntil = System.nanoTime() + 700_000_000L;
                 renderer.triggerTetrisFlash(frozenRowFlash);
                 SoundManager.getInstance().playSE(SoundType.TETRIS);
                 PauseTransition delay = new PauseTransition(Duration.millis(300));
