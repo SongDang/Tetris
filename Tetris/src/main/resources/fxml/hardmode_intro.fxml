@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="introPane"
+            fx:controller="com.se330.tetris.controller.HardModeIntroController"
+            prefWidth="1440.0" prefHeight="1024.0"
+            style="-fx-background-color: #280C00;">
+
+    <!-- Glow canvas — must be first so it renders behind the bulb -->
+    <Canvas fx:id="glowCanvas" width="1440.0" height="1024.0"
+            mouseTransparent="true"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"/>
+
+    <VBox fx:id="bulbContainer" alignment="TOP_CENTER" prefWidth="320.0"
+          layoutX="0.0" layoutY="0.0" mouseTransparent="true">
+        <ImageView fitWidth="10.0" fitHeight="420.0" preserveRatio="false"
+                   mouseTransparent="true">
+            <image><Image url="@../assets/string.png"/></image>
+        </ImageView>
+        <ImageView fx:id="bulbView" fitWidth="320.0" fitHeight="320.0"
+                   preserveRatio="true" mouseTransparent="true" translateY="-20.0"/>
+    </VBox>
+
+    <Region fx:id="blackOverlay"
+            AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
+            AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"
+            style="-fx-background-color: black;"
+            mouseTransparent="true" opacity="0"/>
+
+</AnchorPane>

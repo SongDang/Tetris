@@ -33,6 +33,7 @@
     -fx-background-repeat: no-repeat;
     -fx-background-position: 20% 50%;
     -fx-background-size: 175% 175%;
+    -fx-font-family: "VT323";
 }
 
 .figma-main-title {
@@ -265,28 +266,38 @@
 
 /* ── Hard Mode UI ─────────────────────────────────────────────── */
 
+.screen-standard-game,
+.screen-timeatk-game {
+    -fx-background-color: #000000;
+}
+
 .screen-hard-game {
-    -fx-background-color: #1a0a06;
+    -fx-background-color: #000000;
     -fx-background-image: url("../assets/hardbg.png");
+    -fx-background-size: cover;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.game-bg-center {
     -fx-background-repeat: no-repeat;
     -fx-background-size: cover;
     -fx-background-position: center;
 }
 
-.screen-standard-game {
+.screen-standard-game .game-bg-center {
     -fx-background-color: #050515;
     -fx-background-image: url("../assets/standard_bg.png");
-    -fx-background-repeat: no-repeat;
-    -fx-background-size: cover;
-    -fx-background-position: center;
 }
 
-.screen-timeatk-game {
+.screen-timeatk-game .game-bg-center {
     -fx-background-color: #021f1e;
     -fx-background-image: url("../assets/timeatk_bg.png");
-    -fx-background-repeat: no-repeat;
-    -fx-background-size: cover;
-    -fx-background-position: center;
+}
+
+.screen-hard-game .game-bg-center {
+    -fx-background-color: #00000099;
+    -fx-background-image: none;
 }
 
 .game-score-panel,
@@ -438,15 +449,21 @@
 .hard-flavour-text {
     -fx-font-family: "VT323";
     -fx-font-size: 32;
-    -fx-text-fill: #FFE940;
+    -fx-text-fill: #FF8C00;
     -fx-alignment: center;
     -fx-text-alignment: center;
 }
 
 /* ── Hard Mode Blackout ───────────────────────────────────────── */
 
-.screen-hard-game.blackout {
+.blackout .game-bg-center {
+    -fx-background-color: transparent;
     -fx-background-image: url("../assets/darkbg.png");
+}
+
+.screen-hard-game.blackout {
+    -fx-background-image: none;
+    -fx-background-color: #000000;
 }
 
 .blackout .hard-bar {
@@ -500,4 +517,131 @@
     -fx-effect: none;
     -fx-scale-x: 1.0;
     -fx-scale-y: 1.0;
+}
+
+.results-button {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-30.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-font-family: "VT323";
+    -fx-font-size: 36;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+.results-button:hover {
+    -fx-opacity: 0.75;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.results-button:pressed {
+    -fx-opacity: 0.55;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.results-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-30.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 50;
+}
+
+.results-panel-halloffame {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hof.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 60;
+}
+
+.results-panel-newachieve {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/quote_rec.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 40 40 40 40;
+}
+
+/* ── Results screen table ─────────────────────────────────────── */
+
+#highScoreTable,
+#highScoreTable .table-view {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+#highScoreTable .column-header-background {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+}
+
+#highScoreTable .column-header {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-size: 36;
+}
+
+#highScoreTable #colName,
+#highScoreTable #colScore {
+    -fx-border-color: transparent white transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+#highScoreTable .column-header .label {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: white;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-border-color: transparent;
+}
+
+#highScoreTable .filler {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+}
+
+#highScoreTable .table-row-cell {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+}
+
+#highScoreTable .table-row-cell:selected {
+    -fx-background-color: #222222;
+}
+
+#highScoreTable .table-cell {
+    -fx-font-family: "VT323";
+    -fx-font-size: 20;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-padding: 4 8 4 8;
+    -fx-background-color: transparent;
+    -fx-alignment: center;
+}
+
+#highScoreTable .results-table-divider-cell {
+    -fx-border-color: transparent white transparent transparent;
+    -fx-border-width: 0 1 0 0;
 }

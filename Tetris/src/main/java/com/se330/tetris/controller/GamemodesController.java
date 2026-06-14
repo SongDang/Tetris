@@ -126,12 +126,12 @@ public class GamemodesController {
 
     @FXML
     private void onStandardClicked() {
-        SoundManager.getInstance().playSE(SoundType.ENTER_MODE);
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
         gameContext.setGameMode(GameContext.GameMode.STANDARD);
         gameContext.reset();
         sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.GAME_SCENE);
+        sceneManager.switchToScene(SceneManager.STANDARD_INTRO_SCENE);
     }
 
     @FXML
@@ -141,7 +141,7 @@ public class GamemodesController {
         gameContext.setGameMode(GameContext.GameMode.TIME_ATTACK);
         gameContext.reset();
         sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.GAME_SCENE);
+        sceneManager.switchToScene(SceneManager.TIME_INTRO_SCENE);
     }
 
     @FXML
@@ -151,7 +151,7 @@ public class GamemodesController {
         gameContext.setGameMode(GameContext.GameMode.HARD_MODE);
         gameContext.reset();
         sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.HARD_GAME_SCENE);
+        sceneManager.switchToScene(SceneManager.HARD_INTRO_SCENE);
     }
 
     @FXML

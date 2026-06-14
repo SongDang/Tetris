@@ -40,6 +40,12 @@ public class TetrisApp extends Application {
         SoundManager.getInstance().setSEVolume(Constants.SOUND_VOLUME_DEFAULT);
     }
 
+    @Override
+    public void stop() {
+        SoundManager.getInstance().stopMusic();
+        SoundManager.getInstance().stopLooping();
+    }
+
     public static void main(String[] args) {
         launch(args);
     }

@@ -294,7 +294,7 @@ public class HardModeHandler {
         if (flavourHBox == null) return;
         flavourChars.clear();
         flavourHBox.getChildren().clear();
-        String baseColor = (hexColor != null) ? hexColor : "#00ff00"; // Mặc định xanh neon retro nếu không truyền màu
+        String baseColor = (hexColor != null) ? hexColor : "#FF8C00";
         for (char c : text.toCharArray()) {
             Label l = new Label(String.valueOf(c));
             l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: " + baseColor + ";");
@@ -359,7 +359,7 @@ public class HardModeHandler {
             l.setOpacity(visible ? 1.0 : 0.0);
             if (visible) l.setTranslateY(Math.sin(flavourWaveTime * 2.5 + i * 0.45) * 2.5);
             // Đảm bảo ép font VT323 để không bị vỡ giao diện chữ châm biếm thông thường
-            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: #00ff00;");
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: #FF8C00;");
         }
     }
 }

@@ -18,6 +18,14 @@
             prefWidth="1440.0" prefHeight="1024.0"
             styleClass="screen-standard-game">
 
+    <Canvas fx:id="bgEffectCanvas" width="1440" height="1024"
+            mouseTransparent="true"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"/>
+
+    <Region styleClass="game-bg-center"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="260"
+            AnchorPane.rightAnchor="260" AnchorPane.bottomAnchor="0"/>
+
     <HBox alignment="TOP_CENTER" spacing="68.0"
           AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="0.0"
           AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="204.0">
@@ -88,8 +96,9 @@
     </HBox>
 
     <VBox fx:id="bombInventoryBox"
-          visible="false"
-          managed="false"
+          visible="false" managed="false"
+          layoutX="260.0" layoutY="558.0"
+          prefWidth="216.0" prefHeight="130.0"
           style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14;
                  -fx-border-color: #aa3344; -fx-border-width: 1;
                  -fx-background-color: #2a1620; -fx-background-radius: 4;
@@ -102,13 +111,13 @@
                       -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
     </VBox>
 
-    <Region prefHeight="176.0" styleClass="game-bottom-bar"
-            AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"/>
+    <Region styleClass="game-bottom-bar" prefHeight="204"
+            AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"/>
 
-    <HBox alignment="CENTER" prefHeight="127.0"
-          AnchorPane.bottomAnchor="28.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
-        <StackPane prefWidth="646.0" prefHeight="127.0" styleClass="game-flavour-panel">
-            <Label fx:id="flavourLabel" text="flavor text flavor text flavor text"
+    <HBox alignment="CENTER" prefHeight="112"
+          AnchorPane.bottomAnchor="46" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+        <StackPane prefWidth="700" prefHeight="112" styleClass="game-flavour-panel">
+            <Label fx:id="flavourLabel" text=""
                    maxWidth="Infinity" styleClass="game-flavour-text"/>
         </StackPane>
     </HBox>
@@ -116,12 +125,14 @@
     <ImageView fx:id="lightBulbView" fitWidth="180.0" fitHeight="180.0"
                preserveRatio="true" visible="false" managed="false"/>
 
-    <AnchorPane fx:id="settingsOverlay" prefWidth="1440.0" prefHeight="1024.0"
+    <AnchorPane fx:id="settingsOverlay"
                 visible="false" managed="false" focusTraversable="true"
+                prefWidth="1440.0" prefHeight="1024.0"
                 styleClass="settings-overlay-host,settings-overlay-from-game">
-        <Region layoutX="0.0" layoutY="0.0" prefWidth="1440.0" prefHeight="1024.0"
-                styleClass="settings-overlay-backdrop" onMouseClicked="#onSettingsOverlayBackdropClicked" />
-        <AnchorPane layoutX="374.0" layoutY="248.0" prefWidth="692.0" prefHeight="487.0" styleClass="settings-popup-shell">
+        <Region styleClass="settings-overlay-backdrop" onMouseClicked="#onSettingsOverlayBackdropClicked"
+                AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
+                AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"/>
+        <AnchorPane fx:id="settingsPopupShell" prefWidth="692.0" prefHeight="487.0" styleClass="settings-popup-shell">
             <fx:include fx:id="settingsPopup" source="settings.fxml" />
         </AnchorPane>
     </AnchorPane>

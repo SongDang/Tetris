@@ -20,7 +20,8 @@ public enum SoundType {
     FUSE("/sound/fuse.wav"),
     RESULT_GLITCH("/sound/result_glitch.wav"),
     TRANSPARENT_PIECE("/sound/transparent_piece_sound.wav"),
-    RANDOM_PIECE("/sound/random_piece_sound.wav");
+    RANDOM_PIECE("/sound/random_piece_sound.wav"),
+    TIME_STOP("/sound/timestop.wav");
 
     private final String path;
 
