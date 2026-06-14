@@ -106,6 +106,8 @@ public class GameController {
     private int[] pendingTetrisClear = null;
     private int[] frozenRowFlash = null;
     private boolean pendingTetrisClearHasTimeBlock = false;
+    private List<int[]> pendingTimeBlockPositions = List.of();
+    private boolean timeStopSoundPlayed = false;
 
     // --- Input ---
     private boolean softDropping = false;
@@ -163,6 +165,7 @@ public class GameController {
         timeAttack = new TimeAttackHandler(
                 gameContext, timeLabel, freezeLabel, bombsLabel, timePanel, bombInventoryBox,
                 this::handleGameOver);
+        timeAttack.setOnFreezeEnd(() -> timeStopSoundPlayed = false);
         renderer = new GameRenderer(
                 gameCanvas,
                 vfxCanvas,
@@ -282,7 +285,7 @@ public class GameController {
 
                 handleTetrisFreezeExpiry(now);
                 handleGameOverFreeze(now);
-                renderer.update(dt, gamePaused, isGameOver, currentPiece, freezeUntil);
+                renderer.update(dt, gamePaused, isGameOver, currentPiece, freezeUntil, timeAttack.isFreezeActive);
 
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     applyMouseTarget();
@@ -333,7 +336,14 @@ public class GameController {
                 addLines(4);
                 updateLevel();
                 renderer.emitScorePopup(4, avgRow);
-                timeAttack.triggerFreezeIfNeeded(hasTimeBlock);
+                if (hasTimeBlock && !pendingTimeBlockPositions.isEmpty()) {
+                    List<int[]> cells = pendingTimeBlockPositions;
+                    pendingTimeBlockPositions = List.of();
+                    if (!timeStopSoundPlayed) { timeStopSoundPlayed = true; SoundManager.getInstance().playSE(SoundType.TIME_STOP, 0.70f); }
+                    renderer.triggerPreFreezeCinematic(cells, () -> timeAttack.triggerFreezeIfNeeded(true));
+                } else {
+                    timeAttack.triggerFreezeIfNeeded(hasTimeBlock);
+                }
                 canHold = true;
                 spawnAndCheckGameOver();
             }
@@ -411,10 +421,28 @@ public class GameController {
                 renderer.onCombo(comboCount, avgRow, cs);
 
             if (cleared == 4) {
+                // Time Attack + time block: skip tetris freeze, go straight to pre-freeze cinematic
+                if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && hasTimeBlock) {
+                    List<int[]> tbCells = boardEngine.getTimeBlockCells(fullRows);
+                    fullRows.sort(Collections.reverseOrder());
+                    boardEngine.clearRows(fullRows);
+                    addScore(4);
+                    addLines(4);
+                    updateLevel();
+                    renderer.emitScorePopup(4, avgRow);
+                    SoundManager.getInstance().playSE(SoundType.TETRIS);
+                    if (!timeStopSoundPlayed) { timeStopSoundPlayed = true; SoundManager.getInstance().playSE(SoundType.TIME_STOP, 0.70f); }
+                    renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
+                    canHold = true;
+                    spawnAndCheckGameOver();
+                    return;
+                }
+
                 fullRows.sort(Collections.reverseOrder());
                 frozenRowFlash = fullRows.stream().mapToInt(Integer::intValue).toArray();
                 pendingTetrisClear = frozenRowFlash;
                 pendingTetrisClearHasTimeBlock = hasTimeBlock;
+                pendingTimeBlockPositions = hasTimeBlock ? boardEngine.getTimeBlockCells(fullRows) : List.of();
                 freezeUntil = System.nanoTime() + 700_000_000L;
                 renderer.triggerTetrisFlash(frozenRowFlash);
                 SoundManager.getInstance().playSE(SoundType.TETRIS);
@@ -430,13 +458,17 @@ public class GameController {
                 return;
             }
 
+            List<int[]> tbCells = hasTimeBlock ? boardEngine.getTimeBlockCells(fullRows) : List.of();
             fullRows.sort(Collections.reverseOrder());
             boardEngine.clearRows(fullRows);
             addScore(cleared);
             addLines(cleared);
             updateLevel();
             renderer.emitScorePopup(cleared, avgRow);
-            timeAttack.triggerFreezeIfNeeded(hasTimeBlock);
+            if (hasTimeBlock) {
+                SoundManager.getInstance().playSE(SoundType.TIME_STOP);
+                renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
+            } else timeAttack.triggerFreezeIfNeeded(false);
 
             if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
                 boolean flavSet = comboCount >= 2 && hardMode.trySetFlavourCombo();
@@ -576,6 +608,7 @@ public class GameController {
         if (fullRows.isEmpty())
             return;
         boolean hasTimeBlock = fullRows.stream().anyMatch(boardEngine::rowHasTimeBlock);
+        List<int[]> tbCells = hasTimeBlock ? boardEngine.getTimeBlockCells(fullRows) : List.of();
         fullRows.sort(Collections.reverseOrder());
         boardEngine.clearRows(fullRows);
         comboCount = 0;
@@ -584,7 +617,10 @@ public class GameController {
         addScore(fullRows.size());
         addLines(fullRows.size());
         updateLevel();
-        timeAttack.triggerFreezeIfNeeded(hasTimeBlock);
+        if (hasTimeBlock) {
+            SoundManager.getInstance().playSE(SoundType.TIME_STOP);
+            renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
+        } else timeAttack.triggerFreezeIfNeeded(false);
     }
 
     // --- Score & level ---
@@ -805,6 +841,7 @@ public class GameController {
         dropStartRow = currentPiece.getY();
         renderer.onHardDrop();
         int drop = boardEngine.getDropDistance(currentPiece, suspendedPieces);
+        if (timeAttack.isFreezeActive) renderer.onHardDropTrail(currentPiece, drop);
         currentPiece.setY(currentPiece.getY() + drop);
         lockAndSpawn();
     }

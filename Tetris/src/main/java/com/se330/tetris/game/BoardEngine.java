@@ -194,6 +194,15 @@ public class BoardEngine {
         return false;
     }
 
+    public java.util.List<int[]> getTimeBlockCells(java.util.List<Integer> rows) {
+        java.util.List<int[]> cells = new java.util.ArrayList<>();
+        for (int row : rows)
+            for (int x = 0; x < Constants.BOARD_WIDTH; x++)
+                if (board[row][x] == TIME_BLOCK_ID)
+                    cells.add(new int[]{x, row});
+        return cells;
+    }
+
     public int getDropDistance(Piece piece, List<Piece> suspended) {
         int d = 0;
         while (canMove(piece, 0, d + 1, piece.getRotation(), suspended)) d++;

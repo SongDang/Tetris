@@ -18,6 +18,10 @@
             prefWidth="1440.0" prefHeight="1024.0"
             styleClass="screen-standard-game">
 
+    <Canvas fx:id="bgEffectCanvas" width="1440" height="1024"
+            mouseTransparent="true"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"/>
+
     <Region styleClass="game-bg-center"
             AnchorPane.topAnchor="0" AnchorPane.leftAnchor="260"
             AnchorPane.rightAnchor="260" AnchorPane.bottomAnchor="0"/>

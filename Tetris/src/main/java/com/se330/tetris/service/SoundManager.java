@@ -62,6 +62,30 @@ public class SoundManager {
         }
     }
 
+    public void playSE(SoundType type, float volumeMultiplier) {
+        URL url = soundMap.get(type);
+        if (url == null) return;
+        float vol = seVolume * Math.max(0f, Math.min(1f, volumeMultiplier));
+        Thread t = new Thread(() -> {
+            try {
+                AudioInputStream ais = AudioSystem.getAudioInputStream(url);
+                Clip seClip = AudioSystem.getClip();
+                seClip.open(ais);
+                ais.close();
+                applyVolume(seClip, vol);
+                seClip.start();
+                seClip.addLineListener(event -> {
+                    if (event.getType() == javax.sound.sampled.LineEvent.Type.STOP)
+                        seClip.close();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
     public void playSE(SoundType type) {
         URL url = soundMap.get(type);
         if (url == null) return;

@@ -84,6 +84,16 @@ class GameRenderer {
     private int[]  postClearRows    = null;
     private double ghostParticleTimer = 0;
     private double randomBlockSparkTimer = 0;
+    private double freezeScale = 1.0; // 1=normal, 0=fully frozen; lerps on transition
+    private static final double FREEZE_LERP_SPEED = 3.0;
+
+    // Pre-freeze cinematic (darkness + time block glow before freeze activates)
+    private boolean preFreezeActive = false;
+    private double preFreezeElapsed = 0;
+    private java.util.List<int[]> preFreezePositions = java.util.List.of();
+    private Runnable preFreezeCallback = null;
+    private static final double PREFREEZE_DUR = 1.00;
+    private double freezeFlashAlpha = 0; // strong green pulse at cinematic→freeze transition
 
     // Startup glitch
     double startupGlitchElapsed = 0;
@@ -140,6 +150,24 @@ class GameRenderer {
         Color color;
     }
 
+    // Hard-drop trail
+    private static class HardDropTrail {
+        int pieceX, pieceY, dropDistance;
+        int[][] shape;
+        double alpha;
+    }
+    private final List<HardDropTrail> hardDropTrails = new ArrayList<>();
+
+    // Rain (Time Attack background)
+    private static class RainDrop {
+        double x, y, vx, vy;
+    }
+    private final List<RainDrop> rainDrops = new ArrayList<>();
+    double rainTimeScale = 1.0;
+    private static final int    RAIN_COUNT  = 420;
+    private static final int    RAIN_TRAIL  = 14;
+    private static final double RAIN_DT     = 0.006;
+
     // Combo float
     private int comboDisplay = 0;
     private double comboFloatX = 0;
@@ -158,13 +186,6 @@ class GameRenderer {
     }
     private final List<ScorePopup> scorePopups = new ArrayList<>();
 
-    private static class FrostSparkle {
-        double x, y, size;
-        long birthTimeMs, lifetimeMs;
-        int colorType; // 0=ice-blue, 1=white, 2=dark-blue
-    }
-    private final List<FrostSparkle> frostSparkles = new ArrayList<>();
-    private long lastFrostSpawnMs = 0;
 
     GameRenderer(Canvas gameCanvas, Canvas vfxCanvas, Canvas holdBlockCanvas,
                  Canvas nextBlockCanvas1, Canvas nextBlockCanvas2, Canvas nextBlockCanvas3,
@@ -336,6 +357,13 @@ class GameRenderer {
         }
     }
 
+    void triggerPreFreezeCinematic(java.util.List<int[]> cells, Runnable onComplete) {
+        preFreezePositions = cells;
+        preFreezeElapsed   = 0;
+        preFreezeActive    = true;
+        preFreezeCallback  = onComplete;
+    }
+
     void triggerTetrisFlash(int[] rows) {
         tetrisFlashRows = rows;
         tetrisFlashAlpha = 1.0;
@@ -448,6 +476,17 @@ class GameRenderer {
         shakeDuration = 0.18;
     }
 
+    void onHardDropTrail(Piece piece, int drop) {
+        if (drop <= 0) return;
+        HardDropTrail t = new HardDropTrail();
+        t.pieceX       = piece.getX();
+        t.pieceY       = piece.getY();
+        t.dropDistance = drop;
+        t.shape        = piece.getType().getShape(piece.getRotation());
+        t.alpha        = 1.0;
+        hardDropTrails.add(t);
+    }
+
     void onLineClear(int cleared, List<Integer> fullRows, Color pieceColor, int cs) {
         double t = cleared / 4.0;
         flashIntensity = 0.12 + t * 0.28;
@@ -547,7 +586,7 @@ class GameRenderer {
 
     // --- Per-frame update ---
 
-    void update(double dt, boolean gamePaused, boolean isGameOver, Piece currentPiece, long freezeUntil) {
+    void update(double dt, boolean gamePaused, boolean isGameOver, Piece currentPiece, long freezeUntil, boolean isFreezeActive) {
         if (gamePaused && !isGameOver) pauseGlitchElapsed += dt;
         else pauseGlitchElapsed = 0;
 
@@ -560,6 +599,17 @@ class GameRenderer {
         }
 
         if (!gamePaused && !isGameOver) {
+            if (preFreezeActive) {
+                preFreezeElapsed += dt;
+                if (preFreezeElapsed >= PREFREEZE_DUR) {
+                    preFreezeActive = false;
+                    freezeFlashAlpha = 1.0;
+                    if (preFreezeCallback != null) { preFreezeCallback.run(); preFreezeCallback = null; }
+                }
+            }
+            if (freezeFlashAlpha > 0) freezeFlashAlpha = Math.max(0, freezeFlashAlpha - dt * 5.5);
+            if (isFreezeActive) freezeScale = Math.max(0.0, freezeScale - dt * FREEZE_LERP_SPEED);
+            else                freezeScale = Math.min(1.0, freezeScale + dt * FREEZE_LERP_SPEED);
             particleSystem.update(dt);
             scorePopups.removeIf(p -> p.life <= 0);
             for (ScorePopup p : scorePopups) {
@@ -608,6 +658,20 @@ class GameRenderer {
             if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
             if (tetrisFlashAlpha > 0) tetrisFlashAlpha = Math.max(0, tetrisFlashAlpha - dt * 5.0);
             if (postClearAlpha  > 0) postClearAlpha   = Math.max(0, postClearAlpha  - dt * 5.0);
+            hardDropTrails.removeIf(t -> t.alpha <= 0);
+            for (HardDropTrail t : hardDropTrails) t.alpha = Math.max(0, t.alpha - dt * 2.5);
+            if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK) {
+                if (rainDrops.isEmpty()) initRain();
+                double rcw = bgEffectCanvas != null ? bgEffectCanvas.getWidth()  : 1440;
+                double rch = bgEffectCanvas != null ? bgEffectCanvas.getHeight() : 1024;
+                for (RainDrop r : rainDrops) {
+                    r.x += r.vx * dt * freezeScale * rainTimeScale;
+                    r.y += r.vy * dt * freezeScale * rainTimeScale;
+                    if (r.y > rch + 60) { r.y = -60; r.x = rng.nextDouble() * rcw; }
+                    if (r.x > rcw + 40)   r.x -= rcw + 40;
+                    if (r.x < -40)        r.x += rcw + 40;
+                }
+            }
             if (levelUpEffect != null) { levelUpEffect.update(dt); if (levelUpEffect.isDone()) levelUpEffect = null; }
             if (borderPulseEffect != null) {
                 borderPulseEffect.update(dt);
@@ -671,19 +735,13 @@ class GameRenderer {
                 double b = BG_B + flashIntensity * (1.0 - BG_B);
                 String hex = String.format("#%02x%02x%02x", (int)(r*255), (int)(g*255), (int)(b*255));
                 gamePane.setStyle("-fx-background-color: " + hex + "; " + PANE_BASE_STYLE);
-            } else if (isFreezeActive) {
-                double ft = System.currentTimeMillis() / 1000.0;
-                double bp = 0.12 + 0.05 * Math.sin(ft * 2.5);
-                int fr = (int) ((BG_R + bp * (0.15 - BG_R)) * 255);
-                int fg = (int) ((BG_G + bp * (0.35 - BG_G)) * 255);
-                int fb = (int) ((BG_B + bp * (0.90 - BG_B)) * 255);
-                gamePane.setStyle(String.format("-fx-background-color: #%02x%02x%02x; %s", fr, fg, fb, PANE_BASE_STYLE));
             } else {
                 gamePane.setStyle("-fx-background-color: #0f0d1a; " + PANE_BASE_STYLE);
             }
         }
 
         drawGameBoard(currentPiece, suspendedPieces, gamePaused, isGameOver, freezeUntil, frozenRowFlash);
+        renderHardDropTrails();
 
         if (glitchExplosionEffect != null) glitchExplosionEffect.render(gameGc);
 
@@ -705,8 +763,6 @@ class GameRenderer {
                 borderPulseEffect.render(gameGc, vfxGc, gameCanvas.getWidth(), gameCanvas.getHeight(), VFX_MARGIN);
         }
 
-        if (isFreezeActive) drawFreezeOverlay();
-        else frostSparkles.clear();
         renderTopLayer();
         drawHoldBlock(holdType);
         drawNextBlocks(nextQueue);
@@ -715,6 +771,8 @@ class GameRenderer {
         if (hardModeActive) {
             hardMode.renderFlavourText(rng);
             renderBgEffects();
+        } else if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && bgGc != null) {
+            renderRainBg();
         }
 
         renderStartupGlitch();
@@ -722,6 +780,32 @@ class GameRenderer {
         if (startupGc != null && startupGlitchElapsed >= STARTUP_GLITCH_DUR) {
             double sw = startupCanvas.getWidth(), sh = startupCanvas.getHeight();
             startupGc.clearRect(0, 0, sw, sh);
+            if (preFreezeActive) {
+                double darkT = Math.min(1.0, preFreezeElapsed / 0.25);
+                startupGc.setFill(Color.color(0, 0, 0, darkT * 0.82));
+                startupGc.fillRect(0, 0, sw, sh);
+                drawPreFreezeCinematic();
+            } else if (freezeScale < 1.0) {
+                startupGc.setFill(Color.color(0.0, 1.0, 0.47, (1.0 - freezeScale) * 0.12));
+                startupGc.fillRect(0, 0, sw, sh);
+                if (!gamePaused && !isGameOver) {
+                    int cs = Constants.BLOCK_SIZE;
+                    int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+                    for (int row = 0; row < 4; row++)
+                        for (int col = 0; col < 4; col++)
+                            if (shape[row][col] == 1) {
+                                javafx.geometry.Point2D sp = startupCanvas.sceneToLocal(
+                                    gameCanvas.localToScene(
+                                        (currentPiece.getX() + col) * cs,
+                                        (currentPiece.getY() + row) * cs));
+                                startupGc.clearRect(sp.getX(), sp.getY(), cs, cs);
+                            }
+                }
+            }
+            if (freezeFlashAlpha > 0) {
+                startupGc.setFill(Color.color(0.0, 1.0, 0.40, freezeFlashAlpha * 0.85));
+                startupGc.fillRect(0, 0, sw, sh);
+            }
             if (gamePaused && !isGameOver) {
                 drawPauseGlitch();
             } else if (frozenRowFlash != null && freezeUntil > 0) {
@@ -779,6 +863,17 @@ class GameRenderer {
             }
         }
 
+
+        if (freezeScale < 1.0) {
+            double tintA = (1.0 - freezeScale) * 0.90;
+            gameGc.setGlobalAlpha(tintA);
+            gameGc.setFill(Color.color(0.0, 1.0, 0.47));
+            for (int y = 0; y < Constants.BOARD_HEIGHT; y++)
+                for (int x = 0; x < Constants.BOARD_WIDTH; x++)
+                    if (board[y][x] != 0)
+                        gameGc.fillRect(x * cs, y * cs, cs, cs);
+            gameGc.setGlobalAlpha(1.0);
+        }
 
         if (frozenRowFlash != null && freezeUntil > 0) {
             gameGc.setFill(Color.WHITE);
@@ -968,7 +1063,7 @@ class GameRenderer {
         gameGc.restore();
 
         // --- KHÔI PHỤC HIỆU ỨNG GLITCH DỰ ĐOÁN HÌNH DẠNG (MORPH HINT) CỦA RANDOMBLOCK ---
-        if (isRandomBlock && !inBlackout) {
+        if (isRandomBlock && !inBlackout && freezeScale >= 1.0) {
             RandomBlock rb = (RandomBlock) currentPiece;
             TetrominoType preview = rb.getPreviewType();
             double progress = rb.getMorphProgress();
@@ -1142,40 +1237,49 @@ class GameRenderer {
         }
     }
 
-    private void drawFreezeOverlay() {
-        double w = gameCanvas.getWidth();
-        double h = gameCanvas.getHeight();
-        long now = System.currentTimeMillis();
-        double t = now / 1000.0;
 
-        double pulse = 0.12 + 0.06 * Math.sin(t * 2.5);
-        gameGc.setFill(Color.color(0.15, 0.55, 1.0, pulse));
-        gameGc.fillRect(0, 0, w, h);
+    private void drawPreFreezeCinematic() {
+        if (startupGc == null || preFreezePositions.isEmpty()) return;
+        int cs = Constants.BLOCK_SIZE;
+        double t = Math.min(1.0, preFreezeElapsed / PREFREEZE_DUR);
+        double appear = Math.min(1.0, preFreezeElapsed / 0.15);
 
-        if (now - lastFrostSpawnMs >= 100 && frostSparkles.size() < 40) {
-            FrostSparkle s = new FrostSparkle();
-            s.x = rng.nextDouble() * w;
-            s.y = rng.nextDouble() * h;
-            s.size = 1.5 + rng.nextDouble() * 3.5;
-            s.birthTimeMs = now;
-            s.lifetimeMs = 1000 + (long) (rng.nextDouble() * 1500);
-            s.colorType = rng.nextInt(3);
-            frostSparkles.add(s);
-            lastFrostSpawnMs = now;
+        for (int[] cell : preFreezePositions) {
+            javafx.geometry.Point2D sp = startupCanvas.sceneToLocal(
+                    gameCanvas.localToScene(cell[0] * cs, cell[1] * cs));
+            double px = sp.getX(), py = sp.getY();
+
+            // Soft outer glow — stacked large filled rects, appears once and holds
+            for (int ring = 7; ring >= 1; ring--) {
+                double expand = ring * cs * 1.1;
+                double a = (0.55 / ring) * appear;
+                startupGc.setGlobalAlpha(Math.min(1, a));
+                startupGc.setFill(Color.color(0.0, 1.0, 0.50));
+                startupGc.fillRect(px - expand / 2, py - expand / 2, cs + expand, cs + expand);
+            }
+
+            // Core cell — solid neon green
+            startupGc.setGlobalAlpha(appear);
+            startupGc.setFill(Color.color(0.0, 1.0, 0.55));
+            startupGc.fillRect(px, py, cs, cs);
+
+            // Hot white center
+            startupGc.setGlobalAlpha(appear * 0.90);
+            startupGc.setFill(Color.WHITE);
+            double inset = cs * 0.22;
+            startupGc.fillRect(px + inset, py + inset, cs - inset * 2, cs - inset * 2);
+
+            // Expanding ring borders — single outward burst, fade as they grow
+            for (int ring = 1; ring <= 4; ring++) {
+                double expand = t * cs * ring * 3.0;
+                double a = Math.max(0, (1.0 - t) * (0.90 / ring));
+                startupGc.setGlobalAlpha(a);
+                startupGc.setStroke(ring % 2 == 0 ? Color.color(0.0, 1.0, 0.80) : Color.color(0.4, 1.0, 0.6));
+                startupGc.setLineWidth(2.5);
+                startupGc.strokeRect(px - expand / 2, py - expand / 2, cs + expand, cs + expand);
+            }
         }
-
-        frostSparkles.removeIf(s -> now - s.birthTimeMs >= s.lifetimeMs);
-        for (FrostSparkle s : frostSparkles) {
-            double progress = (now - s.birthTimeMs) / (double) s.lifetimeMs;
-            double alpha = Math.sin(progress * Math.PI) * 0.75;
-            Color c = switch (s.colorType) {
-                case 1  -> Color.color(1.0,  1.0,  1.0,  Math.max(0, alpha));       // white
-                case 2  -> Color.color(0.05, 0.15, 0.55, Math.max(0, alpha));       // dark blue
-                default -> Color.color(0.8,  0.95, 1.0,  Math.max(0, alpha));       // ice blue
-            };
-            gameGc.setFill(c);
-            gameGc.fillOval(s.x - s.size / 2, s.y - s.size / 2, s.size, s.size);
-        }
+        startupGc.setGlobalAlpha(1.0);
     }
 
     private void drawPauseGlitch() {
@@ -1232,6 +1336,73 @@ class GameRenderer {
             startupGc.fillRect(0, 0, w, h);
         }
     }
+
+    // --- Hard-drop trail ---
+
+    private void renderHardDropTrails() {
+        if (hardDropTrails.isEmpty()) return;
+        int cs = Constants.BLOCK_SIZE;
+        for (HardDropTrail trail : hardDropTrails) {
+            for (int col = 0; col < 4; col++) {
+                int minRow = -1;
+                for (int row = 0; row < 4; row++)
+                    if (trail.shape[row][col] == 1) { minRow = row; break; }
+                if (minRow < 0) continue;
+
+                double baseX  = (trail.pieceX + col) * cs;
+                double topPx  = (trail.pieceY + minRow) * cs;
+                int    steps  = trail.dropDistance;
+                if (steps <= 0) continue;
+
+                double trailH = steps * cs;
+                javafx.scene.paint.LinearGradient grad = new javafx.scene.paint.LinearGradient(
+                    0, topPx, 0, topPx + trailH, false,
+                    javafx.scene.paint.CycleMethod.NO_CYCLE,
+                    new javafx.scene.paint.Stop(0.0,  Color.color(0.0, 1.0,  0.40, trail.alpha * 0.85)),
+                    new javafx.scene.paint.Stop(0.5,  Color.color(0.0, 0.78, 0.78, trail.alpha * 0.70)),
+                    new javafx.scene.paint.Stop(1.0,  Color.color(0.0, 0.18, 0.55, trail.alpha * 0.50))
+                );
+                gameGc.setFill(grad);
+                gameGc.fillRect(baseX, topPx, cs, trailH);
+            }
+        }
+        gameGc.setGlobalAlpha(1.0);
+    }
+
+    // --- Rain (Time Attack) ---
+
+    private void initRain() {
+        double cw = bgEffectCanvas != null ? bgEffectCanvas.getWidth()  : 1440;
+        double ch = bgEffectCanvas != null ? bgEffectCanvas.getHeight() : 1024;
+        for (int i = 0; i < RAIN_COUNT; i++) {
+            RainDrop r = new RainDrop();
+            r.x = rng.nextDouble() * cw;
+            r.y = rng.nextDouble() * ch;
+            double speed = 380 + rng.nextDouble() * 220;
+            double angle = Math.PI / 2.0 + 0.12 + (rng.nextDouble() - 0.5) * 0.08;
+            r.vx = Math.cos(angle) * speed;
+            r.vy = Math.sin(angle) * speed;
+            rainDrops.add(r);
+        }
+    }
+
+    private void renderRainBg() {
+        if (bgGc == null || rainDrops.isEmpty()) return;
+        double cw = bgEffectCanvas.getWidth(), ch = bgEffectCanvas.getHeight();
+        bgGc.clearRect(0, 0, cw, ch);
+        int trail = Math.max(1, (int)(RAIN_TRAIL * freezeScale));
+        for (RainDrop r : rainDrops) {
+            for (int i = 0; i < trail; i++) {
+                double tx = r.x - r.vx * (i * RAIN_DT);
+                double ty = r.y - r.vy * (i * RAIN_DT);
+                double alpha = (1.0 - (double) i / trail) * 0.60;
+                bgGc.setFill(Color.color(0.53, 0.80, 0.93, alpha));
+                bgGc.fillRect((int) tx, (int) ty, 1, 1);
+            }
+        }
+    }
+
+    void setRainTimeScale(double scale) { this.rainTimeScale = scale; }
 
     // --- Cell drawing helpers ---
 

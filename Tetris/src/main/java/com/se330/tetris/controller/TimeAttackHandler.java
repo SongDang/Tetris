@@ -36,6 +36,7 @@ class TimeAttackHandler {
 
     private boolean gamePausedRef = false;
     private boolean isGameOverRef = false;
+    private Runnable onFreezeEnd = null;
 
     TimeAttackHandler(GameContext gameContext, Label timeLabel, Label freezeLabel, Label bombLabel,
                       VBox timePanel, VBox bombPanel, Runnable onGameOver) {
@@ -126,8 +127,11 @@ class TimeAttackHandler {
         if (freezeRemainingSeconds <= 0) endFreeze();
     }
 
+    void setOnFreezeEnd(Runnable callback) { this.onFreezeEnd = callback; }
+
     private void endFreeze() {
         isFreezeActive = false;
+        if (onFreezeEnd != null) onFreezeEnd.run();
         if (freezeTimeline != null) freezeTimeline.stop();
         if (timeAttackTimeline != null && gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK)
             timeAttackTimeline.play();

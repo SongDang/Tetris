@@ -34,9 +34,9 @@ public class TimeAttackIntroController {
 
     private static final int    FRAMES          = 8;
     private static final double FRAME_DUR       = 0.50;
-    private static final double SECOND_LAST_EXTRA = 0.75;
+    private static final double SECOND_LAST_EXTRA = 0.25;
     private static final double LAST_FRAME_START = (FRAMES - 1) * FRAME_DUR + SECOND_LAST_EXTRA;
-    private static final double DONE_AT         = LAST_FRAME_START + FRAME_DUR + 0.80;
+    private static final double DONE_AT         = LAST_FRAME_START + FRAME_DUR + 0.30;
 
     private static final double GRAVITY = 420;
 
