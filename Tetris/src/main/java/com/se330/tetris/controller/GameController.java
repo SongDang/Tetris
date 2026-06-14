@@ -268,6 +268,8 @@ public class GameController {
                 if (!gamePaused && !isGameOver && !isCountingDown && freezeUntil == 0) {
                     applyMouseTarget();
                     if (!timeAttack.isFreezeActive) {
+                        if (hardMode.blackoutState == HardModeHandler.BlackoutState.BLACKOUT)
+                            softDropping = false;
                         if (hardMode.tickBlackoutDrop(dt)) {
                             hardDrop();
                         } else {
@@ -485,16 +487,20 @@ public class GameController {
 
     private Piece randomPiece() {
         boolean isStandard = gameContext.getGameMode() == GameContext.GameMode.STANDARD;
+        boolean isHardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
         if (bag.isEmpty()) {
             for (TetrominoType t : TetrominoType.values()) {
-                if (isStandard && t == TetrominoType.BOMB)
+                if (t == TetrominoType.BOMB && (isStandard || (isHardMode && !hardMode.shouldSpawnBombInBag())))
+                    continue;
+                if (t == TetrominoType.TRANSPARENT && isHardMode && !hardMode.shouldSpawnTransparentInBag())
                     continue;
                 bag.add(t);
             }
             Collections.shuffle(bag);
         }
         TetrominoType type = bag.remove(0);
-        if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && rng.nextDouble() < RANDOM_BLOCK_CHANCE) {
+        double chance = isHardMode ? hardMode.getRandomBlockChance() : RANDOM_BLOCK_CHANCE;
+        if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && rng.nextDouble() < chance) {
             RandomBlock block = new RandomBlock(type, 0, 0, RANDOM_BLOCK_INTERVAL_MS);
             block.setTypeValidator((p, t) -> boardEngine.canPlaceType(p, t));
             return block;
