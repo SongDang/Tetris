@@ -336,7 +336,7 @@ public class GameController {
                 addLines(4);
                 updateLevel();
                 renderer.emitScorePopup(4, avgRow);
-                if (hasTimeBlock && !pendingTimeBlockPositions.isEmpty()) {
+                if (hasTimeBlock && !pendingTimeBlockPositions.isEmpty() && !timeAttack.isFreezeActive) {
                     List<int[]> cells = pendingTimeBlockPositions;
                     pendingTimeBlockPositions = List.of();
                     if (!timeStopSoundPlayed) {
@@ -424,7 +424,7 @@ public class GameController {
                 renderer.onCombo(comboCount, avgRow, cs);
 
             if (cleared == 4) {
-                if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && hasTimeBlock) {
+                if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && hasTimeBlock && !timeAttack.isFreezeActive) {
                     List<int[]> tbCells = boardEngine.getTimeBlockCells(fullRows);
                     fullRows.sort(Collections.reverseOrder());
                     boardEngine.clearRows(fullRows);
@@ -470,7 +470,7 @@ public class GameController {
             addLines(cleared);
             updateLevel();
             renderer.emitScorePopup(cleared, avgRow);
-            if (hasTimeBlock) {
+            if (hasTimeBlock && !timeAttack.isFreezeActive) {
                 SoundManager.getInstance().playSE(SoundType.TIME_STOP);
                 renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
             } else {
@@ -627,7 +627,7 @@ public class GameController {
         addScore(fullRows.size());
         addLines(fullRows.size());
         updateLevel();
-        if (hasTimeBlock) {
+        if (hasTimeBlock && !timeAttack.isFreezeActive) {
             SoundManager.getInstance().playSE(SoundType.TIME_STOP);
             renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
         } else {

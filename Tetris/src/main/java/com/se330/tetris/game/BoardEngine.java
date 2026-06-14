@@ -11,7 +11,7 @@ import java.util.Random;
 public class BoardEngine {
 
     public static final int TIME_BLOCK_ID = 10;
-    private static final double TIME_BLOCK_CHANCE = 0.1;
+    private static final double TIME_BLOCK_CHANCE = 0.05;
 
     private final int[][] board = new int[Constants.BOARD_HEIGHT][Constants.BOARD_WIDTH];
     private final GameContext gameContext;

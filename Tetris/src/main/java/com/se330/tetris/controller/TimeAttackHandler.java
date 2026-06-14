@@ -15,7 +15,7 @@ import javafx.util.Duration;
 class TimeAttackHandler {
 
     private static final int TIME_ATTACK_START_SECONDS = 120;
-    private static final int FREEZE_DURATION_SECONDS = 10;
+    private static final int FREEZE_DURATION_SECONDS = 5;
 
     private final GameContext gameContext;
     private final Label timeLabel;
@@ -100,11 +100,7 @@ class TimeAttackHandler {
 
     void triggerFreezeIfNeeded(boolean hasTimeBlock) {
         if (!hasTimeBlock || gameContext.getGameMode() != GameContext.GameMode.TIME_ATTACK) return;
-        if (isFreezeActive) {
-            freezeRemainingSeconds = FREEZE_DURATION_SECONDS;
-            updateFreezeLabel();
-            return;
-        }
+        if (isFreezeActive) return;
         startFreeze();
     }
 
