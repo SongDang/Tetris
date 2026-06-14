@@ -552,9 +552,9 @@ public class GameController {
         boolean isHardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
         if (bag.isEmpty()) {
             for (TetrominoType t : TetrominoType.values()) {
-                if (t == TetrominoType.BOMB && (isStandard || (isHardMode && !hardMode.shouldSpawnBombInBag())))
+                if (t == TetrominoType.BOMB)
                     continue;
-                if (t == TetrominoType.TRANSPARENT && isHardMode && !hardMode.shouldSpawnTransparentInBag())
+                if (t == TetrominoType.TRANSPARENT && (isStandard || (isHardMode && !hardMode.shouldSpawnTransparentInBag())))
                     continue;
                 bag.add(t);
             }
@@ -562,7 +562,7 @@ public class GameController {
         }
         TetrominoType type = bag.remove(0);
         double chance = isHardMode ? hardMode.getRandomBlockChance() : RANDOM_BLOCK_CHANCE;
-        if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && rng.nextDouble() < chance) {
+        if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && type != TetrominoType.TRANSPARENT && rng.nextDouble() < chance) {
             RandomBlock block = new RandomBlock(type, 0, 0, RANDOM_BLOCK_INTERVAL_MS);
             block.setTypeValidator((p, t) -> boardEngine.canPlaceType(p, t));
             return block;
