@@ -78,6 +78,9 @@ public class HardModeHandler {
     //private Label bombLabelRef;
     private Label bombLabelRef;
 
+    // phase progression
+    private double totalGameTime = 0;
+
     public HardModeHandler(Random rng, Runnable onMusicPause, Runnable onMusicResume) {
         this.rng = rng;
         this.onMusicPause = onMusicPause;
@@ -100,16 +103,38 @@ public class HardModeHandler {
     // --- Per-frame update ---
 
     public void update(double dt) {
+        totalGameTime += dt;
         flavourWaveTime += dt;
         flavourTypeElapsed += dt;
         flavourCooldown -= dt;
 
         if (bombCooldownTimer > 0) {
             bombCooldownTimer = Math.max(0, bombCooldownTimer - dt);
-            updateBombLabel();
         }
-
+        updateBombLabel();
         updateBlackout(dt);
+    }
+
+    public int getPhase() {
+        if (totalGameTime < 30) return 1;
+        if (totalGameTime < 90) return 2;
+        if (totalGameTime < 180) return 3;
+        return 4;
+    }
+
+    public boolean shouldSpawnBombInBag() {
+        return getPhase() >= 2;
+    }
+
+    public boolean shouldSpawnTransparentInBag() {
+        return getPhase() >= 2;
+    }
+
+    public double getRandomBlockChance() {
+        int phase = getPhase();
+        if (phase < 3) return 0.0;
+        if (phase == 3) return (totalGameTime - 90) / 90.0 * 0.30;
+        return 0.30;
     }
 
     public void setupBombUI(Label bombLabel, VBox bombPanel) {
@@ -130,7 +155,9 @@ public class HardModeHandler {
     }
     private void updateBombLabel() {
         if (bombLabelRef == null) return;
-        if (bombCooldownTimer > 0) {
+        if (!shouldSpawnBombInBag()) {
+            bombLabelRef.setText("🚫 UNREADY");
+        } else if (bombCooldownTimer > 0) {
             bombLabelRef.setText(String.format("⏳ %.1fs", bombCooldownTimer));
         } else {
             bombLabelRef.setText("💣 READY");

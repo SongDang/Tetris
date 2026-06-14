@@ -117,16 +117,16 @@ public class GameController {
 
     // --- Flavour text ---
     private static final String[] STANDARD_TIPS = {
-        "soft drop [ S ]   •   hard drop [ SPACE ]",
-        "hold a piece with [ C ] or [ SHIFT ]",
-        "rotate with [ W ] or [ UP ]",
-        "right-click to rotate   •   left-click to hard drop"
+            "soft drop [ S ]   •   hard drop [ SPACE ]",
+            "hold a piece with [ C ] or [ SHIFT ]",
+            "rotate with [ W ] or [ UP ]",
+            "right-click to rotate   •   left-click to hard drop"
     };
     private static final String[] TIME_ATTACK_TIPS = {
-        "hey, time's running out",
-        "clear rows with time blocks to freeze the clock",
-        "tetris gives the most time back",
-        "use bomb skill [ B ] to clear the field"
+            "hey, time's running out",
+            "clear rows with time blocks to freeze the clock",
+            "tetris gives the most time back",
+            "use bomb skill [ B ] to clear the field"
     };
     private int flavourTipIndex = 0;
     private javafx.animation.Timeline flavourTimeline;
@@ -147,25 +147,21 @@ public class GameController {
         gameContext = GameContext.getInstance();
         gameContext.reset();
         Platform.runLater(() -> vfxCanvas.setLayoutY(gameCanvas.getBoundsInParent().getMinY()));
-        bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
-        ghostSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/GhostBlock.png"));
 
-        lightOnImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightson.png"));
-        lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
-        hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
-        darkMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/darkmain.png"));
-        standardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/standardmain.png"));
-        timeAttackMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/timeatkmain.png"));
+        loadImages();
 
         boardEngine = new BoardEngine(gameContext, rng);
         hardMode = new HardModeHandler(
                 rng,
                 () -> SoundManager.getInstance().pauseMusic(),
                 () -> SoundManager.getInstance().resumeMusic());
+
         timeAttack = new TimeAttackHandler(
                 gameContext, timeLabel, freezeLabel, bombsLabel, timePanel, bombInventoryBox,
                 this::handleGameOver);
+
         timeAttack.setOnFreezeEnd(() -> timeStopSoundPlayed = false);
+
         renderer = new GameRenderer(
                 gameCanvas,
                 vfxCanvas,
@@ -199,7 +195,6 @@ public class GameController {
 
         applyGameModeTheme();
 
-        // HARD MODE
         if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
             fallIntervalNs = 300_000_000L;
             if (lightBulbView != null) {
@@ -223,6 +218,7 @@ public class GameController {
         }
 
         timeAttack.setup();
+
         if (settingsPopupController != null) {
             settingsPopupController.setScoreVisible(true);
             settingsPopupController.setCloseHandler(this::closePauseSettings);
@@ -270,6 +266,8 @@ public class GameController {
         lightOffImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/lightsoff.png"));
         hardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/hardmain.png"));
         darkMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/darkmain.png"));
+        standardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/standardmain.png"));
+        timeAttackMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/timeatkmain.png"));
     }
 
     // --- Game loop ---
@@ -290,6 +288,8 @@ public class GameController {
                 if (!gamePaused && !isGameOver && freezeUntil == 0) {
                     applyMouseTarget();
                     if (!timeAttack.isFreezeActive) {
+                        if (hardMode.blackoutState == HardModeHandler.BlackoutState.BLACKOUT)
+                            softDropping = false;
                         if (hardMode.tickBlackoutDrop(dt)) {
                             hardDrop();
                         } else {
@@ -339,7 +339,10 @@ public class GameController {
                 if (hasTimeBlock && !pendingTimeBlockPositions.isEmpty()) {
                     List<int[]> cells = pendingTimeBlockPositions;
                     pendingTimeBlockPositions = List.of();
-                    if (!timeStopSoundPlayed) { timeStopSoundPlayed = true; SoundManager.getInstance().playSE(SoundType.TIME_STOP, 0.70f); }
+                    if (!timeStopSoundPlayed) {
+                        timeStopSoundPlayed = true;
+                        SoundManager.getInstance().playSE(SoundType.TIME_STOP, 0.70f);
+                    }
                     renderer.triggerPreFreezeCinematic(cells, () -> timeAttack.triggerFreezeIfNeeded(true));
                 } else {
                     timeAttack.triggerFreezeIfNeeded(hasTimeBlock);
@@ -421,7 +424,6 @@ public class GameController {
                 renderer.onCombo(comboCount, avgRow, cs);
 
             if (cleared == 4) {
-                // Time Attack + time block: skip tetris freeze, go straight to pre-freeze cinematic
                 if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && hasTimeBlock) {
                     List<int[]> tbCells = boardEngine.getTimeBlockCells(fullRows);
                     fullRows.sort(Collections.reverseOrder());
@@ -431,7 +433,10 @@ public class GameController {
                     updateLevel();
                     renderer.emitScorePopup(4, avgRow);
                     SoundManager.getInstance().playSE(SoundType.TETRIS);
-                    if (!timeStopSoundPlayed) { timeStopSoundPlayed = true; SoundManager.getInstance().playSE(SoundType.TIME_STOP, 0.70f); }
+                    if (!timeStopSoundPlayed) {
+                        timeStopSoundPlayed = true;
+                        SoundManager.getInstance().playSE(SoundType.TIME_STOP, 0.70f);
+                    }
                     renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
                     canHold = true;
                     spawnAndCheckGameOver();
@@ -468,7 +473,9 @@ public class GameController {
             if (hasTimeBlock) {
                 SoundManager.getInstance().playSE(SoundType.TIME_STOP);
                 renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
-            } else timeAttack.triggerFreezeIfNeeded(false);
+            } else {
+                timeAttack.triggerFreezeIfNeeded(false);
+            }
 
             if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
                 boolean flavSet = comboCount >= 2 && hardMode.trySetFlavourCombo();
@@ -525,7 +532,6 @@ public class GameController {
             }
         }
 
-        // --- GỘP LOGIC ÂM THANH KHI SPAWN TỪ HEAD ---
         if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
             SoundManager.getInstance().playSE(SoundType.TRANSPARENT_PIECE);
         }
@@ -543,16 +549,20 @@ public class GameController {
 
     private Piece randomPiece() {
         boolean isStandard = gameContext.getGameMode() == GameContext.GameMode.STANDARD;
+        boolean isHardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
         if (bag.isEmpty()) {
             for (TetrominoType t : TetrominoType.values()) {
-                if (isStandard && t == TetrominoType.BOMB)
+                if (t == TetrominoType.BOMB && (isStandard || (isHardMode && !hardMode.shouldSpawnBombInBag())))
+                    continue;
+                if (t == TetrominoType.TRANSPARENT && isHardMode && !hardMode.shouldSpawnTransparentInBag())
                     continue;
                 bag.add(t);
             }
             Collections.shuffle(bag);
         }
         TetrominoType type = bag.remove(0);
-        if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && rng.nextDouble() < RANDOM_BLOCK_CHANCE) {
+        double chance = isHardMode ? hardMode.getRandomBlockChance() : RANDOM_BLOCK_CHANCE;
+        if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && rng.nextDouble() < chance) {
             RandomBlock block = new RandomBlock(type, 0, 0, RANDOM_BLOCK_INTERVAL_MS);
             block.setTypeValidator((p, t) -> boardEngine.canPlaceType(p, t));
             return block;
@@ -620,7 +630,9 @@ public class GameController {
         if (hasTimeBlock) {
             SoundManager.getInstance().playSE(SoundType.TIME_STOP);
             renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
-        } else timeAttack.triggerFreezeIfNeeded(false);
+        } else {
+            timeAttack.triggerFreezeIfNeeded(false);
+        }
     }
 
     // --- Score & level ---
@@ -670,9 +682,14 @@ public class GameController {
         if (isGameOver)
             return;
         KeyCode code = event.getCode();
+
+        // ĐÃ FIX CONFLICT: Đồng bộ luồng kiểm tra phím ESCAPE
         if (code == KeyCode.ESCAPE) {
-            if (isSettingsOverlayVisible()) closePauseSettings();
-            else openPauseSettings();
+            if (isSettingsOverlayVisible()) {
+                closePauseSettings();
+            } else {
+                openPauseSettings();
+            }
             event.consume();
             return;
         }
@@ -680,8 +697,18 @@ public class GameController {
             event.consume();
             return;
         }
-        if (code == KeyCode.P) { handlePause(); event.consume(); return; }
-        if (freezeUntil > 0) { event.consume(); return; }
+
+        // ĐÃ FIX CONFLICT: Format gọn gàng cho luồng Pause và Freeze
+        if (code == KeyCode.P) {
+            handlePause();
+            event.consume();
+            return;
+        }
+        if (freezeUntil > 0) {
+            event.consume();
+            return;
+        }
+
         switch (code) {
             case LEFT, A -> {
                 mouseTargetColumn = -1;
@@ -711,8 +738,6 @@ public class GameController {
                 if (hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT)
                     hardDrop();
             }
-            case P -> {
-            } // handled above
             case B -> useBombSkill();
             case C, SHIFT -> holdCurrentPiece();
             default -> { return; }
@@ -871,6 +896,7 @@ public class GameController {
             }
         }
     }
+
     public void gameOver() {
         handleGameOver();
     }
@@ -980,9 +1006,5 @@ public class GameController {
         SoundManager.getInstance().playSE(SoundType.GAME_OVER);
         SoundManager.getInstance().stopMusic();
         gameOverFreezeUntil = System.nanoTime() + 500_000_000L;
-    }
-
-    private void handleTimeAttackTimeout() {
-        handleGameOver();
     }
 }

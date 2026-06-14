@@ -122,7 +122,7 @@
         </StackPane>
     </HBox>
 
-    <ImageView fx:id="lightBulbView" fitWidth="1.0" fitHeight="1.0"
+    <ImageView fx:id="lightBulbView" fitWidth="180.0" fitHeight="180.0"
                preserveRatio="true" visible="false" managed="false"/>
 
     <AnchorPane fx:id="settingsOverlay"

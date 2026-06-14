@@ -863,7 +863,6 @@ class GameRenderer {
             }
         }
 
-
         if (freezeScale < 1.0) {
             double tintA = (1.0 - freezeScale) * 0.90;
             gameGc.setGlobalAlpha(tintA);
@@ -899,36 +898,16 @@ class GameRenderer {
 
         if (isGameOver) return;
 
-        // Ghost piece (Bóng đổ vị trí rơi)
-        if (freezeUntil == 0) {
-            int drop = boardEngine.getDropDistance(currentPiece, suspendedPieces);
-            int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
-            for (int row = 0; row < 4; row++)
-                for (int col = 0; col < 4; col++)
-                    if (ghostShape[row][col] == 1) {
-                        if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
-                            gameGc.setGlobalAlpha(0.25);
-                            gameGc.drawImage(ghostSprite, (currentPiece.getX() + col) * cs, (currentPiece.getY() + row + drop) * cs, cs, cs);
-                            gameGc.setGlobalAlpha(1.0);
-                        } else {
-                            drawCell(currentPiece.getX() + col, currentPiece.getY() + row + drop,
-                                    currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25), 1.0);
-                        }
-                    }
+        if (currentPiece.getType() == TetrominoType.BOMB && freezeUntil == 0 && bState != HardModeHandler.BlackoutState.BLACKOUT) {
+            drawBombImpactZone(currentPiece, suspendedPieces, cs);
         }
 
-        if (currentPiece.getType() == TetrominoType.BOMB && freezeUntil == 0
-                && bState != HardModeHandler.BlackoutState.BLACKOUT)
-            drawBombImpactZone(currentPiece, suspendedPieces, cs);
-
         renderSuspendedPieces(suspendedPieces, cs);
-        drawCurrentPiece(currentPiece, bState, cs);
-
-
-
+        drawCurrentPiece(currentPiece, bState, cs, suspendedPieces, freezeUntil);
     }
 
-    private void drawCurrentPiece(Piece currentPiece, HardModeHandler.BlackoutState bState, int cs) {
+    private void drawCurrentPiece(Piece currentPiece, HardModeHandler.BlackoutState bState, int cs,
+                                   List<Piece> suspendedPieces, long freezeUntil) {
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
         boolean isBomb = currentPiece.getType() == TetrominoType.BOMB;
         boolean isGhost = currentPiece.getType() == TetrominoType.TRANSPARENT;
@@ -945,6 +924,24 @@ class GameRenderer {
                 gameGc.setFill(Color.BLACK);
                 gameGc.fillRect(0, 0, w, h);
             }
+        }
+
+        // Ghost piece (Bóng đổ vị trí rơi) - rendered after blackout overlay so it's always visible
+        if (freezeUntil == 0) {
+            int drop = boardEngine.getDropDistance(currentPiece, suspendedPieces);
+            int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
+            for (int row = 0; row < 4; row++)
+                for (int col = 0; col < 4; col++)
+                    if (ghostShape[row][col] == 1) {
+                        if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
+                            gameGc.setGlobalAlpha(0.25);
+                            gameGc.drawImage(ghostSprite, (currentPiece.getX() + col) * cs, (currentPiece.getY() + row + drop) * cs, cs, cs);
+                            gameGc.setGlobalAlpha(1.0);
+                        } else {
+                            drawCell(currentPiece.getX() + col, currentPiece.getY() + row + drop,
+                                    currentPiece.getType().getColor().deriveColor(0, 1, 1, 0.25), 1.0);
+                        }
+                    }
         }
 
         double charge = 0;
@@ -1435,19 +1432,21 @@ class GameRenderer {
     private void drawCell(int x, int y, Color color, double opacity) {
         int cs = Constants.BLOCK_SIZE;
         double px = x * cs, py = y * cs;
+        double arc = cs * 0.25;
         gameGc.setFill(color.deriveColor(0, 1, 1, opacity));
-        gameGc.fillRect(px, py, cs, cs);
+        gameGc.fillRoundRect(px, py, cs, cs, arc, arc);
         gameGc.setStroke(Color.web("#111111"));
         gameGc.setLineWidth(1);
-        gameGc.strokeRect(px, py, cs, cs);
+        gameGc.strokeRoundRect(px, py, cs, cs, arc, arc);
     }
 
     private void drawCellAtPixel(GraphicsContext target, double px, double py, int size, Color color, double opacity) {
+        double arc = size * 0.25;
         target.setFill(color.deriveColor(0, 1, 1, opacity));
-        target.fillRect(px, py, size, size);
+        target.fillRoundRect(px, py, size, size, arc, arc);
         target.setStroke(Color.web("#111111"));
         target.setLineWidth(1);
-        target.strokeRect(px, py, size, size);
+        target.strokeRoundRect(px, py, size, size, arc, arc);
     }
 
     private void drawTimeBlockCell(int x, int y, int cs) {
