@@ -123,7 +123,7 @@ public class HardModeHandler {
     }
 
     public boolean shouldSpawnBombInBag() {
-        return getPhase() >= 2;
+        return getPhase() >= 1;
     }
 
     public boolean shouldSpawnTransparentInBag() {
