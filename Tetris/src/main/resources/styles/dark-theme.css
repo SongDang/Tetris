@@ -304,11 +304,16 @@
 .game-hold-panel,
 .game-next-panel,
 .game-time-panel,
+.game-bomb-panel,
 .game-flavour-panel,
 .game-bottom-bar {
     -fx-background-color: transparent;
     -fx-background-repeat: no-repeat;
     -fx-background-size: 100% 100%;
+}
+
+.game-bomb-panel {
+    -fx-background-image: url("../assets/timeatkhold.png");
 }
 
 .game-score-panel {
