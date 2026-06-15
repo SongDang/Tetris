@@ -22,9 +22,9 @@
             mouseTransparent="true"
             AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"/>
 
-    <Region styleClass="game-bg-center"
-            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="260"
-            AnchorPane.rightAnchor="260" AnchorPane.bottomAnchor="0"/>
+    <Region fx:id="bgCenter" styleClass="game-bg-center"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
+            AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"/>
 
     <HBox alignment="TOP_CENTER" spacing="20"
           AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="0.0"

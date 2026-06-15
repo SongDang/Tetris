@@ -268,7 +268,7 @@ public class HardModeHandler {
         flavourHBox.getChildren().clear();
         for (char c : "LIGHTS OUT".toCharArray()) {
             Label l = new Label(String.valueOf(c));
-            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: #FF0000;");
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 34; -fx-text-fill: #FF0000;");
             l.setOpacity(1.0);
             flavourChars.add(l);
             flavourHBox.getChildren().add(l);
@@ -297,7 +297,7 @@ public class HardModeHandler {
         String baseColor = (hexColor != null) ? hexColor : "#FF8C00";
         for (char c : text.toCharArray()) {
             Label l = new Label(String.valueOf(c));
-            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: " + baseColor + ";");
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 34; -fx-text-fill: " + baseColor + ";");
             l.setOpacity(0);
             flavourChars.add(l);
             flavourHBox.getChildren().add(l);
@@ -331,7 +331,7 @@ public class HardModeHandler {
             String col = renderRng.nextDouble() < 0.06
                     ? (renderRng.nextBoolean() ? "#ffffff" : "#880000")
                     : "#FF0000";
-            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: " + col + ";");
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 34; -fx-text-fill: " + col + ";");
         }
     }
 
@@ -346,7 +346,7 @@ public class HardModeHandler {
             else
                 l.setOpacity(visible ? 1.0 : 0.0);
             if (visible) l.setTranslateY(Math.sin(flavourWaveTime * 1.2 + i * 0.45) * 5.0);
-            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: #40A3FF;");
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 34; -fx-text-fill: #40A3FF;");
         }
     }
 
@@ -359,7 +359,7 @@ public class HardModeHandler {
             l.setOpacity(visible ? 1.0 : 0.0);
             if (visible) l.setTranslateY(Math.sin(flavourWaveTime * 2.5 + i * 0.45) * 2.5);
             // Đảm bảo ép font VT323 để không bị vỡ giao diện chữ châm biếm thông thường
-            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 40; -fx-text-fill: #FF8C00;");
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 34; -fx-text-fill: #FF8C00;");
         }
     }
 }

@@ -58,6 +58,7 @@ public class GameController {
     @FXML private VBox bombInventoryBox;
     @FXML private javafx.scene.layout.AnchorPane settingsOverlay;
     @FXML private javafx.scene.layout.AnchorPane settingsPopupShell;
+    @FXML private javafx.scene.layout.Region bgCenter;
     @FXML private Canvas bgEffectCanvas;
     @FXML private SettingsController settingsPopupController;
 
@@ -433,6 +434,7 @@ public class GameController {
                     updateLevel();
                     renderer.emitScorePopup(4, avgRow);
                     SoundManager.getInstance().playSE(SoundType.TETRIS);
+                    renderer.triggerTetrisFlash();
                     if (!timeStopSoundPlayed) {
                         timeStopSoundPlayed = true;
                         SoundManager.getInstance().playSE(SoundType.TIME_STOP, 0.70f);
@@ -849,6 +851,10 @@ public class GameController {
         if (mode == GameContext.GameMode.TIME_ATTACK) {
             gamePane.getStyleClass().add("screen-timeatk-game");
             if (mainFrameView != null) mainFrameView.setImage(timeAttackMainImage);
+            if (bgCenter != null) {
+                javafx.scene.layout.AnchorPane.setLeftAnchor(bgCenter, 200.0);
+                javafx.scene.layout.AnchorPane.setRightAnchor(bgCenter, 200.0);
+            }
             startFlavourTextCycle(TIME_ATTACK_TIPS);
         } else if (mode == GameContext.GameMode.HARD_MODE) {
             gamePane.getStyleClass().add("screen-hard-game");
@@ -856,6 +862,10 @@ public class GameController {
         } else {
             gamePane.getStyleClass().add("screen-standard-game");
             if (mainFrameView != null) mainFrameView.setImage(standardMainImage);
+            if (bgCenter != null) {
+                javafx.scene.layout.AnchorPane.setLeftAnchor(bgCenter, 0.0);
+                javafx.scene.layout.AnchorPane.setRightAnchor(bgCenter, 0.0);
+            }
             startFlavourTextCycle(STANDARD_TIPS);
         }
     }
