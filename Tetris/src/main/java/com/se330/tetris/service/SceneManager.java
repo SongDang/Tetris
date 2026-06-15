@@ -49,6 +49,7 @@ public class SceneManager {
         try {
             Scene scene = getOrLoadScene(sceneName);
             primaryStage.setScene(scene);
+            primaryStage.sizeToScene();
             primaryStage.show();
         } catch (IOException e) {
             throw new RuntimeException("Failed to load scene: " + sceneName, e);
@@ -68,7 +69,7 @@ public class SceneManager {
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
         Parent root = loader.load();
 
-        Scene scene = new Scene(root);
+        Scene scene = new Scene(root, Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
         applyStylesheet(scene);
 
         return scene;

@@ -166,6 +166,91 @@
     -fx-scale-y: 1.0;
 }
 
+.tutorial-icon-button {
+    -fx-background-color: #000000;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 4;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+    -fx-font-family: "VT323";
+    -fx-font-size: 42;
+    -fx-text-fill: #ffffff;
+    -fx-padding: 0 0 5 0;
+    -fx-cursor: hand;
+    -fx-effect: none;
+}
+
+.tutorial-icon-button:hover {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.tutorial-icon-button:pressed {
+    -fx-background-color: #bdbdbd;
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.tutorial-popup-shell {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/setting_frame.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+}
+
+.tutorial-popup-content {
+    -fx-background-color: transparent;
+    -fx-padding: 52 66 42 66;
+}
+
+.tutorial-title {
+    -fx-font-family: "VT323";
+    -fx-font-size: 48;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center;
+}
+
+.tutorial-body {
+    -fx-font-family: "VT323";
+    -fx-font-size: 27;
+    -fx-text-fill: #ffffff;
+    -fx-line-spacing: 2;
+}
+
+.tutorial-scroll-pane,
+.tutorial-scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.tutorial-scroll-pane {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.tutorial-scroll-pane .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 14;
+}
+
+.tutorial-scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: #1c1c1c;
+}
+
+.tutorial-scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 0;
+}
+
+.tutorial-close-button {
+    -fx-font-size: 36;
+}
+
 .settings-header-overlay {
     -fx-background-color: transparent;
 }
@@ -266,9 +351,20 @@
 
 /* ── Hard Mode UI ─────────────────────────────────────────────── */
 
-.screen-standard-game,
+.screen-standard-game {
+    -fx-background-color: #050515;
+    -fx-background-image: url("../assets/standard_bg_full.png");
+    -fx-background-size: 100% 100%;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
 .screen-timeatk-game {
-    -fx-background-color: #000000;
+    -fx-background-color: #021f1e;
+    -fx-background-image: url("../assets/timeatk_bg_full.png");
+    -fx-background-size: 100% 100%;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
 }
 
 .screen-hard-game {
@@ -281,18 +377,18 @@
 
 .game-bg-center {
     -fx-background-repeat: no-repeat;
-    -fx-background-size: cover;
+    -fx-background-size: 100% 100%;
     -fx-background-position: center;
 }
 
 .screen-standard-game .game-bg-center {
-    -fx-background-color: #050515;
-    -fx-background-image: url("../assets/standard_bg.png");
+    -fx-background-color: transparent;
+    -fx-background-image: none;
 }
 
 .screen-timeatk-game .game-bg-center {
-    -fx-background-color: #021f1e;
-    -fx-background-image: url("../assets/timeatk_bg.png");
+    -fx-background-color: transparent;
+    -fx-background-image: none;
 }
 
 .screen-hard-game .game-bg-center {

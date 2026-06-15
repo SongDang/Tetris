@@ -58,6 +58,10 @@ public class GameController {
     @FXML private VBox bombInventoryBox;
     @FXML private javafx.scene.layout.AnchorPane settingsOverlay;
     @FXML private javafx.scene.layout.AnchorPane settingsPopupShell;
+    @FXML private javafx.scene.layout.AnchorPane tutorialOverlay;
+    @FXML private javafx.scene.layout.AnchorPane tutorialPopupShell;
+    @FXML private Label tutorialTitleLabel;
+    @FXML private Label tutorialBodyLabel;
     @FXML private Canvas bgEffectCanvas;
     @FXML private SettingsController settingsPopupController;
 
@@ -95,6 +99,8 @@ public class GameController {
     // --- Loop state ---
     private AnimationTimer gameLoop;
     private boolean gamePaused = false;
+    private boolean settingsPausedGame = false;
+    private boolean tutorialPausedGame = false;
     private boolean isGameOver = false;
     private long lastFallTime = 0;
     private long lastFrameTime = 0;
@@ -228,6 +234,14 @@ public class GameController {
             settingsOverlay.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
                 if (event.getCode() == KeyCode.ESCAPE) {
                     closePauseSettings();
+                }
+                event.consume();
+            });
+        }
+        if (tutorialOverlay != null) {
+            tutorialOverlay.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+                if (event.getCode() == KeyCode.ESCAPE) {
+                    closeTutorial();
                 }
                 event.consume();
             });
@@ -685,7 +699,9 @@ public class GameController {
 
         // ĐÃ FIX CONFLICT: Đồng bộ luồng kiểm tra phím ESCAPE
         if (code == KeyCode.ESCAPE) {
-            if (isSettingsOverlayVisible()) {
+            if (isTutorialOverlayVisible()) {
+                closeTutorial();
+            } else if (isSettingsOverlayVisible()) {
                 closePauseSettings();
             } else {
                 openPauseSettings();
@@ -693,7 +709,7 @@ public class GameController {
             event.consume();
             return;
         }
-        if (isSettingsOverlayVisible()) {
+        if (isSettingsOverlayVisible() || isTutorialOverlayVisible()) {
             event.consume();
             return;
         }
@@ -951,7 +967,8 @@ public class GameController {
 
     private void openPauseSettings() {
         if (settingsOverlay == null) return;
-        if (!gamePaused) {
+        settingsPausedGame = !gamePaused;
+        if (settingsPausedGame) {
             gamePaused = true;
             timeAttack.pause();
         }
@@ -975,15 +992,116 @@ public class GameController {
         if (settingsOverlay != null) {
             settingsOverlay.setVisible(false);
         }
-        if (gamePaused && !isGameOver) {
+        if (settingsPausedGame && gamePaused && !isGameOver) {
             gamePaused = false;
             timeAttack.resume();
         }
+        settingsPausedGame = false;
         Platform.runLater(gamePane::requestFocus);
     }
 
     private boolean isSettingsOverlayVisible() {
         return settingsOverlay != null && settingsOverlay.isVisible();
+    }
+
+    @FXML
+    private void onTutorialButtonClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        openTutorial();
+    }
+
+    @FXML
+    private void onTutorialOverlayBackdropClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        closeTutorial();
+    }
+
+    @FXML
+    private void onTutorialCloseClicked() {
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        closeTutorial();
+    }
+
+    private void openTutorial() {
+        if (tutorialOverlay == null || isSettingsOverlayVisible()) return;
+        tutorialPausedGame = !gamePaused;
+        if (tutorialPausedGame) {
+            gamePaused = true;
+            timeAttack.pause();
+        }
+        if (tutorialTitleLabel != null) {
+            tutorialTitleLabel.setText("How to Play");
+        }
+        if (tutorialBodyLabel != null) {
+            tutorialBodyLabel.setText(buildTutorialText());
+        }
+        double ow = gamePane.getWidth(), oh = gamePane.getHeight();
+        tutorialOverlay.resize(ow, oh);
+        if (tutorialPopupShell != null) {
+            tutorialPopupShell.setLayoutX((ow - tutorialPopupShell.getPrefWidth()) / 2);
+            tutorialPopupShell.setLayoutY((oh - tutorialPopupShell.getPrefHeight()) / 2);
+        }
+        tutorialOverlay.layout();
+        tutorialOverlay.setVisible(true);
+        tutorialOverlay.toFront();
+        Platform.runLater(tutorialOverlay::requestFocus);
+    }
+
+    private void closeTutorial() {
+        if (tutorialOverlay != null) {
+            tutorialOverlay.setVisible(false);
+        }
+        if (tutorialPausedGame && gamePaused && !isGameOver) {
+            gamePaused = false;
+            timeAttack.resume();
+        }
+        tutorialPausedGame = false;
+        Platform.runLater(gamePane::requestFocus);
+    }
+
+    private boolean isTutorialOverlayVisible() {
+        return tutorialOverlay != null && tutorialOverlay.isVisible();
+    }
+
+    private String buildTutorialText() {
+        String common = """
+                Controls
+                - Move: A / D or Left / Right
+                - Rotate: W / Up or right click
+                - Soft drop: S
+                - Hard drop: Space / Down or left click
+                - Hold piece: C or Shift
+                - Pause and settings: Esc
+                - Mouse aim: move the cursor over the board to guide the active piece
+                """;
+
+        String modeGuide = switch (gameContext.getGameMode()) {
+            case TIME_ATTACK -> """
+
+                    Time Attack
+                    - You start with 02:00 on the clock.
+                    - Clear lines to gain bonus time. More lines at once give more time.
+                    - Some locked blocks become time blocks. Clear a line containing one to freeze the clock for 10 seconds.
+                    - Press B to turn the current piece into a bomb. You have 3 bombs, so save them for dangerous stacks.
+                    """;
+            case HARD_MODE -> """
+
+                    Hard Mode
+                    - The board becomes faster and more hostile than Standard Mode.
+                    - Blackout events can hide the board and force quick decisions.
+                    - Bomb and transparent pieces begin appearing as the run progresses.
+                    - Press B when the bomb skill is ready to turn the current piece into a bomb.
+                    """;
+            case STANDARD -> """
+
+                    Standard Mode
+                    - Clear horizontal lines to score points and build combos.
+                    - Every 10 cleared lines increases the level and falling speed.
+                    - Use Hold and Next previews to prepare clean Tetris clears.
+                    """;
+        };
+
+        return common + modeGuide;
     }
 
     private void quitToMainMenuFromSettings() {

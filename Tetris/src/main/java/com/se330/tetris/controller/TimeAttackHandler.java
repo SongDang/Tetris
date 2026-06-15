@@ -53,6 +53,10 @@ class TimeAttackHandler {
         if (gameContext.getGameMode() != GameContext.GameMode.TIME_ATTACK) {
             if (timePanel != null) { timePanel.setVisible(false); timePanel.setManaged(false); }
             if (freezeLabel != null) { freezeLabel.setVisible(false); freezeLabel.setManaged(false); }
+            if (gameContext.getGameMode() == GameContext.GameMode.STANDARD && bombPanel != null) {
+                bombPanel.setVisible(false);
+                bombPanel.setManaged(false);
+            }
             return;
         }
 
@@ -67,6 +71,14 @@ class TimeAttackHandler {
                 bombPanel.setVisible(false);
                 bombPanel.setManaged(false);
             }
+        }
+
+        if (bombPanel != null) {
+            bombPanel.setVisible(false);
+            bombPanel.setManaged(false);
+        }
+        if (bombLabel != null) {
+            bombLabel.setText("BOMB x" + bombsRemaining);
         }
 
         timeRemainingSeconds = TIME_ATTACK_START_SECONDS;
