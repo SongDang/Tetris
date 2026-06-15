@@ -12,6 +12,7 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import com.se330.tetris.util.Constants;
@@ -157,21 +158,23 @@ public class SceneManager {
 
     private Pane createResponsiveViewport() {
         contentLayer = new Group();
-        Pane responsiveViewport = new Pane(contentLayer);
+        Pane designSurface = new Pane(contentLayer);
+        designSurface.setMinSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        designSurface.setPrefSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        designSurface.setMaxSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+
+        StackPane responsiveViewport = new StackPane(designSurface);
         responsiveViewport.setStyle("-fx-background-color: #000000;");
         responsiveViewport.setMinSize(0, 0);
         responsiveViewport.setPrefSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        responsiveViewport.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 
         NumberBinding scale = Bindings.min(
                 responsiveViewport.widthProperty().divide(Constants.WINDOW_WIDTH),
                 responsiveViewport.heightProperty().divide(Constants.WINDOW_HEIGHT));
 
-        contentLayer.scaleXProperty().bind(scale);
-        contentLayer.scaleYProperty().bind(scale);
-        contentLayer.layoutXProperty().bind(
-                responsiveViewport.widthProperty().subtract(scale.multiply(Constants.WINDOW_WIDTH)).divide(2));
-        contentLayer.layoutYProperty().bind(
-                responsiveViewport.heightProperty().subtract(scale.multiply(Constants.WINDOW_HEIGHT)).divide(2));
+        designSurface.scaleXProperty().bind(scale);
+        designSurface.scaleYProperty().bind(scale);
 
         return responsiveViewport;
     }
