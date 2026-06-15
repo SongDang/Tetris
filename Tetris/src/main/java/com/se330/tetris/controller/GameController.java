@@ -350,7 +350,7 @@ public class GameController {
                 addLines(4);
                 updateLevel();
                 renderer.emitScorePopup(4, avgRow);
-                if (hasTimeBlock && !pendingTimeBlockPositions.isEmpty()) {
+                if (hasTimeBlock && !pendingTimeBlockPositions.isEmpty() && !timeAttack.isFreezeActive) {
                     List<int[]> cells = pendingTimeBlockPositions;
                     pendingTimeBlockPositions = List.of();
                     if (!timeStopSoundPlayed) {
@@ -438,7 +438,7 @@ public class GameController {
                 renderer.onCombo(comboCount, avgRow, cs);
 
             if (cleared == 4) {
-                if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && hasTimeBlock) {
+                if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && hasTimeBlock && !timeAttack.isFreezeActive) {
                     List<int[]> tbCells = boardEngine.getTimeBlockCells(fullRows);
                     fullRows.sort(Collections.reverseOrder());
                     boardEngine.clearRows(fullRows);
@@ -484,7 +484,7 @@ public class GameController {
             addLines(cleared);
             updateLevel();
             renderer.emitScorePopup(cleared, avgRow);
-            if (hasTimeBlock) {
+            if (hasTimeBlock && !timeAttack.isFreezeActive) {
                 SoundManager.getInstance().playSE(SoundType.TIME_STOP);
                 renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
             } else {
@@ -566,9 +566,9 @@ public class GameController {
         boolean isHardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
         if (bag.isEmpty()) {
             for (TetrominoType t : TetrominoType.values()) {
-                if (t == TetrominoType.BOMB && (isStandard || (isHardMode && !hardMode.shouldSpawnBombInBag())))
+                if (t == TetrominoType.BOMB)
                     continue;
-                if (t == TetrominoType.TRANSPARENT && isHardMode && !hardMode.shouldSpawnTransparentInBag())
+                if (t == TetrominoType.TRANSPARENT && (isStandard || (isHardMode && !hardMode.shouldSpawnTransparentInBag())))
                     continue;
                 bag.add(t);
             }
@@ -576,7 +576,7 @@ public class GameController {
         }
         TetrominoType type = bag.remove(0);
         double chance = isHardMode ? hardMode.getRandomBlockChance() : RANDOM_BLOCK_CHANCE;
-        if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && rng.nextDouble() < chance) {
+        if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && type != TetrominoType.TRANSPARENT && rng.nextDouble() < chance) {
             RandomBlock block = new RandomBlock(type, 0, 0, RANDOM_BLOCK_INTERVAL_MS);
             block.setTypeValidator((p, t) -> boardEngine.canPlaceType(p, t));
             return block;
@@ -641,7 +641,7 @@ public class GameController {
         addScore(fullRows.size());
         addLines(fullRows.size());
         updateLevel();
-        if (hasTimeBlock) {
+        if (hasTimeBlock && !timeAttack.isFreezeActive) {
             SoundManager.getInstance().playSE(SoundType.TIME_STOP);
             renderer.triggerPreFreezeCinematic(tbCells, () -> timeAttack.triggerFreezeIfNeeded(true));
         } else {
