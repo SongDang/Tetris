@@ -926,8 +926,8 @@ class GameRenderer {
             }
         }
 
-        // Ghost piece (Bóng đổ vị trí rơi) - rendered after blackout overlay so it's always visible
-        if (freezeUntil == 0) {
+        // Ghost piece (drop preview) — hidden during blackout
+        if (freezeUntil == 0 && !inBlackout) {
             int drop = boardEngine.getDropDistance(currentPiece, suspendedPieces);
             int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
             for (int row = 0; row < 4; row++)
