@@ -249,7 +249,7 @@ public class GameController {
 
         gamePane.setOnKeyPressed(this::handleKeyPressed);
         gamePane.setOnKeyReleased(e -> {
-            if (e.getCode() == KeyCode.S)
+            if (e.getCode() == KeyCode.S || e.getCode() == KeyCode.DOWN)
                 softDropping = false;
         });
         gameCanvas.setOnMouseMoved(this::handleMouseMoved);
@@ -736,11 +736,7 @@ public class GameController {
                 if (boardEngine.canMove(currentPiece, 1, 0, currentPiece.getRotation(), suspendedPieces))
                     currentPiece.setX(currentPiece.getX() + 1);
             }
-            case DOWN -> {
-                if (!timeAttack.isFreezeActive && hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT)
-                    hardDrop();
-            }
-            case S -> {
+            case DOWN, S -> {
                 if (!timeAttack.isFreezeActive && hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT)
                     softDropping = true;
             }
@@ -1068,8 +1064,8 @@ public class GameController {
                 Controls
                 - Move: A / D or Left / Right
                 - Rotate: W / Up or right click
-                - Soft drop: S
-                - Hard drop: Space / Down or left click
+                - Soft drop: S / Down
+                - Hard drop: Space or left click
                 - Hold piece: C or Shift
                 - Pause and settings: Esc
                 - Mouse aim: move the cursor over the board to guide the active piece
