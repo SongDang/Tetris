@@ -74,14 +74,6 @@ class TimeAttackHandler {
             }
         }
 
-        if (bombPanel != null) {
-            bombPanel.setVisible(false);
-            bombPanel.setManaged(false);
-        }
-        if (bombLabel != null) {
-            bombLabel.setText("BOMB x" + bombsRemaining);
-        }
-
         totalGameTime = 0;
         timeRemainingSeconds = TIME_ATTACK_START_SECONDS;
         updateTimeLabel();
