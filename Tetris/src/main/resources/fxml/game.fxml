@@ -20,19 +20,19 @@
             prefWidth="1440.0" prefHeight="1024.0"
             styleClass="screen-standard-game">
 
-    <Region styleClass="game-bg-center"
-            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
-            AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"/>
-
     <Canvas fx:id="bgEffectCanvas" width="1440" height="1024"
             mouseTransparent="true"
             AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"/>
 
-    <HBox alignment="TOP_CENTER" spacing="68.0"
+    <Region fx:id="bgCenter" styleClass="game-bg-center"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
+            AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"/>
+
+    <HBox alignment="TOP_CENTER" spacing="20"
           AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="0.0"
           AnchorPane.rightAnchor="0.0" AnchorPane.bottomAnchor="204.0">
 
-        <VBox alignment="TOP_CENTER" spacing="8.0" prefWidth="216.0" style="-fx-padding: 65 0 0 0;">
+        <VBox alignment="TOP_CENTER" spacing="8.0" prefWidth="216.0" style="-fx-padding: 50 0 0 0;">
             <StackPane prefWidth="216.0" prefHeight="280.0" styleClass="game-score-panel">
                 <VBox alignment="TOP_LEFT" spacing="8.0" style="-fx-padding: 46 40 22 40;">
                     <Label text="SCORE" styleClass="game-label-header"/>
@@ -66,6 +66,20 @@
                     <Canvas fx:id="holdBlockCanvas" width="100.0" height="100.0" translateX="15.0" translateY="-8.0"/>
                 </VBox>
             </StackPane>
+
+            <VBox fx:id="bombInventoryBox"
+                  visible="false" managed="false"
+                  prefWidth="216.0" prefHeight="130.0" styleClass="game-bomb-panel" alignment="CENTER_LEFT">
+                <VBox alignment="TOP_LEFT" style="-fx-padding: 37 40 22 40;" spacing="8">
+                    <Label text="BOMB SKILL" styleClass="game-label-header"/>
+                    <Label fx:id="bombsLabel" text="💣 x3"
+                           style="-fx-font-size: 32; -fx-text-fill: #ff5566; -fx-font-family: 'VT323';">
+                        <VBox.margin><Insets top="10"/></VBox.margin>
+                    </Label>
+                    <Label text="[ Press B ]"
+                           style="-fx-font-size: 14; -fx-text-fill: #666688; -fx-font-family: 'VT323';"/>
+                </VBox>
+            </VBox>
         </VBox>
 
         <StackPane prefWidth="352.0" prefHeight="652.0">
@@ -78,7 +92,7 @@
                     managed="false" layoutX="-124.0" layoutY="26.0" mouseTransparent="true"/>
         </StackPane>
 
-        <VBox alignment="TOP_CENTER" spacing="36.0" prefWidth="216.0" style="-fx-padding: 65 0 0 0;">
+        <VBox alignment="TOP_CENTER" spacing="36.0" prefWidth="216.0" style="-fx-padding: 50 0 0 0;">
             <StackPane prefWidth="216.0" prefHeight="382.0" styleClass="game-next-panel">
                 <VBox alignment="TOP_CENTER" spacing="8.0" style="-fx-padding: 28 0 0 0;">
                     <Label text="NEXT" styleClass="game-label-header" maxWidth="138.0" alignment="CENTER_LEFT"/>
