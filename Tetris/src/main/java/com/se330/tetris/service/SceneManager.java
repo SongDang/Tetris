@@ -3,6 +3,7 @@ package com.se330.tetris.service;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.NumberBinding;
+import com.se330.tetris.util.SoundType;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -90,6 +91,13 @@ public class SceneManager {
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to load scene: " + sceneName, e);
+        }
+
+        SoundManager soundManager = SoundManager.getInstance();
+        switch (sceneName) {
+            case SceneManager.MAIN_MENU_SCENE:
+                soundManager.playMusic(SoundType.MAIN_THEME);
+                break;
         }
     }
 
