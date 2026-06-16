@@ -322,7 +322,7 @@ public class GameController {
 
         gamePane.setOnKeyPressed(this::handleKeyPressed);
         gamePane.setOnKeyReleased(e -> {
-            if (e.getCode() == KeyCode.S)
+            if (e.getCode() == KeyCode.S || e.getCode() == KeyCode.DOWN)
                 softDropping = false;
         });
         gameCanvas.setOnMouseMoved(this::handleMouseMoved);
@@ -394,6 +394,7 @@ public class GameController {
                     hardMode.update(dt);
 
                 timeAttack.setGameState(gamePaused, isGameOver);
+                timeAttack.update(dt);
 
                 renderer.render(currentPiece, nextQueue, holdType, suspendedPieces,
                         gamePaused, isGameOver, freezeUntil, frozenRowFlash, timeAttack.isFreezeActive);
@@ -666,18 +667,23 @@ public class GameController {
     private Piece randomPiece() {
         boolean isStandard = gameContext.getGameMode() == GameContext.GameMode.STANDARD;
         boolean isHardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
+        boolean isTimeAttack = gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK;
         if (bag.isEmpty()) {
             for (TetrominoType t : TetrominoType.values()) {
                 if (t == TetrominoType.BOMB)
                     continue;
-                if (t == TetrominoType.TRANSPARENT && (isStandard || (isHardMode && !hardMode.shouldSpawnTransparentInBag())))
+                if (t == TetrominoType.TRANSPARENT && (isStandard
+                        || (isHardMode && !hardMode.shouldSpawnTransparentInBag())
+                        || (isTimeAttack && !timeAttack.shouldSpawnTransparentInBag())))
                     continue;
                 bag.add(t);
             }
             Collections.shuffle(bag);
         }
         TetrominoType type = bag.remove(0);
-        double chance = isHardMode ? hardMode.getRandomBlockChance() : RANDOM_BLOCK_CHANCE;
+        double chance = isHardMode ? hardMode.getRandomBlockChance()
+                : isTimeAttack ? timeAttack.getRandomBlockChance()
+                : RANDOM_BLOCK_CHANCE;
         if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && type != TetrominoType.TRANSPARENT && rng.nextDouble() < chance) {
             RandomBlock block = new RandomBlock(type, 0, 0, RANDOM_BLOCK_INTERVAL_MS);
             block.setTypeValidator((p, t) -> boardEngine.canPlaceType(p, t));
@@ -838,11 +844,7 @@ public class GameController {
                 if (boardEngine.canMove(currentPiece, 1, 0, currentPiece.getRotation(), suspendedPieces))
                     currentPiece.setX(currentPiece.getX() + 1);
             }
-            case DOWN -> {
-                if (!timeAttack.isFreezeActive && hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT)
-                    hardDrop();
-            }
-            case S -> {
+            case DOWN, S -> {
                 if (!timeAttack.isFreezeActive && hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT)
                     softDropping = true;
             }
@@ -1326,8 +1328,8 @@ public class GameController {
                 Controls
                 - Move: A / D or Left / Right
                 - Rotate: W / Up or right click
-                - Soft drop: S
-                - Hard drop: Space / Down or left click
+                - Soft drop: S / Down
+                - Hard drop: Space or left click
                 - Hold piece: C or Shift
                 - Pause and settings: Esc
                 - Mouse aim: move the cursor over the board to guide the active piece
