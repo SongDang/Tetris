@@ -137,7 +137,7 @@ public class MainMenuController {
         f.x        = x;
         f.y        = y;
         f.speed    = 160 + rng.nextDouble() * 220;
-        f.alpha    = 0.35 + rng.nextDouble() * 0.45;
+        f.alpha    = 1.0;
         f.rotationDeg = (rng.nextDouble() * 2 - 1) * MAX_ROTATION_DEG;
 
         if (rng.nextDouble() < SPECIAL_CHANCE) {
