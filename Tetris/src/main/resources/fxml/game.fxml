@@ -69,13 +69,11 @@
 
             <VBox fx:id="bombInventoryBox"
                   visible="false" managed="false"
-                  prefWidth="216.0" prefHeight="130.0" styleClass="game-bomb-panel" alignment="CENTER_LEFT">
-                <VBox alignment="TOP_LEFT" style="-fx-padding: 37 40 22 40;" spacing="8">
+                  prefWidth="216.0" prefHeight="130.0" styleClass="game-time-panel" alignment="CENTER_LEFT">
+                <VBox alignment="TOP_LEFT" style="-fx-padding: 14 40 10 40;" spacing="4">
                     <Label text="BOMB SKILL" styleClass="game-label-header"/>
                     <Label fx:id="bombsLabel" text="💣 x3"
-                           style="-fx-font-size: 32; -fx-text-fill: #ff5566; -fx-font-family: 'VT323';">
-                        <VBox.margin><Insets top="10"/></VBox.margin>
-                    </Label>
+                           style="-fx-font-size: 32; -fx-text-fill: #ff5566; -fx-font-family: 'VT323';"/>
                     <Label text="[ Press B ]"
                            style="-fx-font-size: 14; -fx-text-fill: #666688; -fx-font-family: 'VT323';"/>
                 </VBox>
