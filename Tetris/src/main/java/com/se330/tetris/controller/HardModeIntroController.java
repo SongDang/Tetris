@@ -70,7 +70,7 @@ public class HardModeIntroController {
         bulbView.setImage(imgOn);
         bulbView.setEffect(BULB_GLOW);
         bulbContainer.setTranslateY(START_Y);
-        bulbContainer.layoutXProperty().bind(
+        bulbContainer.translateXProperty().bind(
             introPane.widthProperty().subtract(320.0).divide(2.0)
         );
         blackOverlay.setOpacity(0);

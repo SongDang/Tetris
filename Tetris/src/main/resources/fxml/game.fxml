@@ -113,8 +113,11 @@
                       -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
     </VBox>
 
-    <Region styleClass="game-bottom-bar" prefHeight="204"
-            AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"/>
+    <ImageView fx:id="standardTimeBarView" fitWidth="1440.0" fitHeight="204.0"
+               preserveRatio="false" mouseTransparent="true"
+               AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+        <image><Image url="@../assets/standardflavour_bg.png"/></image>
+    </ImageView>
 
     <HBox alignment="CENTER" prefHeight="112"
           AnchorPane.bottomAnchor="46" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">

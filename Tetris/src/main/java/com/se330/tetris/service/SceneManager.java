@@ -4,7 +4,6 @@ import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.NumberBinding;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Group;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
@@ -37,7 +36,7 @@ public class SceneManager {
 
     private Stage primaryStage;
     private Scene appScene;
-    private Group contentLayer;
+    private Pane contentLayer;
     private Pane viewport;
     private final Map<String, Parent> roots = new HashMap<>();
     private boolean fullScreenRequested = false;
@@ -153,17 +152,17 @@ public class SceneManager {
             region.setMinSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
             region.setPrefSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
             region.setMaxSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+            region.resize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
         }
     }
 
     private Pane createResponsiveViewport() {
-        contentLayer = new Group();
-        Pane designSurface = new Pane(contentLayer);
-        designSurface.setMinSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
-        designSurface.setPrefSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
-        designSurface.setMaxSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        contentLayer = new Pane();
+        contentLayer.setMinSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        contentLayer.setPrefSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        contentLayer.setMaxSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
 
-        StackPane responsiveViewport = new StackPane(designSurface);
+        StackPane responsiveViewport = new StackPane(contentLayer);
         responsiveViewport.setStyle("-fx-background-color: #000000;");
         responsiveViewport.setMinSize(0, 0);
         responsiveViewport.setPrefSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
@@ -173,8 +172,8 @@ public class SceneManager {
                 responsiveViewport.widthProperty().divide(Constants.WINDOW_WIDTH),
                 responsiveViewport.heightProperty().divide(Constants.WINDOW_HEIGHT));
 
-        designSurface.scaleXProperty().bind(scale);
-        designSurface.scaleYProperty().bind(scale);
+        contentLayer.scaleXProperty().bind(scale);
+        contentLayer.scaleYProperty().bind(scale);
 
         return responsiveViewport;
     }
