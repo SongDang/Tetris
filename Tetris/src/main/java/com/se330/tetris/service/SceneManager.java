@@ -1,5 +1,6 @@
 package com.se330.tetris.service;
 
+import com.se330.tetris.util.SoundType;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -15,7 +16,10 @@ public class SceneManager {
     public static final String MAIN_MENU_SCENE = "main";
     public static final String GAMEMODES_SCENE = "gamemodes";
     public static final String GAME_SCENE = "game";
-    public static final String HARD_GAME_SCENE = "hardgame";
+    public static final String HARD_GAME_SCENE  = "hardgame";
+    public static final String HARD_INTRO_SCENE     = "hardintro";
+    public static final String TIME_INTRO_SCENE     = "timeintro";
+    public static final String STANDARD_INTRO_SCENE = "standardintro";
     public static final String RESULTS_SCENE = "results";
     public static final String SETTINGS_SCENE = "settings";
 
@@ -46,9 +50,17 @@ public class SceneManager {
         try {
             Scene scene = getOrLoadScene(sceneName);
             primaryStage.setScene(scene);
+            primaryStage.sizeToScene();
             primaryStage.show();
         } catch (IOException e) {
             throw new RuntimeException("Failed to load scene: " + sceneName, e);
+        }
+
+        SoundManager soundManager = SoundManager.getInstance();
+        switch (sceneName) {
+            case SceneManager.MAIN_MENU_SCENE:
+                soundManager.playMusic(SoundType.MAIN_THEME);
+                break;
         }
     }
 
@@ -65,7 +77,7 @@ public class SceneManager {
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
         Parent root = loader.load();
 
-        Scene scene = new Scene(root);
+        Scene scene = new Scene(root, Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
         applyStylesheet(scene);
 
         return scene;
@@ -76,7 +88,10 @@ public class SceneManager {
             case MAIN_MENU_SCENE -> Constants.FXML_MAIN;
             case GAMEMODES_SCENE -> Constants.FXML_GAMEMODES;
             case GAME_SCENE -> Constants.FXML_GAME;
-            case HARD_GAME_SCENE -> Constants.FXML_HARDGAME;
+            case HARD_GAME_SCENE  -> Constants.FXML_HARDGAME;
+            case HARD_INTRO_SCENE     -> Constants.FXML_HARD_INTRO;
+            case TIME_INTRO_SCENE     -> Constants.FXML_TIME_INTRO;
+            case STANDARD_INTRO_SCENE -> Constants.FXML_STANDARD_INTRO;
             case RESULTS_SCENE -> Constants.FXML_RESULTS;
             case SETTINGS_SCENE -> Constants.FXML_SETTINGS;
             default -> throw new IllegalArgumentException("Unknown scene name: " + sceneName);

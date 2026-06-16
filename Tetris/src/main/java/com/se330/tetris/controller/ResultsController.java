@@ -16,6 +16,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.util.Callback;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
@@ -28,11 +29,11 @@ import javafx.scene.layout.VBox;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 public class ResultsController {
 
@@ -59,6 +60,9 @@ public class ResultsController {
 
     @FXML
     private Button menuBtn;
+
+    @FXML
+    private Label commentLabel;
 
     @FXML
     private VBox newRecordBox;
@@ -114,6 +118,10 @@ public class ResultsController {
         colScore.setCellValueFactory(new PropertyValueFactory<>("score"));
         colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
 
+        colName.setCellFactory(waveCellFactory(true));
+        colScore.setCellFactory(waveCellFactory(true));
+        colDate.setCellFactory(waveCellFactory(false));
+
         populateResults();
         for (Button btn : new Button[]{saveBtn, retryBtn, menuBtn})
             if (btn != null) btn.setOnMouseEntered(e -> SoundManager.getInstance().playSE(SoundType.HOVER));
@@ -148,20 +156,50 @@ public class ResultsController {
         glitchTimer.start();
     }
 
+    private static class WaveCell<T> extends TableCell<ScoreRecord, T> {
+        final List<Label> chars = new ArrayList<>();
+        private final boolean rightBorder;
+
+        WaveCell(boolean rightBorder) { this.rightBorder = rightBorder; }
+
+        @Override
+        protected void updateItem(T item, boolean empty) {
+            super.updateItem(item, empty);
+            chars.clear();
+            if (empty || item == null) { setGraphic(null); setText(null); return; }
+            HBox box = new HBox(0);
+            box.setAlignment(Pos.CENTER);
+            for (char c : item.toString().toCharArray()) {
+                Label l = new Label(String.valueOf(c));
+                l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 20; -fx-text-fill: white;");
+                chars.add(l);
+                box.getChildren().add(l);
+            }
+            setText(null);
+            setGraphic(box);
+            if (rightBorder) getStyleClass().add("results-table-divider-cell");
+        }
+    }
+
+    private <T> Callback<TableColumn<ScoreRecord, T>, TableCell<ScoreRecord, T>> waveCellFactory(boolean rightBorder) {
+        return col -> new WaveCell<>(rightBorder);
+    }
+
     private void buildCharLabels() {
-        /*// Note text — hide original label, add per-char HBox centered in the same StackPane
-        noteLabel.setVisible(false);
+        if (commentLabel == null) return;
+        commentLabel.setVisible(false);
+        StackPane notePanel = (StackPane) commentLabel.getParent();
+        if (notePanel == null) return;
         HBox noteBox = new HBox(0);
         noteBox.setAlignment(Pos.CENTER);
-        for (char c : noteLabel.getText().toCharArray()) {
+        for (char c : commentLabel.getText().toCharArray()) {
             Label l = new Label(String.valueOf(c));
-            l.setFont(Font.font("VT323", 32));
-            l.setTextFill(Color.WHITE);
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 42; -fx-text-fill: #ffffff;");
             l.setOpacity(0);
             noteChars.add(l);
             noteBox.getChildren().add(l);
         }
-        notePanel.getChildren().add(noteBox);*/
+        notePanel.getChildren().add(noteBox);
     }
 
     private void tick(double dt) {
@@ -223,6 +261,21 @@ public class ResultsController {
             if (noteChars.get(i).getOpacity() > 0)
                 noteChars.get(i).setTranslateY(Math.sin(elapsed * WAVE_SPEED + i * WAVE_PHASE) * WAVE_AMP);
         }
+
+        // Wave: per-character across all visible table cells
+        List<WaveCell<?>> waveCells = highScoreTable.lookupAll(".table-cell").stream()
+            .filter(n -> n instanceof WaveCell<?> && !((WaveCell<?>) n).isEmpty())
+            .sorted(Comparator.comparingDouble(javafx.scene.Node::getLayoutY)
+                .thenComparingDouble(javafx.scene.Node::getLayoutX))
+            .map(n -> (WaveCell<?>) n)
+            .collect(Collectors.toList());
+        int charIdx = 0;
+        for (WaveCell<?> cell : waveCells) {
+            for (Label l : cell.chars) {
+                l.setTranslateY(Math.sin(elapsed * WAVE_SPEED + charIdx * WAVE_PHASE) * WAVE_AMP);
+                charIdx++;
+            }
+        }
     }
 
     private void fadeToBlack(Runnable onDone) {
@@ -258,6 +311,15 @@ public class ResultsController {
         gameModeLabel.setText(mode);
         levelLabel.setText(String.valueOf(level));
         linesLabel.setText(String.valueOf(lines));
+
+        if (commentLabel != null) {
+            String comment;
+            if (score < 1000) comment = "Pitiful.";
+            else if (score < 3000) comment = "That's all you've got?";
+            else if (score < 5000) comment = "Could've been better.";
+            else comment = "Impressive.";
+            commentLabel.setText(comment);
+        }
 
         System.out.println("Results displayed:");
         System.out.println("  Final Score: " + score);

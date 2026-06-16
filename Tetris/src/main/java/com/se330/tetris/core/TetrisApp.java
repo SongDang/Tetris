@@ -15,8 +15,7 @@ public class TetrisApp extends Application {
         sceneManager.setPrimaryStage(primaryStage);
 
         primaryStage.setTitle(Constants.WINDOW_TITLE);
-        primaryStage.setWidth(Constants.WINDOW_WIDTH);
-        primaryStage.setHeight(Constants.WINDOW_HEIGHT);
+        primaryStage.setResizable(false);
 
         String requestedFromProperty = System.getProperty("tetris.startScene", "").trim();
         String requestedFromEnv = System.getenv("TETRIS_START_SCENE");
@@ -26,6 +25,7 @@ public class TetrisApp extends Application {
         String initialScene = switch (requested) {
             case SceneManager.GAMEMODES_SCENE -> SceneManager.GAMEMODES_SCENE;
             case SceneManager.GAME_SCENE -> SceneManager.GAME_SCENE;
+            case SceneManager.HARD_GAME_SCENE -> SceneManager.HARD_GAME_SCENE;
             case SceneManager.RESULTS_SCENE -> SceneManager.RESULTS_SCENE;
             case SceneManager.SETTINGS_SCENE -> SceneManager.SETTINGS_SCENE;
             default -> SceneManager.MAIN_MENU_SCENE;
@@ -37,6 +37,12 @@ public class TetrisApp extends Application {
         SoundManager.getInstance().playMusic(SoundType.MAIN_THEME); //theme music
         SoundManager.getInstance().setMusicVolume(Constants.SOUND_VOLUME_DEFAULT);
         SoundManager.getInstance().setSEVolume(Constants.SOUND_VOLUME_DEFAULT);
+    }
+
+    @Override
+    public void stop() {
+        SoundManager.getInstance().stopMusic();
+        SoundManager.getInstance().stopLooping();
     }
 
     public static void main(String[] args) {

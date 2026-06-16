@@ -15,7 +15,7 @@ import javafx.util.Duration;
 class TimeAttackHandler {
 
     private static final int TIME_ATTACK_START_SECONDS = 120;
-    private static final int FREEZE_DURATION_SECONDS = 10;
+    private static final int FREEZE_DURATION_SECONDS = 5;
 
     private final GameContext gameContext;
     private final Label timeLabel;
@@ -36,6 +36,7 @@ class TimeAttackHandler {
 
     private boolean gamePausedRef = false;
     private boolean isGameOverRef = false;
+    private Runnable onFreezeEnd = null;
 
     TimeAttackHandler(GameContext gameContext, Label timeLabel, Label freezeLabel, Label bombLabel,
                       VBox timePanel, VBox bombPanel, Runnable onGameOver) {
@@ -52,6 +53,10 @@ class TimeAttackHandler {
         if (gameContext.getGameMode() != GameContext.GameMode.TIME_ATTACK) {
             if (timePanel != null) { timePanel.setVisible(false); timePanel.setManaged(false); }
             if (freezeLabel != null) { freezeLabel.setVisible(false); freezeLabel.setManaged(false); }
+            if (gameContext.getGameMode() == GameContext.GameMode.STANDARD && bombPanel != null) {
+                bombPanel.setVisible(false);
+                bombPanel.setManaged(false);
+            }
             return;
         }
 
@@ -66,6 +71,14 @@ class TimeAttackHandler {
                 bombPanel.setVisible(false);
                 bombPanel.setManaged(false);
             }
+        }
+
+        if (bombPanel != null) {
+            bombPanel.setVisible(false);
+            bombPanel.setManaged(false);
+        }
+        if (bombLabel != null) {
+            bombLabel.setText("BOMB x" + bombsRemaining);
         }
 
         timeRemainingSeconds = TIME_ATTACK_START_SECONDS;
@@ -99,11 +112,7 @@ class TimeAttackHandler {
 
     void triggerFreezeIfNeeded(boolean hasTimeBlock) {
         if (!hasTimeBlock || gameContext.getGameMode() != GameContext.GameMode.TIME_ATTACK) return;
-        if (isFreezeActive) {
-            freezeRemainingSeconds = FREEZE_DURATION_SECONDS;
-            updateFreezeLabel();
-            return;
-        }
+        if (isFreezeActive) return;
         startFreeze();
     }
 
@@ -126,8 +135,11 @@ class TimeAttackHandler {
         if (freezeRemainingSeconds <= 0) endFreeze();
     }
 
+    void setOnFreezeEnd(Runnable callback) { this.onFreezeEnd = callback; }
+
     private void endFreeze() {
         isFreezeActive = false;
+        if (onFreezeEnd != null) onFreezeEnd.run();
         if (freezeTimeline != null) freezeTimeline.stop();
         if (timeAttackTimeline != null && gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK)
             timeAttackTimeline.play();

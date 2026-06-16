@@ -52,6 +52,7 @@ class GameRenderer {
     // Images
     private final Image bombSprite;
     private final Image ghostSprite;
+    private final Image timeBlockSprite;
     private final Image lightOnImage;
     private final Image lightOffImage;
     private final Image hardMainImage;
@@ -77,18 +78,100 @@ class GameRenderer {
     double rotationPulse = 0;
     double flashIntensity = 0;
     double gameOverFlashAlpha = 0;
+    private double tetrisFlashAlpha = 0;
+    private int[]  tetrisFlashRows  = null;
+    private double postClearAlpha   = 0;
+    private int[]  postClearRows    = null;
     private double ghostParticleTimer = 0;
     private double randomBlockSparkTimer = 0;
+    private double freezeScale = 1.0; // 1=normal, 0=fully frozen; lerps on transition
+    private static final double FREEZE_LERP_SPEED = 3.0;
+
+    // Pre-freeze cinematic (darkness + time block glow before freeze activates)
+    private boolean preFreezeActive = false;
+    private double preFreezeElapsed = 0;
+    private java.util.List<int[]> preFreezePositions = java.util.List.of();
+    private Runnable preFreezeCallback = null;
+    private static final double PREFREEZE_DUR = 1.00;
+    private double freezeFlashAlpha = 0; // strong green pulse at cinematic→freeze transition
 
     // Startup glitch
     double startupGlitchElapsed = 0;
     private Canvas startupCanvas;
+
+    // Pause glitch
+    private double pauseGlitchElapsed = 0;
     private GraphicsContext startupGc;
 
     // Countdown
     private String countdownText = null;
     private double countdownPulse = 0;
     private Font countdownFont;
+
+    // Eye animation during blackout
+    private Image[] eyeFrames;
+    private static final int EYE_FRAMES = 9;
+    private static final double EYE_FPS = 8.0;
+    private Canvas bgEffectCanvas;
+    private GraphicsContext bgGc;
+    private boolean wasInBlackout = false;
+    private long lastBgRenderNs = 0;
+
+    private static class EyeInstance {
+        double baseX, baseY, x, y;
+        double size, rotation, frameTimer, alpha;
+        int frame;
+        boolean flipX, flipY, fadingOut;
+    }
+    private final List<EyeInstance> eyes = new ArrayList<>();
+    private double eyeSpawnTimer = 0;
+    private static final double EYE_SPAWN_INTERVAL = 0.2;
+    private static final double STRIP_W = 260.0;
+
+    // Bulb motes
+    private static class BulbMote {
+        double baseX, y;    // baseX is the sine-wave center
+        double sineAmp, sineFreq, sinePhase;
+        double vy, life, maxLife, size;
+        boolean white;
+        double x() { return baseX + Math.sin(sinePhase + life * sineFreq) * sineAmp; }
+    }
+    private final List<BulbMote> bulbMotes = new ArrayList<>();
+    private double bulbMoteTimer = 0;
+
+    // Side-strip particle burst on line clear / bomb
+    private static final double PARTICLE_GRAVITY = 750.0;
+    private static final double CENTER_LEFT_X = 260.0;
+    private double centerRightX() { return bgEffectCanvas != null ? bgEffectCanvas.getWidth() - STRIP_W : 1180.0; }
+    private static final Color[] SPARK_COLORS = {
+        Color.web("#FF8C00"), Color.web("#FFA500"), Color.web("#FF6B00"),
+        Color.web("#FF4500"), Color.web("#FFD700"), Color.web("#FF3300")
+    };
+    private final List<SideParticle> sideParticles = new ArrayList<>();
+
+    private static class SideParticle {
+        double x, y, vx, vy;
+        double alpha, size, life, maxLife;
+        Color color;
+    }
+
+    // Hard-drop trail
+    private static class HardDropTrail {
+        int pieceX, pieceY, dropDistance;
+        int[][] shape;
+        double alpha;
+    }
+    private final List<HardDropTrail> hardDropTrails = new ArrayList<>();
+
+    // Rain (Time Attack background)
+    private static class RainDrop {
+        double x, y, vx, vy;
+    }
+    private final List<RainDrop> rainDrops = new ArrayList<>();
+    double rainTimeScale = 1.0;
+    private static final int    RAIN_COUNT  = 420;
+    private static final int    RAIN_TRAIL  = 14;
+    private static final double RAIN_DT     = 0.006;
 
     // Combo float
     private int comboDisplay = 0;
@@ -107,6 +190,7 @@ class GameRenderer {
         int fontSize;
     }
     private final List<ScorePopup> scorePopups = new ArrayList<>();
+
 
     GameRenderer(Canvas gameCanvas, Canvas vfxCanvas, Canvas holdBlockCanvas,
                  Canvas nextBlockCanvas1, Canvas nextBlockCanvas2, Canvas nextBlockCanvas3,
@@ -129,6 +213,17 @@ class GameRenderer {
         this.lightOffImage = lightOffImage;
         this.hardMainImage = hardMainImage;
         this.darkMainImage = darkMainImage;
+        this.timeBlockSprite = new Image(getClass().getResourceAsStream("/assets/timeblock.png"));
+        var eyeStream = getClass().getResourceAsStream("/assets/eyes.png");
+        if (eyeStream != null) {
+            Image sheet = new Image(eyeStream);
+            int fw = (int) sheet.getWidth();
+            int fh = (int) (sheet.getHeight() / EYE_FRAMES);
+            javafx.scene.image.PixelReader pr = sheet.getPixelReader();
+            this.eyeFrames = new Image[EYE_FRAMES];
+            for (int i = 0; i < EYE_FRAMES; i++)
+                this.eyeFrames[i] = new javafx.scene.image.WritableImage(pr, 0, i * fh, fw, fh);
+        }
         this.gameContext = gameContext;
         this.boardEngine = boardEngine;
         this.hardMode = hardMode;
@@ -157,6 +252,234 @@ class GameRenderer {
             startupGc.clearRect(0, 0, startupCanvas.getWidth(), startupCanvas.getHeight());
     }
 
+    void setBgEffectCanvas(Canvas canvas) {
+        this.bgEffectCanvas = canvas;
+        this.bgGc = canvas.getGraphicsContext2D();
+    }
+
+    private void spawnEyes() {
+        eyes.clear();
+        eyeSpawnTimer = 0;
+        spawnEyeBatch(8);
+    }
+
+    private void spawnEyeBatch(int count) {
+        double ch = bgEffectCanvas.getHeight();
+        for (int i = 0; i < count; i++) {
+            double size = 50 + rng.nextDouble() * 50;
+            boolean left = rng.nextBoolean();
+            // Try up to 12 positions to avoid overlap
+            double bx = 0, by = 0;
+            for (int attempt = 0; attempt < 12; attempt++) {
+                double cw = bgEffectCanvas.getWidth();
+                bx = left
+                        ? STRIP_W * (0.1 + rng.nextDouble() * 0.8)
+                        : (cw - STRIP_W) + STRIP_W * (0.1 + rng.nextDouble() * 0.8);
+                by = ch * rng.nextDouble();
+                boolean overlaps = false;
+                for (EyeInstance ex : eyes) {
+                    double minDist = (size + ex.size) * 0.6;
+                    double dx = bx - ex.baseX, dy = by - ex.baseY;
+                    if (dx * dx + dy * dy < minDist * minDist) { overlaps = true; break; }
+                }
+                if (!overlaps) break;
+            }
+            EyeInstance e = new EyeInstance();
+            e.baseX = bx; e.baseY = by;
+            e.x = bx; e.y = by;
+            e.size = size;
+            e.rotation = rng.nextDouble() * 360;
+            e.flipX = rng.nextBoolean();
+            e.flipY = rng.nextBoolean();
+            e.frame = 0;
+            e.frameTimer = 0;
+            e.alpha = 1.0;
+            e.fadingOut = false;
+            eyes.add(e);
+        }
+    }
+
+    private void renderEyes(double dt) {
+        if (eyeFrames == null) return;
+        boolean inBlackout = hardMode.blackoutState == HardModeHandler.BlackoutState.BLACKOUT;
+        if (!inBlackout) {
+            if (wasInBlackout) eyes.clear();
+            wasInBlackout = false;
+            return;
+        }
+        if (!wasInBlackout) {
+            spawnEyes();
+            wasInBlackout = true;
+        }
+
+        // Continuous spawning — one at a time
+        eyeSpawnTimer += dt;
+        if (eyeSpawnTimer >= EYE_SPAWN_INTERVAL) {
+            eyeSpawnTimer = 0;
+            spawnEyeBatch(1);
+        }
+
+        eyes.removeIf(e -> e.alpha <= 0);
+
+        for (EyeInstance e : eyes) {
+            // Rumble
+            e.x = e.baseX + (rng.nextDouble() - 0.5) * 6;
+            e.y = e.baseY + (rng.nextDouble() - 0.5) * 6;
+
+            // Advance frame
+            if (!e.fadingOut) {
+                e.frameTimer += dt;
+                if (e.frameTimer >= 1.0 / EYE_FPS) {
+                    e.frameTimer -= 1.0 / EYE_FPS;
+                    e.frame++;
+                    if (e.frame >= EYE_FRAMES) {
+                        e.frame = EYE_FRAMES - 1;
+                        e.fadingOut = true;
+                    }
+                }
+            } else {
+                e.alpha = Math.max(0, e.alpha - dt * 2.0);
+            }
+
+            Image frame = eyeFrames[e.frame];
+            double aspect = frame.getWidth() / frame.getHeight();
+            double drawH = e.size;
+            double drawW = drawH * aspect;
+            bgGc.save();
+            bgGc.setGlobalAlpha(e.alpha);
+            bgGc.translate(e.x, e.y);
+            bgGc.rotate(e.rotation);
+            bgGc.scale(e.flipX ? -1 : 1, e.flipY ? -1 : 1);
+            bgGc.drawImage(frame, -drawW / 2, -drawH / 2, drawW, drawH);
+            bgGc.restore();
+        }
+    }
+
+    private void renderBgEffects() {
+        if (bgGc == null) return;
+        long now = System.nanoTime();
+        double dt = lastBgRenderNs == 0 ? 0 : (now - lastBgRenderNs) / 1_000_000_000.0;
+        lastBgRenderNs = now;
+        bgGc.clearRect(0, 0, bgEffectCanvas.getWidth(), bgEffectCanvas.getHeight());
+        renderBulbGlow();
+        renderBulbMotes(dt);
+        renderEyes(dt);
+        renderSideParticles(dt);
+        if (gameOverFlashAlpha > 0) {
+            bgGc.setFill(Color.color(1, 1, 1, gameOverFlashAlpha));
+            bgGc.fillRect(CENTER_LEFT_X, 0, centerRightX() - CENTER_LEFT_X, bgEffectCanvas.getHeight());
+        }
+    }
+
+    void triggerPreFreezeCinematic(java.util.List<int[]> cells, Runnable onComplete) {
+        preFreezePositions = cells;
+        preFreezeElapsed   = 0;
+        preFreezeActive    = true;
+        preFreezeCallback  = onComplete;
+    }
+
+    void triggerTetrisFlash(int[] rows) {
+        tetrisFlashRows = rows;
+        tetrisFlashAlpha = 1.0;
+    }
+
+    void triggerPostClearFlash(int[] rows) {
+        postClearRows  = rows;
+        postClearAlpha = 1.0;
+        tetrisFlashAlpha = 1.0;
+    }
+
+    void triggerSideParticles(int intensity) {
+        if (bgGc == null) return;
+        int count = switch (intensity) {
+            case 1 -> 10;
+            case 2 -> 18;
+            case 3 -> 26;
+            default -> 45;
+        };
+        double canvasH = bgEffectCanvas.getHeight();
+        for (int side = 0; side < 2; side++) {
+            double originX = side == 0 ? CENTER_LEFT_X : centerRightX();
+            double dirX = side == 0 ? -1 : 1;
+            for (int i = 0; i < count; i++) {
+                SideParticle p = new SideParticle();
+                p.x = originX;
+                p.y = 80 + rng.nextDouble() * (canvasH - 280);
+                double speed = 220 + rng.nextDouble() * 320;
+                double angle = rng.nextDouble() * 50 - 10; // -10° to +40°, mostly horizontal
+                double rad = Math.toRadians(angle);
+                p.vx = dirX * speed * Math.cos(rad);
+                p.vy = speed * Math.sin(rad);
+                p.size = 2 + rng.nextDouble() * 5;
+                p.life = 0;
+                p.maxLife = 0.6 + rng.nextDouble() * 0.6;
+                p.alpha = 1.0;
+                p.color = SPARK_COLORS[rng.nextInt(SPARK_COLORS.length)];
+                sideParticles.add(p);
+            }
+        }
+    }
+
+    private void renderBulbMotes(double dt) {
+        if (lightBulbView == null || !lightBulbView.isVisible()) return;
+        if (hardMode != null && hardMode.blackoutState == HardModeHandler.BlackoutState.BLACKOUT) {
+            bulbMotes.clear();
+            return;
+        }
+        javafx.geometry.Bounds bScene = lightBulbView.localToScene(lightBulbView.getBoundsInLocal());
+        javafx.geometry.Bounds bCanvas = bgEffectCanvas.sceneToLocal(bScene);
+        double bulbCx = bCanvas.getMinX() + bCanvas.getWidth() * 0.5;
+        double bulbBottom = bCanvas.getMinY() + bCanvas.getHeight() * 0.78;
+
+        bulbMoteTimer -= dt;
+        if (bulbMoteTimer <= 0) {
+            bulbMoteTimer = 0.15 + rng.nextDouble() * 0.20;
+            BulbMote m = new BulbMote();
+            m.baseX = bulbCx + (rng.nextDouble() - 0.5) * 30;
+            m.y = bulbBottom + rng.nextDouble() * 10;
+            m.vy = 18 + rng.nextDouble() * 28;
+            m.sineAmp = 8 + rng.nextDouble() * 22;
+            m.sineFreq = 1.2 + rng.nextDouble() * 2.0;
+            m.sinePhase = rng.nextDouble() * Math.PI * 2;
+            m.maxLife = 2.0 + rng.nextDouble() * 2.5;
+            m.life = 0;
+            m.size = 1.5 + rng.nextDouble() * 1.5;
+            m.white = rng.nextDouble() < 0.35;
+            bulbMotes.add(m);
+        }
+        bulbMotes.removeIf(m -> m.life >= m.maxLife);
+        for (BulbMote m : bulbMotes) {
+            m.life += dt;
+            m.y += m.vy * dt;
+            double t = m.life / m.maxLife;
+            double alpha = t < 0.12 ? t / 0.12 : (t > 0.65 ? (1.0 - t) / 0.35 : 1.0);
+            bgGc.setGlobalAlpha(alpha * 0.85);
+            bgGc.setFill(m.white ? Color.web("#FFFDE0") : Color.web("#FFD966"));
+            bgGc.fillRect(m.x(), m.y, m.size, m.size);
+        }
+        bgGc.setGlobalAlpha(1.0);
+    }
+
+    private void renderSideParticles(double dt) {
+        if (hardMode != null && hardMode.blackoutState == HardModeHandler.BlackoutState.BLACKOUT) {
+            sideParticles.clear();
+            return;
+        }
+        if (sideParticles.isEmpty()) return;
+        sideParticles.removeIf(p -> p.alpha <= 0);
+        for (SideParticle p : sideParticles) {
+            p.vy += PARTICLE_GRAVITY * dt;
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life += dt;
+            p.alpha = Math.max(0, 1.0 - p.life / p.maxLife);
+            bgGc.setGlobalAlpha(p.alpha);
+            bgGc.setFill(p.color);
+            bgGc.fillOval(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+        }
+        bgGc.setGlobalAlpha(1.0);
+    }
+
     // --- Triggered events from game logic ---
 
     void onRotate() { rotationPulse = 1.0; }
@@ -165,6 +488,17 @@ class GameRenderer {
         shakeIntensity = 4.0;
         shakeInitDuration = 0.18;
         shakeDuration = 0.18;
+    }
+
+    void onHardDropTrail(Piece piece, int drop) {
+        if (drop <= 0) return;
+        HardDropTrail t = new HardDropTrail();
+        t.pieceX       = piece.getX();
+        t.pieceY       = piece.getY();
+        t.dropDistance = drop;
+        t.shape        = piece.getType().getShape(piece.getRotation());
+        t.alpha        = 1.0;
+        hardDropTrails.add(t);
     }
 
     void onLineClear(int cleared, List<Integer> fullRows, Color pieceColor, int cs) {
@@ -266,7 +600,10 @@ class GameRenderer {
 
     // --- Per-frame update ---
 
-    void update(double dt, boolean gamePaused, boolean isGameOver, Piece currentPiece) {
+    void update(double dt, boolean gamePaused, boolean isGameOver, Piece currentPiece, long freezeUntil, boolean isFreezeActive) {
+        if (gamePaused && !isGameOver) pauseGlitchElapsed += dt;
+        else pauseGlitchElapsed = 0;
+
         if (glitchTearEffect != null) glitchTearEffect.update(dt);
         if (gameOverFlashAlpha > 0) gameOverFlashAlpha = Math.max(0, gameOverFlashAlpha - dt * 4.0);
         if (startupGlitchElapsed < STARTUP_GLITCH_DUR) startupGlitchElapsed += dt;
@@ -277,12 +614,28 @@ class GameRenderer {
         }
 
         if (!gamePaused && !isGameOver) {
+            if (preFreezeActive) {
+                preFreezeElapsed += dt;
+                if (preFreezeElapsed >= PREFREEZE_DUR) {
+                    preFreezeActive = false;
+                    freezeFlashAlpha = 1.0;
+                    if (preFreezeCallback != null) { preFreezeCallback.run(); preFreezeCallback = null; }
+                }
+            }
+            if (freezeFlashAlpha > 0) freezeFlashAlpha = Math.max(0, freezeFlashAlpha - dt * 5.5);
+            if (isFreezeActive) freezeScale = Math.max(0.0, freezeScale - dt * FREEZE_LERP_SPEED);
+            else                freezeScale = Math.min(1.0, freezeScale + dt * FREEZE_LERP_SPEED);
             particleSystem.update(dt);
             scorePopups.removeIf(p -> p.life <= 0);
             for (ScorePopup p : scorePopups) {
                 p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt / 0.7;
             }
-            updateScreenShake(dt);
+            if (freezeUntil > 0) {
+                gameCanvas.setTranslateX(0); gameCanvas.setTranslateY(0);
+                vfxCanvas.setTranslateX(0); vfxCanvas.setTranslateY(0);
+            } else {
+                updateScreenShake(dt);
+            }
 
             // --- HIỆU ỨNG HẠT CHO KHỐI TÀNG HÌNH (TRANSPARENT) ---
             if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
@@ -318,6 +671,22 @@ class GameRenderer {
 
             if (rotationPulse > 0) rotationPulse = Math.max(0, rotationPulse - dt * 8.0);
             if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
+            if (tetrisFlashAlpha > 0) tetrisFlashAlpha = Math.max(0, tetrisFlashAlpha - dt * 5.0);
+            if (postClearAlpha  > 0) postClearAlpha   = Math.max(0, postClearAlpha  - dt * 5.0);
+            hardDropTrails.removeIf(t -> t.alpha <= 0);
+            for (HardDropTrail t : hardDropTrails) t.alpha = Math.max(0, t.alpha - dt * 2.5);
+            if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK) {
+                if (rainDrops.isEmpty()) initRain();
+                double rcw = bgEffectCanvas != null ? bgEffectCanvas.getWidth()  : 1440;
+                double rch = bgEffectCanvas != null ? bgEffectCanvas.getHeight() : 1024;
+                for (RainDrop r : rainDrops) {
+                    r.x += r.vx * dt * freezeScale * rainTimeScale;
+                    r.y += r.vy * dt * freezeScale * rainTimeScale;
+                    if (r.y > rch + 60) { r.y = -60; r.x = rng.nextDouble() * rcw; }
+                    if (r.x > rcw + 40)   r.x -= rcw + 40;
+                    if (r.x < -40)        r.x += rcw + 40;
+                }
+            }
             if (levelUpEffect != null) { levelUpEffect.update(dt); if (levelUpEffect.isDone()) levelUpEffect = null; }
             if (borderPulseEffect != null) {
                 borderPulseEffect.update(dt);
@@ -356,7 +725,7 @@ class GameRenderer {
 
     void render(Piece currentPiece, java.util.Deque<Piece> nextQueue, TetrominoType holdType,
                 List<Piece> suspendedPieces, boolean gamePaused, boolean isGameOver,
-                long freezeUntil, int[] frozenRowFlash) {
+                long freezeUntil, int[] frozenRowFlash, boolean isFreezeActive) {
 
         boolean hardModeActive = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
 
@@ -387,6 +756,7 @@ class GameRenderer {
         }
 
         drawGameBoard(currentPiece, suspendedPieces, gamePaused, isGameOver, freezeUntil, frozenRowFlash);
+        renderHardDropTrails();
 
         if (glitchExplosionEffect != null) glitchExplosionEffect.render(gameGc);
 
@@ -413,10 +783,55 @@ class GameRenderer {
         drawNextBlocks(nextQueue);
         updateLightBulb();
 
-        if (hardModeActive) hardMode.renderFlavourText(rng);
+        if (hardModeActive) {
+            hardMode.renderFlavourText(rng);
+            renderBgEffects();
+        } else if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && bgGc != null) {
+            renderRainBg();
+        }
 
         renderStartupGlitch();
         renderCountdown();
+
+        if (startupGc != null && startupGlitchElapsed >= STARTUP_GLITCH_DUR) {
+            double sw = startupCanvas.getWidth(), sh = startupCanvas.getHeight();
+            startupGc.clearRect(0, 0, sw, sh);
+            if (preFreezeActive) {
+                double darkT = Math.min(1.0, preFreezeElapsed / 0.25);
+                startupGc.setFill(Color.color(0, 0, 0, darkT * 0.82));
+                startupGc.fillRect(0, 0, sw, sh);
+                drawPreFreezeCinematic();
+            } else if (freezeScale < 1.0) {
+                startupGc.setFill(Color.color(0.0, 1.0, 0.47, (1.0 - freezeScale) * 0.12));
+                startupGc.fillRect(0, 0, sw, sh);
+                if (!gamePaused && !isGameOver) {
+                    int cs = Constants.BLOCK_SIZE;
+                    int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+                    for (int row = 0; row < 4; row++)
+                        for (int col = 0; col < 4; col++)
+                            if (shape[row][col] == 1) {
+                                javafx.geometry.Point2D sp = startupCanvas.sceneToLocal(
+                                    gameCanvas.localToScene(
+                                        (currentPiece.getX() + col) * cs,
+                                        (currentPiece.getY() + row) * cs));
+                                startupGc.clearRect(sp.getX(), sp.getY(), cs, cs);
+                            }
+                }
+            }
+            if (freezeFlashAlpha > 0) {
+                startupGc.setFill(Color.color(0.0, 1.0, 0.40, freezeFlashAlpha * 0.85));
+                startupGc.fillRect(0, 0, sw, sh);
+            }
+            if (gamePaused && !isGameOver) {
+                drawPauseGlitch();
+            } else if (frozenRowFlash != null && freezeUntil > 0) {
+                startupGc.setFill(Color.color(1, 1, 1, 0.10));
+                startupGc.fillRect(0, 0, sw, sh);
+            } else if (tetrisFlashAlpha > 0) {
+                startupGc.setFill(Color.color(1, 1, 1, tetrisFlashAlpha));
+                startupGc.fillRect(0, 0, sw, sh);
+            }
+        }
     }
 
     // --- Board rendering ---
@@ -439,12 +854,6 @@ class GameRenderer {
         for (int y = 0; y <= Constants.BOARD_HEIGHT; y++)
             gameGc.strokeLine(0, y * cs, w, y * cs);
 
-        if (!isHardMode) {
-            gameGc.setStroke(Color.web("#00ff00"));
-            gameGc.setLineWidth(2);
-            gameGc.strokeRect(0, 0, w, h);
-        }
-
         boolean isDark = false;
         HardModeHandler.BlackoutState bState = hardMode.blackoutState;
         if (bState == HardModeHandler.BlackoutState.FLICKER)
@@ -461,7 +870,6 @@ class GameRenderer {
                         TetrominoType t = boardEngine.idToType(board[y][x]);
                         if (t == null) continue;
 
-                        // Đổ Sprite đặc biệt cho khối tĩnh từ HEAD
                         if (t == TetrominoType.BOMB) gameGc.drawImage(bombSprite, x * cs, y * cs, cs, cs);
                         else if (t == TetrominoType.TRANSPARENT) gameGc.drawImage(ghostSprite, x * cs, y * cs, cs, cs);
                         else drawCell(x, y, t.getColor(), 1.0);
@@ -470,9 +878,32 @@ class GameRenderer {
             }
         }
 
+        if (freezeScale < 1.0) {
+            double tintA = (1.0 - freezeScale) * 0.90;
+            gameGc.setGlobalAlpha(tintA);
+            gameGc.setFill(Color.color(0.0, 1.0, 0.47));
+            for (int y = 0; y < Constants.BOARD_HEIGHT; y++)
+                for (int x = 0; x < Constants.BOARD_WIDTH; x++)
+                    if (board[y][x] != 0)
+                        gameGc.fillRect(x * cs, y * cs, cs, cs);
+            gameGc.setGlobalAlpha(1.0);
+        }
+
         if (frozenRowFlash != null && freezeUntil > 0) {
             gameGc.setFill(Color.WHITE);
             for (int row : frozenRowFlash) gameGc.fillRect(0, row * cs, w, cs);
+        }
+
+        if (postClearRows != null && postClearAlpha > 0) {
+            Color modeColor = switch (gameContext.getGameMode()) {
+                case TIME_ATTACK -> Color.web("#00CCCC");
+                case HARD_MODE   -> Color.web("#FF6600");
+                default          -> Color.web("#6655EE");
+            };
+            gameGc.setGlobalAlpha(postClearAlpha);
+            gameGc.setFill(modeColor);
+            for (int row : postClearRows) gameGc.fillRect(0, row * cs, w, cs);
+            gameGc.setGlobalAlpha(1.0);
         }
 
         if (gameOverFlashAlpha > 0) {
@@ -482,19 +913,12 @@ class GameRenderer {
 
         if (isGameOver) return;
 
+        if (currentPiece.getType() == TetrominoType.BOMB && freezeUntil == 0 && bState != HardModeHandler.BlackoutState.BLACKOUT) {
+            drawBombImpactZone(currentPiece, suspendedPieces, cs);
+        }
+
         renderSuspendedPieces(suspendedPieces, cs);
         drawCurrentPiece(currentPiece, bState, cs, suspendedPieces, freezeUntil);
-
-        if (currentPiece instanceof RandomBlock randomBlock && randomBlock.isIndicatorOn())
-            drawRandomBlockIndicator(randomBlock, cs);
-
-        if (gamePaused) {
-            gameGc.setFill(Color.color(0, 0, 0, 0.5));
-            gameGc.fillRect(0, 0, w, h);
-            gameGc.setFill(Color.web("#00ff00"));
-            gameGc.setFont(Font.font("Courier New", 28));
-            gameGc.fillText("PAUSED", w / 2 - 55, h / 2);
-        }
     }
 
     private void drawCurrentPiece(Piece currentPiece, HardModeHandler.BlackoutState bState, int cs,
@@ -517,8 +941,8 @@ class GameRenderer {
             }
         }
 
-        // Ghost piece (Bóng đổ vị trí rơi) - rendered after blackout overlay so it's always visible
-        if (freezeUntil == 0) {
+        // Ghost piece (drop preview) — hidden during blackout
+        if (freezeUntil == 0 && !inBlackout) {
             int drop = boardEngine.getDropDistance(currentPiece, suspendedPieces);
             int[][] ghostShape = currentPiece.getType().getShape(currentPiece.getRotation());
             for (int row = 0; row < 4; row++)
@@ -574,16 +998,14 @@ class GameRenderer {
         // Chromatic aberration (Sắc sai RGB) during blackout
         if (inBlackout) {
             double caOffset = 3.0 + charge * 7.0;
-            Color base = currentPiece.getType().getColor();
             gameGc.setGlobalAlpha(0.50);
-            gameGc.setFill(Color.color(Math.min(1.0, base.getRed() + 0.4), 0, 0));
+            gameGc.setFill(Color.web("#AC2547"));
             for (int row = 0; row < 4; row++)
                 for (int col = 0; col < 4; col++)
                     if (shape[row][col] == 1)
                         gameGc.fillRect((currentPiece.getX() + col) * cs - caOffset,
                                 (currentPiece.getY() + row) * cs, cs, cs);
-            gameGc.setFill(Color.color(0, Math.min(1.0, base.getGreen() * 0.2 + 0.6),
-                    Math.min(1.0, base.getBlue() + 0.4)));
+            gameGc.setFill(Color.web("#EEA9BA"));
             for (int row = 0; row < 4; row++)
                 for (int col = 0; col < 4; col++)
                     if (shape[row][col] == 1)
@@ -592,7 +1014,6 @@ class GameRenderer {
             gameGc.setGlobalAlpha(1.0);
         }
 
-        // Vẽ khối đang điều khiển hiện tại kèm hiệu ứng nâng cao từ HEAD
         long timeFactor = System.currentTimeMillis();
         double timeSec = timeFactor / 1000.0;
 
@@ -653,7 +1074,7 @@ class GameRenderer {
         gameGc.restore();
 
         // --- KHÔI PHỤC HIỆU ỨNG GLITCH DỰ ĐOÁN HÌNH DẠNG (MORPH HINT) CỦA RANDOMBLOCK ---
-        if (isRandomBlock) {
+        if (isRandomBlock && !inBlackout && freezeScale >= 1.0) {
             RandomBlock rb = (RandomBlock) currentPiece;
             TetrominoType preview = rb.getPreviewType();
             double progress = rb.getMorphProgress();
@@ -684,8 +1105,8 @@ class GameRenderer {
     }
 
     void drawHoldBlock(TetrominoType holdType) {
-        if (holdType != null) drawPreview(holdGc, holdBlockCanvas, new Piece(holdType, 0, 0));
-        else drawPreview(holdGc, holdBlockCanvas, null);
+        if (holdType != null) drawPreview(holdGc, holdBlockCanvas, new Piece(holdType, 0, 0), true);
+        else drawPreview(holdGc, holdBlockCanvas, null, true);
     }
 
     void drawNextBlocks(java.util.Deque<Piece> nextQueue) {
@@ -698,15 +1119,26 @@ class GameRenderer {
     }
 
     private void drawPreview(GraphicsContext gc, Canvas canvas, Piece piece) {
+        drawPreview(gc, canvas, piece, false);
+    }
+
+    private void drawPreview(GraphicsContext gc, Canvas canvas, Piece piece, boolean showActual) {
         double w = canvas.getWidth(), h = canvas.getHeight();
         HardModeHandler.BlackoutState bState = hardMode.blackoutState;
-        gc.setFill(Color.web(
-                bState == HardModeHandler.BlackoutState.BLACKOUT ? "#000000"
-                        : gameContext.getGameMode() == GameContext.GameMode.HARD_MODE ? "#280C00" : "#0f0d1a"));
-        gc.fillRect(0, 0, w, h);
-        if (gameContext.getGameMode() == GameContext.GameMode.HARD_MODE) {
+
+        if (gameContext.getGameMode() != GameContext.GameMode.HARD_MODE) {
+            gc.clearRect(0, 0, w, h);
+        } else if (!showActual) {
+            gc.setFill(Color.web(
+                    bState == HardModeHandler.BlackoutState.BLACKOUT ? "#000000" : "#280C00"));
+            gc.fillRect(0, 0, w, h);
             drawQuestionMark(gc, canvas); return;
+        } else {
+            gc.setFill(Color.web(
+                    bState == HardModeHandler.BlackoutState.BLACKOUT ? "#000000" : "#280C00"));
+            gc.fillRect(0, 0, w, h);
         }
+
         if (piece == null) return;
         boolean isRandomPreview = piece instanceof RandomBlock;
         TetrominoType type = piece.getType();
@@ -732,17 +1164,6 @@ class GameRenderer {
                     if (type == TetrominoType.BOMB) gc.drawImage(bombSprite, px, py, previewCellSize, previewCellSize);
                     else drawCellAtPixel(gc, px, py, previewCellSize, type.getColor(), 1.0);
                 }
-        if (isRandomPreview) {
-            gc.setStroke(Color.web("#00e5ff"));
-            gc.setLineWidth(2.0);
-            for (int row = minRow; row <= maxRow; row++)
-                for (int col = minCol; col <= maxCol; col++)
-                    if (shape[row][col] == 1) {
-                        double px = offsetX + (col - minCol) * previewCellSize;
-                        double py = offsetY + (row - minRow) * previewCellSize;
-                        gc.strokeRect(px + 1, py + 1, previewCellSize - 2, previewCellSize - 2);
-                    }
-        }
     }
 
     private void renderSuspendedPieces(List<Piece> suspendedPieces, int cs) {
@@ -857,7 +1278,199 @@ class GameRenderer {
         startupGc.fillText(countdownText, tx, ty);
     }
 
+    private void drawPreFreezeCinematic() {
+        if (startupGc == null || preFreezePositions.isEmpty()) return;
+        int cs = Constants.BLOCK_SIZE;
+        double t = Math.min(1.0, preFreezeElapsed / PREFREEZE_DUR);
+        double appear = Math.min(1.0, preFreezeElapsed / 0.15);
+
+        for (int[] cell : preFreezePositions) {
+            javafx.geometry.Point2D sp = startupCanvas.sceneToLocal(
+                    gameCanvas.localToScene(cell[0] * cs, cell[1] * cs));
+            double px = sp.getX(), py = sp.getY();
+
+            // Soft outer glow — stacked large filled rects, appears once and holds
+            for (int ring = 7; ring >= 1; ring--) {
+                double expand = ring * cs * 1.1;
+                double a = (0.55 / ring) * appear;
+                startupGc.setGlobalAlpha(Math.min(1, a));
+                startupGc.setFill(Color.color(0.0, 1.0, 0.50));
+                startupGc.fillRect(px - expand / 2, py - expand / 2, cs + expand, cs + expand);
+            }
+
+            // Core cell — solid neon green
+            startupGc.setGlobalAlpha(appear);
+            startupGc.setFill(Color.color(0.0, 1.0, 0.55));
+            startupGc.fillRect(px, py, cs, cs);
+
+            // Hot white center
+            startupGc.setGlobalAlpha(appear * 0.90);
+            startupGc.setFill(Color.WHITE);
+            double inset = cs * 0.22;
+            startupGc.fillRect(px + inset, py + inset, cs - inset * 2, cs - inset * 2);
+
+            // Expanding ring borders — single outward burst, fade as they grow
+            for (int ring = 1; ring <= 4; ring++) {
+                double expand = t * cs * ring * 3.0;
+                double a = Math.max(0, (1.0 - t) * (0.90 / ring));
+                startupGc.setGlobalAlpha(a);
+                startupGc.setStroke(ring % 2 == 0 ? Color.color(0.0, 1.0, 0.80) : Color.color(0.4, 1.0, 0.6));
+                startupGc.setLineWidth(2.5);
+                startupGc.strokeRect(px - expand / 2, py - expand / 2, cs + expand, cs + expand);
+            }
+        }
+        startupGc.setGlobalAlpha(1.0);
+    }
+
+    private void drawPauseGlitch() {
+        if (startupGc == null) return;
+        double w = startupCanvas.getWidth();
+        double h = startupCanvas.getHeight();
+        double burst = Math.max(0.0, 1.0 - pauseGlitchElapsed / 0.35);
+        double t = System.nanoTime() / 1_000_000_000.0;
+
+        // Dark overlay — heavier on entry
+        startupGc.setFill(Color.color(0, 0, 0, 0.42 + burst * 0.25));
+        startupGc.fillRect(0, 0, w, h);
+
+        // Pulse: periodic glitch spikes after the burst settles
+        double pulse = Math.max(0, Math.sin(t * 2.1) * Math.sin(t * 5.9));
+        double noise = burst + pulse * 0.6;
+
+        // Chromatic aberration horizontal bands
+        int numBands = (int)(3 + burst * 6 + noise * 5);
+        for (int i = 0; i < numBands; i++) {
+            double by   = rng.nextDouble() * h;
+            double bh   = 1 + rng.nextDouble() * h * 0.04;
+            double xOff = (rng.nextDouble() - 0.5) * w * (0.18 + burst * 0.28);
+            double a    = (0.12 + rng.nextDouble() * 0.22) * Math.max(0.2, noise);
+            startupGc.setFill(Color.color(1.0, 0.08, 0.08, Math.min(1, a)));
+            startupGc.fillRect(xOff - 7, by, w + 14, bh);
+            startupGc.setFill(Color.color(0.08, 1.0, 1.0, Math.min(1, a * 0.9)));
+            startupGc.fillRect(xOff + 7, by, w + 14, bh);
+            startupGc.setFill(Color.color(1.0, 1.0, 1.0, Math.min(1, a * 0.55)));
+            startupGc.fillRect(xOff, by, w, bh);
+        }
+
+        // Noise pixels
+        int pixCount = (int)(12 + 40 * Math.max(noise, 0.15));
+        for (int i = 0; i < pixCount; i++) {
+            double nx = Math.floor(rng.nextDouble() * w / 2) * 2;
+            double ny = Math.floor(rng.nextDouble() * h / 2) * 2;
+            startupGc.setFill(Color.color(1, 1, 1, 0.2 + rng.nextDouble() * 0.6));
+            startupGc.fillRect(nx, ny, 2, 2);
+        }
+
+        // Occasional full-screen flicker
+        double flicker = Math.sin(t * 17.1) * Math.sin(t * 43.3);
+        double threshold = 0.72 - burst * 0.25;
+        if (flicker > threshold) {
+            double fa = (flicker - threshold) / (1.0 - threshold) * (0.22 + burst * 0.35);
+            startupGc.setFill(Color.color(1, 1, 1, Math.min(1, fa)));
+            startupGc.fillRect(0, 0, w, h);
+        }
+
+        // Entry burst flash
+        if (burst > 0) {
+            startupGc.setFill(Color.color(1, 1, 1, burst * 0.55));
+            startupGc.fillRect(0, 0, w, h);
+        }
+    }
+
+    // --- Hard-drop trail ---
+
+    private void renderHardDropTrails() {
+        if (hardDropTrails.isEmpty()) return;
+        int cs = Constants.BLOCK_SIZE;
+        for (HardDropTrail trail : hardDropTrails) {
+            for (int col = 0; col < 4; col++) {
+                int minRow = -1;
+                for (int row = 0; row < 4; row++)
+                    if (trail.shape[row][col] == 1) { minRow = row; break; }
+                if (minRow < 0) continue;
+
+                double baseX  = (trail.pieceX + col) * cs;
+                double topPx  = (trail.pieceY + minRow) * cs;
+                int    steps  = trail.dropDistance;
+                if (steps <= 0) continue;
+
+                double trailH = steps * cs;
+                javafx.scene.paint.LinearGradient grad = new javafx.scene.paint.LinearGradient(
+                    0, topPx, 0, topPx + trailH, false,
+                    javafx.scene.paint.CycleMethod.NO_CYCLE,
+                    new javafx.scene.paint.Stop(0.0,  Color.color(0.0, 1.0,  0.40, trail.alpha * 0.85)),
+                    new javafx.scene.paint.Stop(0.5,  Color.color(0.0, 0.78, 0.78, trail.alpha * 0.70)),
+                    new javafx.scene.paint.Stop(1.0,  Color.color(0.0, 0.18, 0.55, trail.alpha * 0.50))
+                );
+                gameGc.setFill(grad);
+                gameGc.fillRect(baseX, topPx, cs, trailH);
+            }
+        }
+        gameGc.setGlobalAlpha(1.0);
+    }
+
+    // --- Rain (Time Attack) ---
+
+    private void initRain() {
+        double cw = bgEffectCanvas != null ? bgEffectCanvas.getWidth()  : 1440;
+        double ch = bgEffectCanvas != null ? bgEffectCanvas.getHeight() : 1024;
+        for (int i = 0; i < RAIN_COUNT; i++) {
+            RainDrop r = new RainDrop();
+            r.x = rng.nextDouble() * cw;
+            r.y = rng.nextDouble() * ch;
+            double speed = 380 + rng.nextDouble() * 220;
+            double angle = Math.PI / 2.0 + 0.12 + (rng.nextDouble() - 0.5) * 0.08;
+            r.vx = Math.cos(angle) * speed;
+            r.vy = Math.sin(angle) * speed;
+            rainDrops.add(r);
+        }
+    }
+
+    private void renderRainBg() {
+        if (bgGc == null || rainDrops.isEmpty()) return;
+        double cw = bgEffectCanvas.getWidth(), ch = bgEffectCanvas.getHeight();
+        bgGc.clearRect(0, 0, cw, ch);
+        int trail = Math.max(1, (int)(RAIN_TRAIL * freezeScale));
+        for (RainDrop r : rainDrops) {
+            for (int i = 0; i < trail; i++) {
+                double tx = r.x - r.vx * (i * RAIN_DT);
+                double ty = r.y - r.vy * (i * RAIN_DT);
+                double alpha = (1.0 - (double) i / trail) * 0.60;
+                bgGc.setFill(Color.color(0.53, 0.80, 0.93, alpha));
+                bgGc.fillRect((int) tx, (int) ty, 1, 1);
+            }
+        }
+    }
+
+    void setRainTimeScale(double scale) { this.rainTimeScale = scale; }
+
     // --- Cell drawing helpers ---
+
+    private void drawBombImpactZone(Piece bomb, List<Piece> suspended, int cs) {
+        int drop = boardEngine.getDropDistance(bomb, suspended);
+        int cx   = bomb.getX();
+        int cy   = bomb.getY() + drop;
+
+        double pulse = 0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 1000.0 * 7.0);
+
+        // Tint each cell in the 3x3 zone
+        gameGc.setFill(Color.web("#ff4400", 0.08 + pulse * 0.12));
+        for (int dy = -1; dy <= 1; dy++)
+            for (int dx = -1; dx <= 1; dx++) {
+                int bx = cx + dx, by = cy + dy;
+                if (bx >= 0 && bx < Constants.BOARD_WIDTH && by >= 0 && by < Constants.BOARD_HEIGHT)
+                    gameGc.fillRect(bx * cs, by * cs, cs, cs);
+            }
+
+        // Pulsing border around the full 3x3 area
+        int x1 = Math.max(0,                     cx - 1) * cs;
+        int y1 = Math.max(0,                     cy - 1) * cs;
+        int x2 = Math.min(Constants.BOARD_WIDTH,  cx + 2) * cs;
+        int y2 = Math.min(Constants.BOARD_HEIGHT, cy + 2) * cs;
+        gameGc.setStroke(Color.web("#ff6600", 0.45 + pulse * 0.45));
+        gameGc.setLineWidth(2);
+        gameGc.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    }
 
     private void drawCell(int x, int y, Color color, double opacity) {
         int cs = Constants.BLOCK_SIZE;
@@ -880,26 +1493,9 @@ class GameRenderer {
     }
 
     private void drawTimeBlockCell(int x, int y, int cs) {
-        drawCell(x, y, Color.web("#33ccff"), 1.0);
-        gameGc.setStroke(Color.web("#e6ffff"));
-        gameGc.setLineWidth(1.0);
-        double px = x * cs + 4, py = y * cs + 4;
-        gameGc.strokeOval(px, py, cs - 8, cs - 8);
-        gameGc.strokeLine(x * cs + cs / 2.0, y * cs + 6, x * cs + cs / 2.0, y * cs + cs / 2.0);
-        gameGc.strokeLine(x * cs + cs / 2.0, y * cs + cs / 2.0, x * cs + cs - 8, y * cs + cs / 2.0);
+        gameGc.drawImage(timeBlockSprite, x * cs, y * cs, cs, cs);
     }
 
-    private void drawRandomBlockIndicator(Piece piece, int cs) {
-        int[][] shape = piece.getType().getShape(piece.getRotation());
-        gameGc.setStroke(Color.web("#00e5ff"));
-        gameGc.setLineWidth(2.2);
-        for (int row = 0; row < 4; row++)
-            for (int col = 0; col < 4; col++)
-                if (shape[row][col] == 1) {
-                    double px = (piece.getX() + col) * cs, py = (piece.getY() + row) * cs;
-                    gameGc.strokeRect(px + 1, py + 1, cs - 2, cs - 2);
-                }
-    }
 
     private void drawQuestionMark(GraphicsContext gc, Canvas canvas) {
         double w = canvas.getWidth(), h = canvas.getHeight();
@@ -907,6 +1503,44 @@ class GameRenderer {
         gc.setFont(Font.font("VT323", FontWeight.BOLD, 40));
         gc.fillText("?", w / 2 - 8, h / 2 + 12);
         gc.setEffect(new DropShadow(10, Color.web("#00ff00")));
+    }
+
+    private static final DropShadow BULB_GLOW = createBulbGlow();
+    private static DropShadow createBulbGlow() {
+        // capped at ~127px by JavaFX internally — just for the close-up halo on the image
+        return new DropShadow(javafx.scene.effect.BlurType.GAUSSIAN, Color.web("#FFE8A0"), 100, 0.0, 0, 20);
+    }
+
+    private static final double BULB_GLOW_RADIUS = 700;
+    private double cachedBulbGlowX = -1, cachedBulbGlowY = -1;
+    private javafx.scene.paint.RadialGradient cachedBulbAmbientGlow = null;
+
+    private void renderBulbGlow() {
+        if (hardMode == null || lightBulbView == null || !lightBulbView.isVisible()) return;
+        HardModeHandler.BlackoutState bState = hardMode.blackoutState;
+        boolean off = switch (bState) {
+            case BLACKOUT -> true;
+            case FLICKER, POST_FLICKER -> ((int) hardMode.blackoutFlickerTimer) % 2 == 0;
+            default -> false;
+        };
+        if (off) return;
+        javafx.geometry.Bounds bScene = lightBulbView.localToScene(lightBulbView.getBoundsInLocal());
+        javafx.geometry.Bounds bCanvas = bgEffectCanvas.sceneToLocal(bScene);
+        double gx = bCanvas.getMinX() + bCanvas.getWidth() * 0.5;
+        double gy = bCanvas.getMinY() + bCanvas.getHeight() * 0.62;
+        if (cachedBulbAmbientGlow == null || Math.abs(gx - cachedBulbGlowX) > 1 || Math.abs(gy - cachedBulbGlowY) > 1) {
+            cachedBulbGlowX = gx;
+            cachedBulbGlowY = gy;
+            cachedBulbAmbientGlow = new javafx.scene.paint.RadialGradient(
+                0, 0, gx, gy, BULB_GLOW_RADIUS, false,
+                javafx.scene.paint.CycleMethod.NO_CYCLE,
+                new javafx.scene.paint.Stop(0.0, Color.web("#FFE8A0", 0.50)),
+                new javafx.scene.paint.Stop(0.3, Color.web("#FFD060", 0.18)),
+                new javafx.scene.paint.Stop(1.0, Color.TRANSPARENT)
+            );
+        }
+        bgGc.setFill(cachedBulbAmbientGlow);
+        bgGc.fillRect(CENTER_LEFT_X, 0, centerRightX() - CENTER_LEFT_X, bgEffectCanvas.getHeight());
     }
 
     private void updateLightBulb() {
@@ -918,5 +1552,6 @@ class GameRenderer {
             default -> false;
         };
         lightBulbView.setImage(off ? lightOffImage : lightOnImage);
+        lightBulbView.setEffect(off ? null : BULB_GLOW);
     }
 }

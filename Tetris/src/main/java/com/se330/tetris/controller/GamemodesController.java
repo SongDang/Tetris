@@ -13,6 +13,11 @@ import com.se330.tetris.service.SceneManager;
 
 public class GamemodesController {
 
+    private static final double CARD_FIT_WIDTH = 349.0;
+    private static final double CARD_FIT_HEIGHT = 664.0;
+    private static final double CARD_SOURCE_WIDTH = 403.0;
+    private static final double CARD_WIDTH_SCALE = CARD_FIT_WIDTH / CARD_SOURCE_WIDTH;
+
     @FXML
     private AnchorPane gamemodesPane;
 
@@ -62,27 +67,53 @@ public class GamemodesController {
         Image imgHover = loadAsset(hoverPath);
         Image imgPressed = loadAsset(pressedPath);
 
-        if (imgDefault != null) iv.setImage(imgDefault);
+        configureCardImageView(iv);
+        if (imgDefault != null) setCardImage(iv, imgDefault);
 
         iv.addEventHandler(MouseEvent.MOUSE_ENTERED, e -> {
-            if (imgHover != null) iv.setImage(imgHover);
+            if (imgHover != null) setCardImage(iv, imgHover);
             SoundManager.getInstance().playSE(SoundType.HOVER);
         });
         iv.addEventHandler(MouseEvent.MOUSE_EXITED, e -> {
-            if (imgDefault != null) iv.setImage(imgDefault);
+            if (imgDefault != null) setCardImage(iv, imgDefault);
         });
 
         iv.addEventHandler(MouseEvent.MOUSE_PRESSED, e -> {
-            if (imgPressed != null) iv.setImage(imgPressed);
+            if (imgPressed != null) setCardImage(iv, imgPressed);
         });
         iv.addEventHandler(MouseEvent.MOUSE_RELEASED, e -> {
-            if (iv.isHover() && imgHover != null) iv.setImage(imgHover);
-            else if (imgDefault != null) iv.setImage(imgDefault);
+            if (iv.isHover() && imgHover != null) setCardImage(iv, imgHover);
+            else if (imgDefault != null) setCardImage(iv, imgDefault);
         });
 
         if (onClick != null) {
             iv.addEventHandler(MouseEvent.MOUSE_CLICKED, e -> onClick.run());
         }
+    }
+
+    private void configureCardImageView(ImageView iv) {
+        iv.setFitWidth(CARD_FIT_WIDTH);
+        iv.setFitHeight(CARD_FIT_HEIGHT);
+        iv.setPreserveRatio(false);
+        iv.setSmooth(false);
+        iv.setManaged(false);
+        iv.setPickOnBounds(true);
+        iv.setLayoutX(0);
+        iv.setLayoutY(0);
+    }
+
+    private void setCardImage(ImageView iv, Image image) {
+        iv.setImage(image);
+        iv.setViewport(null);
+        double fitWidth = image.getWidth() * CARD_WIDTH_SCALE;
+        iv.setFitWidth(fitWidth);
+        iv.setFitHeight(CARD_FIT_HEIGHT);
+        iv.setPreserveRatio(false);
+        iv.setSmooth(false);
+        iv.setManaged(false);
+        iv.setPickOnBounds(true);
+        iv.setLayoutX((CARD_FIT_WIDTH - fitWidth) / 2.0);
+        iv.setLayoutY(0);
     }
 
     private Image loadAsset(String resourcePath) {
@@ -95,12 +126,12 @@ public class GamemodesController {
 
     @FXML
     private void onStandardClicked() {
-        SoundManager.getInstance().playSE(SoundType.ENTER_MODE);
+        SoundManager.getInstance().playSE(SoundType.CLICK);
         SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
         gameContext.setGameMode(GameContext.GameMode.STANDARD);
         gameContext.reset();
         sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.GAME_SCENE);
+        sceneManager.switchToScene(SceneManager.STANDARD_INTRO_SCENE);
     }
 
     @FXML
@@ -110,7 +141,7 @@ public class GamemodesController {
         gameContext.setGameMode(GameContext.GameMode.TIME_ATTACK);
         gameContext.reset();
         sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.GAME_SCENE);
+        sceneManager.switchToScene(SceneManager.TIME_INTRO_SCENE);
     }
 
     @FXML
@@ -120,7 +151,7 @@ public class GamemodesController {
         gameContext.setGameMode(GameContext.GameMode.HARD_MODE);
         gameContext.reset();
         sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.HARD_GAME_SCENE);
+        sceneManager.switchToScene(SceneManager.HARD_INTRO_SCENE);
     }
 
     @FXML

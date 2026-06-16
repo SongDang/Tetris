@@ -6,8 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="0ffe6569-419a-42ea-bc36-bf7a20a6e1f6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GameController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/java/com/se330/tetris/controller/GameController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Tetris/src/main/resources/fxml/hardgame.fxml" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/src/main/resources/fxml/hardgame.fxml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Tetris/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Tetris/pom.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -24,12 +23,23 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="MavenRunner">
+    <option name="delegateBuildRunToMaven" value="true" />
+  </component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
         <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
       </MavenGeneralSettings>
     </option>
+    <option name="importingSettings">
+      <MavenImportingSettings>
+        <option name="jdkForImporter" value="21" />
+      </MavenImportingSettings>
+    </option>
+  </component>
+  <component name="MavenRunner">
+    <option name="jreName" value="21" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
@@ -53,11 +63,12 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "feature/bomb-cooldown",
+    "git-widget-placeholder": "feat/button-variants",
     "kotlin-language-version-configured": "true",
     "project.structure.last.edited": "SDKs",
     "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2"
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "reference.settings.project.maven.importing"
   }
 }]]></component>
   <component name="RecentsManager">
