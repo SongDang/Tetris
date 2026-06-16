@@ -46,19 +46,39 @@ public class MainMenuController {
 
     private static final int   CELL         = 26;
     private static final int   FALLER_COUNT = 28;
-    private static final Color FILL         = Color.web("#2e2e2e");
     private static final Color STROKE       = Color.web("#1c1c1c");
+    private static final double SPECIAL_CHANCE = 0.20;
+    private static final double MAX_ROTATION_DEG = 70;
+    private static final int    TRAIL_STEPS = 3;
+    private static final double TRAIL_SPACING = CELL * 0.5;
 
     private static final TetrominoType[] TYPES = {
         TetrominoType.I, TetrominoType.O, TetrominoType.T,
         TetrominoType.S, TetrominoType.Z, TetrominoType.J, TetrominoType.L
     };
 
+    private enum SpecialKind { NONE, BOMB, GHOST, TIME, RANDOM }
+    private static final SpecialKind[] SPECIALS = {
+        SpecialKind.BOMB, SpecialKind.GHOST, SpecialKind.TIME, SpecialKind.RANDOM
+    };
+
+    private javafx.scene.image.Image bombSprite;
+    private javafx.scene.image.Image ghostSprite;
+    private javafx.scene.image.Image timeBlockSprite;
+    private double bgElapsed = 0;
+
+    private static final double EXIT_LINGER = 1.0;
+
     private static class Faller {
-        double x, y, speed, alpha, fadeRate;
+        double x, y, speed, alpha;
         double pulseTimer, pulseGlow;
         boolean canPulse, pulsing;
         int[][] shape;
+        int maxRow;
+        TetrominoType type;
+        SpecialKind special;
+        double rotationDeg;
+        double exitTimer = -1;
     }
 
     @FXML
@@ -69,6 +89,10 @@ public class MainMenuController {
 
         bgCanvas.widthProperty().bind(mainMenuPane.widthProperty());
         bgCanvas.heightProperty().bind(mainMenuPane.heightProperty());
+
+        bombSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/bomb.png"));
+        ghostSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/GhostBlock.png"));
+        timeBlockSprite = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/timeblock.png"));
 
         if (titleLabel != null) {
             titleLabel.setOnMouseEntered(e -> titleHovered = true);
@@ -81,21 +105,64 @@ public class MainMenuController {
 
     private void spawnFallers() {
         double w = 1440, h = 1024;
-        for (int i = 0; i < FALLER_COUNT; i++)
-            fallers.add(randomFaller(rng.nextDouble() * (w - CELL * 4),
-                                     rng.nextDouble() * h - h));
+        for (int i = 0; i < FALLER_COUNT; i++) {
+            double[] pos = pickSpawnXY(w, -h, 0, null);
+            fallers.add(randomFaller(pos[0], pos[1]));
+        }
+    }
+
+    /** Picks an x/y spawn position that doesn't overlap any other active faller's bounds. */
+    private double[] pickSpawnXY(double w, double minY, double maxY, Faller exclude) {
+        double size = CELL * 4;
+        double x = 0, y = 0;
+        for (int attempt = 0; attempt < 20; attempt++) {
+            x = rng.nextDouble() * (w - size);
+            y = minY + rng.nextDouble() * (maxY - minY);
+            boolean clash = false;
+            for (Faller other : fallers) {
+                if (other == exclude) continue;
+                if (x < other.x + size && x + size > other.x
+                        && y < other.y + size && y + size > other.y) {
+                    clash = true;
+                    break;
+                }
+            }
+            if (!clash) break;
+        }
+        return new double[]{x, y};
     }
 
     private Faller randomFaller(double x, double y) {
         Faller f = new Faller();
         f.x        = x;
         f.y        = y;
-        f.speed    = 90 + rng.nextDouble() * 120;
-        f.alpha    = 0.35 + rng.nextDouble() * 0.45;
-        f.fadeRate = 0.04 + rng.nextDouble() * 0.18;
-        f.shape    = TYPES[rng.nextInt(TYPES.length)].getShape(rng.nextInt(4));
+        f.speed    = 160 + rng.nextDouble() * 220;
+        f.alpha    = 1.0;
+        f.rotationDeg = (rng.nextDouble() * 2 - 1) * MAX_ROTATION_DEG;
+
+        if (rng.nextDouble() < SPECIAL_CHANCE) {
+            f.special = SPECIALS[rng.nextInt(SPECIALS.length)];
+            if (f.special == SpecialKind.RANDOM) {
+                f.type  = TYPES[rng.nextInt(TYPES.length)];
+                f.shape = f.type.getShape(rng.nextInt(4));
+            } else {
+                f.type  = null;
+                f.shape = TetrominoType.BOMB.getShape(0);
+            }
+        } else {
+            f.special = SpecialKind.NONE;
+            f.type    = TYPES[rng.nextInt(TYPES.length)];
+            f.shape   = f.type.getShape(rng.nextInt(4));
+        }
+
         f.canPulse = rng.nextDouble() < 0.40;
         f.pulseTimer = 1.5 + rng.nextDouble() * 5.0;
+
+        f.maxRow = 0;
+        for (int r = 0; r < 4; r++)
+            for (int c = 0; c < 4; c++)
+                if (f.shape[r][c] == 1) f.maxRow = Math.max(f.maxRow, r);
+
         return f;
     }
 
@@ -112,17 +179,22 @@ public class MainMenuController {
                 gc.clearRect(0, 0, w, h);
 
                 for (Faller f : fallers) {
-                    f.y     += f.speed * dt;
-                    f.alpha -= f.fadeRate * dt;
+                    f.y += f.speed * dt;
 
-                    if (f.alpha <= 0) {
-                        Faller next = randomFaller(rng.nextDouble() * (w - CELL * 4),
-                                                   -(rng.nextDouble() * 300 + CELL * 4));
-                        f.x = next.x; f.y = next.y; f.speed = next.speed;
-                        f.alpha = next.alpha; f.fadeRate = next.fadeRate;
-                        f.shape = next.shape; f.canPulse = next.canPulse;
-                        f.pulseTimer = next.pulseTimer; f.pulsing = false; f.pulseGlow = 0;
-                        continue;
+                    if (f.exitTimer >= 0) {
+                        f.exitTimer += dt;
+                        if (f.exitTimer >= EXIT_LINGER) {
+                            double[] pos = pickSpawnXY(w, -(300 + CELL * 4), -(CELL * 4), f);
+                            Faller next = randomFaller(pos[0], pos[1]);
+                            f.x = next.x; f.y = next.y; f.speed = next.speed;
+                            f.alpha = next.alpha; f.shape = next.shape; f.canPulse = next.canPulse;
+                            f.type = next.type; f.special = next.special; f.rotationDeg = next.rotationDeg;
+                            f.maxRow = next.maxRow; f.exitTimer = -1;
+                            f.pulseTimer = next.pulseTimer; f.pulsing = false; f.pulseGlow = 0;
+                            continue;
+                        }
+                    } else if (f.y + (f.maxRow + 1) * CELL > h) {
+                        f.exitTimer = 0;
                     }
 
                     if (f.canPulse) {
@@ -138,27 +210,85 @@ public class MainMenuController {
                         }
                     }
 
+                    Color baseColor = switch (f.special) {
+                        case TIME -> Color.web("#2dd4d4");
+                        case GHOST -> Color.web("#c9a7ff");
+                        case BOMB -> TetrominoType.BOMB.getColor();
+                        default -> f.type != null ? f.type.getColor() : Color.web("#2e2e2e");
+                    };
                     Color drawColor = f.pulseGlow > 0
-                        ? FILL.interpolate(Color.WHITE, f.pulseGlow * 0.80)
-                        : FILL;
+                        ? baseColor.interpolate(Color.WHITE, f.pulseGlow * 0.80)
+                        : baseColor;
                     Color strokeColor = f.pulseGlow > 0
                         ? STROKE.interpolate(Color.WHITE, f.pulseGlow * 0.50)
                         : STROKE;
 
-                    gc.setGlobalAlpha(f.alpha);
-                    gc.setFill(drawColor);
-                    gc.setStroke(strokeColor);
+                    double drawAlpha = f.alpha;
+
                     gc.setLineWidth(1);
+
+                    double cx = f.x + CELL * 2;
+                    double cy = f.y + CELL * 2;
+
+                    gc.setFill(baseColor);
+                    for (int t = TRAIL_STEPS; t >= 1; t--) {
+                        gc.setGlobalAlpha(drawAlpha * (1.0 - (double) t / (TRAIL_STEPS + 1)) * 0.55);
+                        gc.save();
+                        gc.translate(0, -t * TRAIL_SPACING);
+                        gc.translate(cx, cy);
+                        gc.rotate(f.rotationDeg);
+                        gc.translate(-cx, -cy);
+                        for (int r = 0; r < 4; r++)
+                            for (int c = 0; c < 4; c++)
+                                if (f.shape[r][c] == 1) {
+                                    double px = f.x + c * CELL;
+                                    double py = f.y + r * CELL;
+                                    gc.fillRect(px, py, CELL, CELL);
+                                }
+                        gc.restore();
+                    }
+
+                    gc.save();
+                    gc.translate(cx, cy);
+                    gc.rotate(f.rotationDeg);
+                    gc.translate(-cx, -cy);
+
+                    gc.setGlobalAlpha(drawAlpha);
                     for (int r = 0; r < 4; r++)
                         for (int c = 0; c < 4; c++)
                             if (f.shape[r][c] == 1) {
                                 double px = f.x + c * CELL;
                                 double py = f.y + r * CELL;
-                                gc.fillRect(px, py, CELL, CELL);
-                                gc.strokeRect(px, py, CELL, CELL);
+                                switch (f.special) {
+                                    case BOMB -> gc.drawImage(bombSprite, px, py, CELL, CELL);
+                                    case GHOST -> gc.drawImage(ghostSprite, px, py, CELL, CELL);
+                                    case TIME -> gc.drawImage(timeBlockSprite, px, py, CELL, CELL);
+                                    case RANDOM -> {
+                                        double erratic = Math.sin(bgElapsed * 23.0 + f.x)
+                                                * Math.sin(bgElapsed * 11.7 + f.y)
+                                                * Math.sin(bgElapsed * 5.3);
+                                        double shift = 2.0 + Math.abs(erratic) * 6.0;
+                                        gc.setFill(Color.color(1, 0, 0, 0.35));
+                                        gc.fillRect(px - shift, py, CELL, CELL);
+                                        gc.setFill(Color.color(0, 0.4, 1, 0.35));
+                                        gc.fillRect(px + shift, py, CELL, CELL);
+                                        gc.setFill(drawColor);
+                                        gc.setStroke(strokeColor);
+                                        gc.fillRect(px, py, CELL, CELL);
+                                        gc.strokeRect(px, py, CELL, CELL);
+                                    }
+                                    default -> {
+                                        gc.setFill(drawColor);
+                                        gc.setStroke(strokeColor);
+                                        gc.fillRect(px, py, CELL, CELL);
+                                        gc.strokeRect(px, py, CELL, CELL);
+                                    }
+                                }
                             }
+                    gc.restore();
                 }
                 gc.setGlobalAlpha(1.0);
+                bgElapsed += dt;
                 updateTitleFx(dt);
             }
         };
