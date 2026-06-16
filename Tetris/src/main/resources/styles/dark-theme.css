@@ -38,7 +38,7 @@
 
 .figma-main-title {
     -fx-font-family: "VT323";
-    -fx-font-size: 128;
+    -fx-font-size: 200;
     -fx-text-fill: #ffffff;
     -fx-alignment: center;
 }
@@ -400,11 +400,16 @@
 .game-hold-panel,
 .game-next-panel,
 .game-time-panel,
+.game-bomb-panel,
 .game-flavour-panel,
 .game-bottom-bar {
     -fx-background-color: transparent;
     -fx-background-repeat: no-repeat;
     -fx-background-size: 100% 100%;
+}
+
+.game-bomb-panel {
+    -fx-background-image: url("../assets/standardhold.png");
 }
 
 .game-score-panel {
@@ -432,6 +437,10 @@
 }
 
 .screen-timeatk-game .game-hold-panel {
+    -fx-background-image: url("../assets/timeatkhold.png");
+}
+
+.screen-timeatk-game .game-bomb-panel {
     -fx-background-image: url("../assets/timeatkhold.png");
 }
 
@@ -544,7 +553,7 @@
 
 .hard-flavour-text {
     -fx-font-family: "VT323";
-    -fx-font-size: 32;
+    -fx-font-size: 34;
     -fx-text-fill: #FF8C00;
     -fx-alignment: center;
     -fx-text-alignment: center;
