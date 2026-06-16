@@ -361,10 +361,6 @@
 
 .screen-timeatk-game {
     -fx-background-color: #021f1e;
-    -fx-background-image: url("../assets/timeatk_bg_full.png");
-    -fx-background-size: 100% 100%;
-    -fx-background-repeat: no-repeat;
-    -fx-background-position: center;
 }
 
 .screen-hard-game {
@@ -388,7 +384,10 @@
 
 .screen-timeatk-game .game-bg-center {
     -fx-background-color: transparent;
-    -fx-background-image: none;
+    -fx-background-image: url("../assets/timeatk_bg_full.png");
+    -fx-background-size: 100% 100%;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
 }
 
 .screen-hard-game .game-bg-center {
