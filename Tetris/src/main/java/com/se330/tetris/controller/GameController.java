@@ -321,6 +321,7 @@ public class GameController {
                     hardMode.update(dt);
 
                 timeAttack.setGameState(gamePaused, isGameOver);
+                timeAttack.update(dt);
 
                 renderer.render(currentPiece, nextQueue, holdType, suspendedPieces,
                         gamePaused, isGameOver, freezeUntil, frozenRowFlash, timeAttack.isFreezeActive);
@@ -564,18 +565,23 @@ public class GameController {
     private Piece randomPiece() {
         boolean isStandard = gameContext.getGameMode() == GameContext.GameMode.STANDARD;
         boolean isHardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
+        boolean isTimeAttack = gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK;
         if (bag.isEmpty()) {
             for (TetrominoType t : TetrominoType.values()) {
                 if (t == TetrominoType.BOMB)
                     continue;
-                if (t == TetrominoType.TRANSPARENT && (isStandard || (isHardMode && !hardMode.shouldSpawnTransparentInBag())))
+                if (t == TetrominoType.TRANSPARENT && (isStandard
+                        || (isHardMode && !hardMode.shouldSpawnTransparentInBag())
+                        || (isTimeAttack && !timeAttack.shouldSpawnTransparentInBag())))
                     continue;
                 bag.add(t);
             }
             Collections.shuffle(bag);
         }
         TetrominoType type = bag.remove(0);
-        double chance = isHardMode ? hardMode.getRandomBlockChance() : RANDOM_BLOCK_CHANCE;
+        double chance = isHardMode ? hardMode.getRandomBlockChance()
+                : isTimeAttack ? timeAttack.getRandomBlockChance()
+                : RANDOM_BLOCK_CHANCE;
         if (!isStandard && randomBlockEnabled && type != TetrominoType.BOMB && type != TetrominoType.TRANSPARENT && rng.nextDouble() < chance) {
             RandomBlock block = new RandomBlock(type, 0, 0, RANDOM_BLOCK_INTERVAL_MS);
             block.setTypeValidator((p, t) -> boardEngine.canPlaceType(p, t));
