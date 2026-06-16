@@ -5,6 +5,7 @@ import javafx.fxml.FXML;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import com.se330.tetris.game.TetrominoType;
@@ -25,6 +26,7 @@ public class MainMenuController {
     @FXML private Button     gamemodesBtn;
     @FXML private Button     settingsBtn;
     @FXML private Button     exitBtn;
+    @FXML private Label      titleLabel;
     @FXML private SettingsController settingsPopupController;
 
     private SceneManager sceneManager;
@@ -32,6 +34,15 @@ public class MainMenuController {
     private long bgLastNano = 0;
     private final List<Faller> fallers = new ArrayList<>();
     private final Random rng = new Random();
+
+    // title random-effect state
+    private enum TitleFx { NONE, GLITCH, BLINK }
+    private TitleFx titleFx        = TitleFx.NONE;
+    private double  titleIdleTimer = 3.0;
+    private double  titleFxRemain  = 0;
+    private double  glitchTick     = 0;
+    private double  blinkTick      = 0;
+    private boolean titleHovered   = false;
 
     private static final int   CELL         = 26;
     private static final int   FALLER_COUNT = 28;
@@ -58,6 +69,11 @@ public class MainMenuController {
 
         bgCanvas.widthProperty().bind(mainMenuPane.widthProperty());
         bgCanvas.heightProperty().bind(mainMenuPane.heightProperty());
+
+        if (titleLabel != null) {
+            titleLabel.setOnMouseEntered(e -> titleHovered = true);
+            titleLabel.setOnMouseExited(e -> { titleHovered = false; titleIdleTimer = 0.5; });
+        }
 
         spawnFallers();
         startBgAnimation();
@@ -143,6 +159,7 @@ public class MainMenuController {
                             }
                 }
                 gc.setGlobalAlpha(1.0);
+                updateTitleFx(dt);
             }
         };
         bgTimer.start();
@@ -174,5 +191,61 @@ public class MainMenuController {
     private void onExitClicked() {
         SoundManager.getInstance().playSE(SoundType.CLICK);
         System.exit(0);
+    }
+
+    private void updateTitleFx(double dt) {
+        if (titleLabel == null) return;
+        if (titleFx == TitleFx.NONE) {
+            if (titleHovered) {
+                startTitleFx();
+            } else {
+                titleIdleTimer -= dt;
+                if (titleIdleTimer <= 0) {
+                    if (rng.nextDouble() < 0.55) startTitleFx();
+                    else titleIdleTimer = 2.5 + rng.nextDouble() * 4.5;
+                }
+            }
+            return;
+        }
+        titleFxRemain -= dt;
+        if (titleFxRemain <= 0) { resetTitle(); return; }
+        switch (titleFx) {
+            case GLITCH -> tickGlitch(dt);
+            case BLINK  -> { blinkTick += dt; titleLabel.setOpacity(Math.sin(blinkTick * 18) > 0 ? 1.0 : 0.05); }
+            default -> {}
+        }
+    }
+
+    private void startTitleFx() {
+        TitleFx[] pool = { TitleFx.GLITCH, TitleFx.BLINK };
+        titleFx = pool[rng.nextInt(pool.length)];
+        titleFxRemain = switch (titleFx) {
+            case GLITCH -> 0.15 + rng.nextDouble() * 0.55;
+            case BLINK  -> 0.4 + rng.nextDouble() * 1.2;
+            default     -> 1.0;
+        };
+        if (titleFx == TitleFx.BLINK) blinkTick = 0;
+    }
+
+    private void tickGlitch(double dt) {
+        glitchTick -= dt;
+        if (glitchTick <= 0) {
+            glitchTick = 0.03 + rng.nextDouble() * 0.07;
+            titleLabel.setTranslateX((rng.nextDouble() - 0.5) * 30);
+            titleLabel.setTranslateY((rng.nextDouble() - 0.5) * 14);
+            String[] cols = { "#00ff88", "#ff0033", "#00eeff", "#ffffff", "#ffff00" };
+            titleLabel.setStyle(rng.nextDouble() < 0.6
+                ? "-fx-text-fill:" + cols[rng.nextInt(cols.length)] + ";"
+                : "");
+        }
+    }
+
+    private void resetTitle() {
+        titleFx = TitleFx.NONE;
+        titleIdleTimer = 2.5 + rng.nextDouble() * 4.5;
+        titleLabel.setTranslateX(0); titleLabel.setTranslateY(0);
+        titleLabel.setScaleX(1);     titleLabel.setScaleY(1);
+        titleLabel.setRotate(0);     titleLabel.setOpacity(1.0);
+        titleLabel.setStyle("");
     }
 }

@@ -137,6 +137,8 @@ class TimeAttackHandler {
 
     void setOnFreezeEnd(Runnable callback) { this.onFreezeEnd = callback; }
 
+    double getTimeRemaining() { return timeRemainingSeconds; }
+
     private void endFreeze() {
         isFreezeActive = false;
         if (onFreezeEnd != null) onFreezeEnd.run();

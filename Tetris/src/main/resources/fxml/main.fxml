@@ -18,7 +18,7 @@
               AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
               AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
 
-            <Label text="GAME NAME" styleClass="figma-main-title" maxWidth="Infinity" />
+            <Label fx:id="titleLabel" text="TETRIS" styleClass="figma-main-title" maxWidth="Infinity" />
 
             <VBox alignment="CENTER" spacing="30">
                 <Button fx:id="gamemodesBtn" prefWidth="320.0" prefHeight="114.0"
