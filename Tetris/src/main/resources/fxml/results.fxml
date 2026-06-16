@@ -64,6 +64,7 @@
         <VBox spacing="20" alignment="TOP_CENTER" prefWidth="600.0" styleClass="results-panel-halloffame">
 
             <Label text="HALL OF FAME" style="-fx-font-family: 'VT323'; -fx-font-size: 36px; -fx-text-fill: #00ff88;"/>
+            <Label fx:id="modeFilterLabel" text="" style="-fx-font-family: 'VT323'; -fx-font-size: 22px;"/>
 
             <TableView fx:id="highScoreTable" prefHeight="450.0" prefWidth="520.0"
                        style="-fx-background-color: #000000;">

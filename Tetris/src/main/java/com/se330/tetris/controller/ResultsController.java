@@ -65,6 +65,9 @@ public class ResultsController {
     private Label commentLabel;
 
     @FXML
+    private Label modeFilterLabel;
+
+    @FXML
     private VBox newRecordBox;
     @FXML
     private TextField playerNameInput;
@@ -309,6 +312,16 @@ public class ResultsController {
 
         finalScoreLabel.setText(String.valueOf(score));
         gameModeLabel.setText(mode);
+
+        if (modeFilterLabel != null) {
+            String color = switch (gameContext.getGameMode()) {
+                case STANDARD    -> "#cc88ff";
+                case TIME_ATTACK -> "#00ff88";
+                case HARD_MODE   -> "#ff8800";
+            };
+            modeFilterLabel.setText("— " + mode + " —");
+            modeFilterLabel.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 22px; -fx-text-fill: " + color + ";");
+        }
         levelLabel.setText(String.valueOf(level));
         linesLabel.setText(String.valueOf(lines));
 

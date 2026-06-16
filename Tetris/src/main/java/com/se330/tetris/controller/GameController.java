@@ -62,6 +62,7 @@ public class GameController {
     @FXML private javafx.scene.layout.AnchorPane tutorialPopupShell;
     @FXML private Label tutorialTitleLabel;
     @FXML private Label tutorialBodyLabel;
+    @FXML private javafx.scene.layout.Region bgCenter;
     @FXML private Canvas bgEffectCanvas;
     @FXML private SettingsController settingsPopupController;
 
@@ -122,18 +123,76 @@ public class GameController {
     private int dropStartRow = -1;
 
     // --- Flavour text ---
-    private static final String[] STANDARD_TIPS = {
-            "soft drop [ S ]   •   hard drop [ SPACE ]",
-            "hold a piece with [ C ] or [ SHIFT ]",
-            "rotate with [ W ] or [ UP ]",
-            "right-click to rotate   •   left-click to hard drop"
+    private static final String[] STD_START = {
+            "Here we go.", "Good luck.", "Let's begin.", "Starting now.", "First piece incoming."
     };
-    private static final String[] TIME_ATTACK_TIPS = {
-            "hey, time's running out",
-            "clear rows with time blocks to freeze the clock",
-            "tetris gives the most time back",
-            "use bomb skill [ B ] to clear the field"
+    private static final String[] STD_PLACE = {
+            "Nice placement.", "Good spot for that one.", "Steady progress.", "That fits well."
     };
+    private static final String[] STD_CLEAR = {
+            "Line cleared.", "Nice clear.", "Good work.", "One down."
+    };
+    private static final String[] STD_TETRIS = {
+            "Tetris! Nice one.", "Four lines, well done.", "That's the big one.", "Clean sweep."
+    };
+    private static final String[] STD_HIGH_STACK = {
+            "Getting close to the top.", "Might want to clear some space.", "The stack is building up.", "Careful now."
+    };
+    private static final String[] STD_COMBO = {
+            "Combo going.", "Keep the chain alive.", "Nice streak.", "Back to back, good job."
+    };
+    private int standardPlaceCount = 0;
+    private int standardStackWarnCooldown = 0;
+    private static final String[] TA_START = {
+            "The clock is running.",
+            "Make it count.",
+            "Time begins now."
+    };
+    private static final String[] TA_PLAYING = {
+            "Keep going.",
+            "Every second matters.",
+            "Steady. Don't stop.",
+            "The clock doesn't slow down for anyone."
+    };
+    private static final String[] TA_HALFWAY = {
+            "Halfway there.",
+            "Time's moving fast.",
+            "More than half gone. Keep your pace."
+    };
+    private static final String[] TA_LAST30 = {
+            "Thirty seconds left.",
+            "Almost there. Push through.",
+            "Not much time. Make it good."
+    };
+    private static final String[] TA_LAST10 = {
+            "Ten seconds.",
+            "Almost done.",
+            "This is it."
+    };
+    private static final String[] TA_POST_TIMESTOP = {
+            "Back to normal speed.",
+            "The pause is over.",
+            "Everything resumes."
+    };
+    private static final String[] TA_PLACE = {
+            "Nice placement.",
+            "Good spot for that one.",
+            "Steady progress.",
+            "That fits well."
+    };
+    private int lastTAPhaseId = -1;
+    private int taPlaceCount = 0;
+    private javafx.animation.Timeline taPhaseCheckTimeline;
+    private PauseTransition taEventDelay;
+    private javafx.scene.layout.HBox taFlavourHBox;
+    private final java.util.List<javafx.scene.control.Label> taFlavourChars = new java.util.ArrayList<>();
+    private double taFlavourWaveTime = 0;
+    private double taFlavourTypeElapsed = 0;
+    private static final double TA_FLAVOUR_CHAR_DELAY = 0.055;
+    private javafx.scene.layout.HBox stdFlavourHBox;
+    private final java.util.List<javafx.scene.control.Label> stdFlavourChars = new java.util.ArrayList<>();
+    private double stdFlavourWaveTime = 0;
+    private double stdFlavourTypeElapsed = 0;
     private int flavourTipIndex = 0;
     private javafx.animation.Timeline flavourTimeline;
 
@@ -166,7 +225,21 @@ public class GameController {
                 gameContext, timeLabel, freezeLabel, bombsLabel, timePanel, bombInventoryBox,
                 this::handleGameOver);
 
-        timeAttack.setOnFreezeEnd(() -> timeStopSoundPlayed = false);
+        timeAttack.setOnFreezeEnd(() -> {
+            timeStopSoundPlayed = false;
+            if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK) {
+                if (flavourTimeline != null) flavourTimeline.stop();
+                if (taEventDelay != null) taEventDelay.stop();
+                if (flavourLabel != null) {
+                    String msg = TA_POST_TIMESTOP[rng.nextInt(TA_POST_TIMESTOP.length)];
+                    flavourLabel.setText(msg);
+                    rebuildTAFlavourChars(msg);
+                }
+                taEventDelay = new PauseTransition(Duration.seconds(3));
+                taEventDelay.setOnFinished(e -> switchTimeAttackPool(TA_PLAYING));
+                taEventDelay.play();
+            }
+        });
 
         renderer = new GameRenderer(
                 gameCanvas,
@@ -325,6 +398,11 @@ public class GameController {
 
                 renderer.render(currentPiece, nextQueue, holdType, suspendedPieces,
                         gamePaused, isGameOver, freezeUntil, frozenRowFlash, timeAttack.isFreezeActive);
+
+                if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && !gamePaused && !isGameOver)
+                    renderTAFlavourText(timeAttack.isFreezeActive ? 0 : dt);
+                if (gameContext.getGameMode() == GameContext.GameMode.STANDARD && !gamePaused && !isGameOver)
+                    renderStdFlavourText(dt);
             }
         };
         gameLoop.start();
@@ -448,6 +526,7 @@ public class GameController {
                     updateLevel();
                     renderer.emitScorePopup(4, avgRow);
                     SoundManager.getInstance().playSE(SoundType.TETRIS);
+                    renderer.triggerTetrisFlash();
                     if (!timeStopSoundPlayed) {
                         timeStopSoundPlayed = true;
                         SoundManager.getInstance().playSE(SoundType.TIME_STOP, 0.70f);
@@ -474,6 +553,8 @@ public class GameController {
                     if (bulbSwing != null)
                         bulbSwing.trigger(4);
                     renderer.triggerSideParticles(4);
+                } else if (gameContext.getGameMode() == GameContext.GameMode.STANDARD) {
+                    showStandardFlavour(STD_TETRIS);
                 }
                 return;
             }
@@ -499,6 +580,9 @@ public class GameController {
                 if (bulbSwing != null)
                     bulbSwing.trigger(cleared);
                 renderer.triggerSideParticles(cleared);
+            } else if (gameContext.getGameMode() == GameContext.GameMode.STANDARD) {
+                if (comboCount >= 2) showStandardFlavour(STD_COMBO);
+                else showStandardFlavour(STD_CLEAR);
             }
         } else {
             comboCount = 0;
@@ -509,6 +593,24 @@ public class GameController {
                 if (hardMode.placesSinceFlavour >= 7) {
                     hardMode.placesSinceFlavour = 0;
                     hardMode.trySetFlavourPlace(boardEngine.getStackTopRow());
+                }
+            } else if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK) {
+                taPlaceCount++;
+                if (taPlaceCount >= 5) {
+                    taPlaceCount = 0;
+                    showTAEventThenResumePlaying(TA_PLACE);
+                }
+            } else if (gameContext.getGameMode() == GameContext.GameMode.STANDARD) {
+                if (standardStackWarnCooldown > 0) standardStackWarnCooldown--;
+                if (boardEngine.getStackTopRow() < 7 && standardStackWarnCooldown == 0) {
+                    showStandardFlavour(STD_HIGH_STACK);
+                    standardStackWarnCooldown = 5;
+                } else {
+                    standardPlaceCount++;
+                    if (standardPlaceCount >= 5) {
+                        standardPlaceCount = 0;
+                        showStandardFlavour(STD_PLACE);
+                    }
                 }
             }
         }
@@ -842,6 +944,151 @@ public class GameController {
         return Math.max(minX, Math.min(maxX, desiredX));
     }
 
+    private void initTimeAttackFlavourChars() {
+        if (flavourLabel == null) return;
+        flavourLabel.setVisible(false);
+        javafx.scene.layout.StackPane parent = (javafx.scene.layout.StackPane) flavourLabel.getParent();
+        if (parent == null) return;
+        taFlavourHBox = new javafx.scene.layout.HBox(0);
+        taFlavourHBox.setAlignment(javafx.geometry.Pos.CENTER);
+        taFlavourHBox.setMaxWidth(Double.MAX_VALUE);
+        parent.getChildren().add(taFlavourHBox);
+        rebuildTAFlavourChars(flavourLabel.getText());
+    }
+
+    private void rebuildTAFlavourChars(String text) {
+        if (taFlavourHBox == null) return;
+        taFlavourChars.clear();
+        taFlavourHBox.getChildren().clear();
+        for (char c : text.toCharArray()) {
+            javafx.scene.control.Label l = new javafx.scene.control.Label(String.valueOf(c));
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 34; -fx-text-fill: #66CCFF;");
+            l.setOpacity(0);
+            taFlavourChars.add(l);
+            taFlavourHBox.getChildren().add(l);
+        }
+        taFlavourTypeElapsed = 0;
+    }
+
+    private void renderTAFlavourText(double dt) {
+        if (taFlavourHBox == null || taFlavourChars.isEmpty()) return;
+        taFlavourWaveTime += dt;
+        taFlavourTypeElapsed += dt;
+        int nVisible = Math.min(taFlavourChars.size(), (int) (taFlavourTypeElapsed / TA_FLAVOUR_CHAR_DELAY));
+        for (int i = 0; i < taFlavourChars.size(); i++) {
+            javafx.scene.control.Label l = taFlavourChars.get(i);
+            boolean visible = i < nVisible;
+            l.setOpacity(visible ? 1.0 : 0.0);
+            if (visible)
+                l.setTranslateY(Math.sin(taFlavourWaveTime * 2.5 + i * 0.45) * 2.5);
+        }
+    }
+
+    private void initStandardFlavourChars() {
+        if (flavourLabel == null) return;
+        flavourLabel.setVisible(false);
+        javafx.scene.layout.StackPane parent = (javafx.scene.layout.StackPane) flavourLabel.getParent();
+        if (parent == null) return;
+        stdFlavourHBox = new javafx.scene.layout.HBox(0);
+        stdFlavourHBox.setAlignment(javafx.geometry.Pos.CENTER);
+        stdFlavourHBox.setMaxWidth(Double.MAX_VALUE);
+        parent.getChildren().add(stdFlavourHBox);
+        rebuildStdFlavourChars(flavourLabel.getText());
+    }
+
+    private void rebuildStdFlavourChars(String text) {
+        if (stdFlavourHBox == null) return;
+        stdFlavourChars.clear();
+        stdFlavourHBox.getChildren().clear();
+        for (char c : text.toCharArray()) {
+            javafx.scene.control.Label l = new javafx.scene.control.Label(String.valueOf(c));
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 34; -fx-text-fill: #B8BBFF;");
+            l.setOpacity(0);
+            stdFlavourChars.add(l);
+            stdFlavourHBox.getChildren().add(l);
+        }
+        stdFlavourTypeElapsed = 0;
+    }
+
+    private void renderStdFlavourText(double dt) {
+        if (stdFlavourHBox == null || stdFlavourChars.isEmpty()) return;
+        stdFlavourWaveTime += dt;
+        stdFlavourTypeElapsed += dt;
+        int nVisible = Math.min(stdFlavourChars.size(), (int) (stdFlavourTypeElapsed / TA_FLAVOUR_CHAR_DELAY));
+        for (int i = 0; i < stdFlavourChars.size(); i++) {
+            javafx.scene.control.Label l = stdFlavourChars.get(i);
+            boolean visible = i < nVisible;
+            l.setOpacity(visible ? 1.0 : 0.0);
+            if (visible)
+                l.setTranslateY(Math.sin(stdFlavourWaveTime * 2.5 + i * 0.45) * 2.5);
+        }
+    }
+
+    private void startTimeAttackFlavourCycle() {
+        lastTAPhaseId = 0;
+        String startMsg = TA_START[rng.nextInt(TA_START.length)];
+        if (flavourLabel != null) flavourLabel.setText(startMsg);
+        rebuildTAFlavourChars(startMsg);
+        taPhaseCheckTimeline = new javafx.animation.Timeline(
+                new javafx.animation.KeyFrame(Duration.seconds(1), e -> checkTimeAttackPhase()));
+        taPhaseCheckTimeline.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+        taPhaseCheckTimeline.play();
+    }
+
+    private void checkTimeAttackPhase() {
+        double t = timeAttack.getTimeRemaining();
+        int phaseId = t > 90 ? 0 : t > 60 ? 1 : t > 30 ? 2 : t > 10 ? 3 : 4;
+        if (phaseId == lastTAPhaseId) return;
+        lastTAPhaseId = phaseId;
+        if (phaseId == 0) {
+            switchTimeAttackPool(TA_START);
+        } else if (phaseId == 1) {
+            switchTimeAttackPool(TA_PLAYING);
+        } else {
+            String[] pool = phaseId == 2 ? TA_HALFWAY : phaseId == 3 ? TA_LAST30 : TA_LAST10;
+            showTAEventThenResumePlaying(pool);
+        }
+    }
+
+    private void showTAEventThenResumePlaying(String[] pool) {
+        if (flavourTimeline != null) flavourTimeline.stop();
+        if (taEventDelay != null) taEventDelay.stop();
+        String msg = pool[rng.nextInt(pool.length)];
+        flavourLabel.setText(msg);
+        rebuildTAFlavourChars(msg);
+        taEventDelay = new PauseTransition(Duration.seconds(3));
+        taEventDelay.setOnFinished(e -> switchTimeAttackPool(TA_PLAYING));
+        taEventDelay.play();
+    }
+
+    private void switchTimeAttackPool(String[] pool) {
+        if (flavourLabel == null) return;
+        if (flavourTimeline != null) flavourTimeline.stop();
+        int start = pool.length > 1 ? rng.nextInt(pool.length) : 0;
+        String text = pool[start];
+        flavourLabel.setText(text);
+        rebuildTAFlavourChars(text);
+        if (pool.length > 1) {
+            final int[] idx = {start};
+            flavourTimeline = new javafx.animation.Timeline(
+                    new javafx.animation.KeyFrame(Duration.seconds(7), e -> {
+                        idx[0] = (idx[0] + 1) % pool.length;
+                        String next = pool[idx[0]];
+                        flavourLabel.setText(next);
+                        rebuildTAFlavourChars(next);
+                    }));
+            flavourTimeline.setCycleCount(javafx.animation.Timeline.INDEFINITE);
+            flavourTimeline.play();
+        }
+    }
+
+    private void showStandardFlavour(String[] pool) {
+        if (flavourLabel == null) return;
+        String text = pool[rng.nextInt(pool.length)];
+        flavourLabel.setText(text);
+        rebuildStdFlavourChars(text);
+    }
+
     private void startFlavourTextCycle(String[] tips) {
         if (flavourLabel == null || tips.length == 0) return;
         flavourTipIndex = 0;
@@ -867,14 +1114,25 @@ public class GameController {
         if (mode == GameContext.GameMode.TIME_ATTACK) {
             gamePane.getStyleClass().add("screen-timeatk-game");
             if (mainFrameView != null) mainFrameView.setImage(timeAttackMainImage);
-            startFlavourTextCycle(TIME_ATTACK_TIPS);
+            if (bgCenter != null) {
+                javafx.scene.layout.AnchorPane.setLeftAnchor(bgCenter, 200.0);
+                javafx.scene.layout.AnchorPane.setRightAnchor(bgCenter, 200.0);
+            }
+            startTimeAttackFlavourCycle();
+            Platform.runLater(this::initTimeAttackFlavourChars);
         } else if (mode == GameContext.GameMode.HARD_MODE) {
             gamePane.getStyleClass().add("screen-hard-game");
             if (mainFrameView != null) mainFrameView.setImage(hardMainImage);
         } else {
             gamePane.getStyleClass().add("screen-standard-game");
             if (mainFrameView != null) mainFrameView.setImage(standardMainImage);
-            startFlavourTextCycle(STANDARD_TIPS);
+            if (bgCenter != null) {
+                javafx.scene.layout.AnchorPane.setLeftAnchor(bgCenter, 0.0);
+                javafx.scene.layout.AnchorPane.setRightAnchor(bgCenter, 0.0);
+            }
+            if (flavourLabel != null)
+                flavourLabel.setText(STD_START[rng.nextInt(STD_START.length)]);
+            Platform.runLater(this::initStandardFlavourChars);
         }
     }
 
@@ -1110,6 +1368,8 @@ public class GameController {
         stopRandomBlockIfNeeded(currentPiece);
         timeAttack.stopAll();
         if (flavourTimeline != null) flavourTimeline.stop();
+        if (taPhaseCheckTimeline != null) taPhaseCheckTimeline.stop();
+        if (taEventDelay != null) taEventDelay.stop();
         SoundManager.getInstance().stopLooping();
         if (gameLoop != null)
             gameLoop.stop();
