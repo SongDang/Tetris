@@ -174,6 +174,51 @@ public class BoardEngine {
         return snaps;
     }
 
+    /** Clears the active piece bounds expanded by padding cells in every direction. */
+    public List<ClearedCell> clearBombBounds(Piece piece, int padding) {
+        int[][] shape = piece.getType().getShape(piece.getRotation());
+        int minX = Constants.BOARD_WIDTH;
+        int maxX = -1;
+        int minY = Constants.BOARD_HEIGHT;
+        int maxY = -1;
+
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int x = piece.getX() + col;
+                    int y = piece.getY() + row;
+                    minX = Math.min(minX, x);
+                    maxX = Math.max(maxX, x);
+                    minY = Math.min(minY, y);
+                    maxY = Math.max(maxY, y);
+                }
+            }
+        }
+
+        List<ClearedCell> snaps = new ArrayList<>();
+        if (maxX < minX || maxY < minY) {
+            return snaps;
+        }
+
+        int fromX = Math.max(0, minX - padding);
+        int toX = Math.min(Constants.BOARD_WIDTH - 1, maxX + padding);
+        int fromY = Math.max(0, minY - padding);
+        int toY = Math.min(Constants.BOARD_HEIGHT - 1, maxY + padding);
+
+        for (int y = fromY; y <= toY; y++) {
+            for (int x = fromX; x <= toX; x++) {
+                if (board[y][x] != 0) {
+                    TetrominoType t = idToType(board[y][x]);
+                    if (t != null && t != TetrominoType.BOMB) {
+                        snaps.add(new ClearedCell(x, y, t));
+                    }
+                }
+                board[y][x] = 0;
+            }
+        }
+        return snaps;
+    }
+
     // --- Board queries ---
 
     public List<Integer> findFullRows() {

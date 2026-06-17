@@ -8,6 +8,7 @@ public class Piece {
     private int rotation;
     private int x;
     private int y;
+    private boolean areaBomb;
 
     public Piece(TetrominoType type, int x, int y) {
         this.type = type;
@@ -18,6 +19,18 @@ public class Piece {
 
     public TetrominoType getType() {
         return type;
+    }
+
+    public boolean isBomb() {
+        return type == TetrominoType.BOMB || areaBomb;
+    }
+
+    public boolean isAreaBomb() {
+        return areaBomb;
+    }
+
+    public void armAreaBomb() {
+        this.areaBomb = true;
     }
 
     public void setType(TetrominoType type) {

@@ -643,7 +643,7 @@ class GameRenderer {
             }
 
             // --- HIỆU ỨNG TIA LỬA CHO KHỐI NGẪU NHIÊN (RANDOMBLOCK) ---
-            if (currentPiece instanceof RandomBlock) {
+            if (currentPiece instanceof RandomBlock && !currentPiece.isAreaBomb()) {
                 randomBlockSparkTimer -= dt;
                 if (randomBlockSparkTimer <= 0) {
                     randomBlockSparkTimer = 0.05;
@@ -714,7 +714,8 @@ class GameRenderer {
 
     void render(Piece currentPiece, java.util.Deque<Piece> nextQueue, TetrominoType holdType,
                 List<Piece> suspendedPieces, boolean gamePaused, boolean isGameOver,
-                long freezeUntil, int[] frozenRowFlash, boolean isFreezeActive) {
+                long freezeUntil, int[] frozenRowFlash, boolean isFreezeActive,
+                int floatingBombX, int floatingBombY) {
 
         boolean hardModeActive = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
 
@@ -744,7 +745,8 @@ class GameRenderer {
             }
         }
 
-        drawGameBoard(currentPiece, suspendedPieces, gamePaused, isGameOver, freezeUntil, frozenRowFlash);
+        drawGameBoard(currentPiece, suspendedPieces, gamePaused, isGameOver, freezeUntil, frozenRowFlash,
+                floatingBombX, floatingBombY);
         renderHardDropTrails();
 
         if (glitchExplosionEffect != null) glitchExplosionEffect.render(gameGc);
@@ -825,7 +827,8 @@ class GameRenderer {
     // --- Board rendering ---
     private void drawGameBoard(Piece currentPiece, List<Piece> suspendedPieces,
                                boolean gamePaused, boolean isGameOver,
-                               long freezeUntil, int[] frozenRowFlash) {
+                               long freezeUntil, int[] frozenRowFlash,
+                               int floatingBombX, int floatingBombY) {
         int[][] board = boardEngine.getBoard();
         double w = gameCanvas.getWidth();
         double h = gameCanvas.getHeight();
@@ -902,20 +905,21 @@ class GameRenderer {
 
         if (isGameOver) return;
 
-        if (currentPiece.getType() == TetrominoType.BOMB && freezeUntil == 0 && bState != HardModeHandler.BlackoutState.BLACKOUT) {
+        if (currentPiece.isBomb() && freezeUntil == 0 && bState != HardModeHandler.BlackoutState.BLACKOUT) {
             drawBombImpactZone(currentPiece, suspendedPieces, cs);
         }
 
         renderSuspendedPieces(suspendedPieces, cs);
+        renderFloatingBombPickup(floatingBombX, floatingBombY, bState, cs);
         drawCurrentPiece(currentPiece, bState, cs, suspendedPieces, freezeUntil);
     }
 
     private void drawCurrentPiece(Piece currentPiece, HardModeHandler.BlackoutState bState, int cs,
                                    List<Piece> suspendedPieces, long freezeUntil) {
         int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
-        boolean isBomb = currentPiece.getType() == TetrominoType.BOMB;
+        boolean isBomb = currentPiece.isBomb();
         boolean isGhost = currentPiece.getType() == TetrominoType.TRANSPARENT;
-        boolean isRandomBlock = currentPiece instanceof RandomBlock;
+        boolean isRandomBlock = currentPiece instanceof RandomBlock && !currentPiece.isAreaBomb();
         boolean inBlackout = bState == HardModeHandler.BlackoutState.BLACKOUT;
 
         // Blackout overlays
@@ -940,6 +944,11 @@ class GameRenderer {
                         if (currentPiece.getType() == TetrominoType.TRANSPARENT) {
                             gameGc.setGlobalAlpha(0.25);
                             gameGc.drawImage(ghostSprite, (currentPiece.getX() + col) * cs, (currentPiece.getY() + row + drop) * cs, cs, cs);
+                            gameGc.setGlobalAlpha(1.0);
+                        } else if (currentPiece.isBomb()) {
+                            gameGc.setGlobalAlpha(0.25);
+                            gameGc.drawImage(bombSprite, (currentPiece.getX() + col) * cs,
+                                    (currentPiece.getY() + row + drop) * cs, cs, cs);
                             gameGc.setGlobalAlpha(1.0);
                         } else {
                             drawCell(currentPiece.getX() + col, currentPiece.getY() + row + drop,
@@ -1168,6 +1177,33 @@ class GameRenderer {
                         else drawCell(px, py, piece.getType().getColor(), 1.0);
                     }
         }
+    }
+
+    private void renderFloatingBombPickup(int bombX, int bombY, HardModeHandler.BlackoutState bState, int cs) {
+        if (bombX < 0 || bombY < 0 || bState == HardModeHandler.BlackoutState.BLACKOUT) {
+            return;
+        }
+
+        double px = bombX * cs;
+        double py = bombY * cs;
+        double pulse = 0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 1000.0 * 6.5);
+        double cx = px + cs / 2.0;
+
+        gameGc.save();
+        gameGc.setGlobalAlpha(0.30 + pulse * 0.25);
+        gameGc.setStroke(Color.web("#ffcc66"));
+        gameGc.setLineWidth(1.5);
+        gameGc.strokeLine(cx, 0, cx, py + cs * 0.22);
+
+        gameGc.setGlobalAlpha(0.18 + pulse * 0.20);
+        gameGc.setFill(Color.web("#ff5500"));
+        double glow = cs * (1.6 + pulse * 0.4);
+        gameGc.fillOval(cx - glow / 2.0, py + cs / 2.0 - glow / 2.0, glow, glow);
+
+        gameGc.setGlobalAlpha(1.0);
+        double bob = Math.sin(System.currentTimeMillis() / 1000.0 * 4.0) * 2.0;
+        gameGc.drawImage(bombSprite, px, py + bob, cs, cs);
+        gameGc.restore();
     }
 
     private void renderTopLayer() {
@@ -1409,10 +1445,51 @@ class GameRenderer {
 
     private void drawBombImpactZone(Piece bomb, List<Piece> suspended, int cs) {
         int drop = boardEngine.getDropDistance(bomb, suspended);
-        int cx   = bomb.getX();
-        int cy   = bomb.getY() + drop;
 
         double pulse = 0.5 + 0.5 * Math.sin(System.currentTimeMillis() / 1000.0 * 7.0);
+
+        if (bomb.isAreaBomb()) {
+            int[][] shape = bomb.getType().getShape(bomb.getRotation());
+            int minX = Constants.BOARD_WIDTH;
+            int maxX = -1;
+            int minY = Constants.BOARD_HEIGHT;
+            int maxY = -1;
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (shape[row][col] == 1) {
+                        int x = bomb.getX() + col;
+                        int y = bomb.getY() + row + drop;
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+            if (maxX < minX || maxY < minY) {
+                return;
+            }
+
+            int fromX = Math.max(0, minX - 2);
+            int toX = Math.min(Constants.BOARD_WIDTH - 1, maxX + 2);
+            int fromY = Math.max(0, minY - 2);
+            int toY = Math.min(Constants.BOARD_HEIGHT - 1, maxY + 2);
+
+            gameGc.setFill(Color.web("#ff4400", 0.06 + pulse * 0.10));
+            for (int y = fromY; y <= toY; y++) {
+                for (int x = fromX; x <= toX; x++) {
+                    gameGc.fillRect(x * cs, y * cs, cs, cs);
+                }
+            }
+
+            gameGc.setStroke(Color.web("#ff6600", 0.45 + pulse * 0.45));
+            gameGc.setLineWidth(2);
+            gameGc.strokeRect(fromX * cs, fromY * cs, (toX - fromX + 1) * cs, (toY - fromY + 1) * cs);
+            return;
+        }
+
+        int cx   = bomb.getX();
+        int cy   = bomb.getY() + drop;
 
         // Tint each cell in the 3x3 zone
         gameGc.setFill(Color.web("#ff4400", 0.08 + pulse * 0.12));

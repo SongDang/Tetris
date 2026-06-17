@@ -205,6 +205,9 @@ public class GameController {
     // --- Bomb ---
     private int bombsRemaining = 3;
     private String bombInventoryBaseStyle = "";
+    private static final int AREA_BOMB_PADDING = 2;
+    private int floatingBombX = -1;
+    private int floatingBombY = -1;
 
     private javafx.scene.image.Image bombSprite;
     private javafx.scene.image.Image ghostSprite;
@@ -402,7 +405,8 @@ public class GameController {
                 timeAttack.update(dt);
 
                 renderer.render(currentPiece, nextQueue, holdType, suspendedPieces,
-                        gamePaused, isGameOver, freezeUntil, frozenRowFlash, timeAttack.isFreezeActive);
+                        gamePaused, isGameOver, freezeUntil, frozenRowFlash, timeAttack.isFreezeActive,
+                        floatingBombX, floatingBombY);
 
                 if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK && !gamePaused && !isGameOver)
                     renderTAFlavourText(timeAttack.isFreezeActive ? 0 : dt);
@@ -465,13 +469,20 @@ public class GameController {
 
     private void updateFuseEffects() {
         int cs = Constants.BLOCK_SIZE;
-        if (currentPiece.getType() == TetrominoType.BOMB) {
+        if (currentPiece.isBomb()) {
             if (!fuseLoopPlaying) {
                 SoundManager.getInstance().playLooping(SoundType.FUSE);
                 fuseLoopPlaying = true;
             }
-            renderer.onFuseSparks((currentPiece.getX() + 0.5) * cs, (currentPiece.getY() + 0.5) * cs,
-                    cs, currentPiece.getRotation());
+            int[][] shape = currentPiece.getType().getShape(currentPiece.getRotation());
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    if (shape[row][col] == 1) {
+                        renderer.onFuseSparks((currentPiece.getX() + col + 0.5) * cs,
+                                (currentPiece.getY() + row + 0.5) * cs, cs, currentPiece.getRotation());
+                    }
+                }
+            }
         } else if (fuseLoopPlaying) {
             SoundManager.getInstance().stopLooping();
             fuseLoopPlaying = false;
@@ -481,10 +492,12 @@ public class GameController {
     // --- Piece logic ---
 
     private void updateFall() {
-        if (boardEngine.canMove(currentPiece, 0, 1, currentPiece.getRotation(), suspendedPieces))
+        if (boardEngine.canMove(currentPiece, 0, 1, currentPiece.getRotation(), suspendedPieces)) {
             currentPiece.setY(currentPiece.getY() + 1);
-        else
+            checkFloatingBombPickup();
+        } else {
             lockAndSpawn();
+        }
         updateSuspendedFall();
     }
 
@@ -492,7 +505,9 @@ public class GameController {
         stopRandomBlockIfNeeded(currentPiece);
         int cs = Constants.BLOCK_SIZE;
 
-        if (currentPiece.getType() == TetrominoType.BOMB) {
+        if (currentPiece.isAreaBomb()) {
+            detonateAreaBomb(currentPiece);
+        } else if (currentPiece.getType() == TetrominoType.BOMB) {
             detonateBomb(currentPiece.getX(), currentPiece.getY());
         } else {
             BoardEngine.LockResult lock = boardEngine.lockPiece(currentPiece);
@@ -707,6 +722,89 @@ public class GameController {
             rb.lockBlock();
     }
 
+    private void spawnFloatingBombPickup() {
+        if (currentPiece == null || isGameOver || gamePaused || freezeUntil > 0) {
+            return;
+        }
+
+        int stackTop = boardEngine.getStackTopRow();
+        int maxRow = Math.max(0, stackTop - 1);
+        List<int[]> candidates = new ArrayList<>();
+        for (int y = 0; y <= maxRow && y < Constants.BOARD_HEIGHT; y++) {
+            for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
+                if (boardEngine.getBoard()[y][x] == 0
+                        && !pieceOccupiesCell(currentPiece, x, y)
+                        && !suspendedPieceOccupiesCell(x, y)) {
+                    candidates.add(new int[] { x, y });
+                }
+            }
+        }
+
+        if (candidates.isEmpty()) {
+            floatingBombX = -1;
+            floatingBombY = -1;
+            return;
+        }
+
+        int[] picked = candidates.get(rng.nextInt(candidates.size()));
+        floatingBombX = picked[0];
+        floatingBombY = picked[1];
+    }
+
+    private void checkFloatingBombPickup() {
+        if (floatingBombX < 0 || floatingBombY < 0 || currentPiece == null || currentPiece.isBomb()) {
+            return;
+        }
+        if (pieceOccupiesCell(currentPiece, floatingBombX, floatingBombY)) {
+            armCurrentPieceFromFloatingBomb();
+        }
+    }
+
+    private void checkFloatingBombPickupAlongDrop(int drop) {
+        if (floatingBombX < 0 || floatingBombY < 0 || currentPiece == null || currentPiece.isBomb()) {
+            return;
+        }
+        for (int dy = 0; dy <= drop; dy++) {
+            if (pieceOccupiesCellAtOffset(currentPiece, floatingBombX, floatingBombY, 0, dy)) {
+                armCurrentPieceFromFloatingBomb();
+                return;
+            }
+        }
+    }
+
+    private void armCurrentPieceFromFloatingBomb() {
+        stopRandomBlockIfNeeded(currentPiece);
+        currentPiece.armAreaBomb();
+        floatingBombX = -1;
+        floatingBombY = -1;
+        SoundManager.getInstance().playSE(SoundType.BOMB_EXPLODE, 0.35f);
+    }
+
+    private boolean pieceOccupiesCell(Piece piece, int x, int y) {
+        return pieceOccupiesCellAtOffset(piece, x, y, 0, 0);
+    }
+
+    private boolean pieceOccupiesCellAtOffset(Piece piece, int x, int y, int dx, int dy) {
+        int[][] shape = piece.getType().getShape(piece.getRotation());
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1 && piece.getX() + col + dx == x && piece.getY() + row + dy == y) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean suspendedPieceOccupiesCell(int x, int y) {
+        for (Piece piece : suspendedPieces) {
+            if (pieceOccupiesCell(piece, x, y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void detonateBomb(int centerX, int centerY) {
         int cs = Constants.BLOCK_SIZE;
         List<BoardEngine.ClearedCell> cells = boardEngine.clearBombRadius(centerX, centerY);
@@ -717,6 +815,43 @@ public class GameController {
         if (bulbSwing != null)
             bulbSwing.trigger(4);
         renderer.triggerSideParticles(4);
+    }
+
+    private void detonateAreaBomb(Piece piece) {
+        int cs = Constants.BLOCK_SIZE;
+        int[] bounds = getPieceBounds(piece);
+        List<BoardEngine.ClearedCell> cells = boardEngine.clearBombBounds(piece, AREA_BOMB_PADDING);
+        SoundManager.getInstance().stopLooping();
+        fuseLoopPlaying = false;
+
+        double centerX = bounds[0] <= bounds[1] ? (bounds[0] + bounds[1] + 1) * cs / 2.0 : (piece.getX() + 0.5) * cs;
+        double centerY = bounds[2] <= bounds[3] ? (bounds[2] + bounds[3] + 1) * cs / 2.0 : (piece.getY() + 0.5) * cs;
+        renderer.onBombExplode(centerX, centerY, cs, cells);
+        SoundManager.getInstance().playSE(SoundType.BOMB_EXPLODE);
+        if (bulbSwing != null)
+            bulbSwing.trigger(4);
+        renderer.triggerSideParticles(4);
+    }
+
+    private int[] getPieceBounds(Piece piece) {
+        int[][] shape = piece.getType().getShape(piece.getRotation());
+        int minX = Constants.BOARD_WIDTH;
+        int maxX = -1;
+        int minY = Constants.BOARD_HEIGHT;
+        int maxY = -1;
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                if (shape[row][col] == 1) {
+                    int x = piece.getX() + col;
+                    int y = piece.getY() + row;
+                    minX = Math.min(minX, x);
+                    maxX = Math.max(maxX, x);
+                    minY = Math.min(minY, y);
+                    maxY = Math.max(maxY, y);
+                }
+            }
+        }
+        return new int[] { minX, maxX, minY, maxY };
     }
 
     private void updateSuspendedFall() {
@@ -841,13 +976,17 @@ public class GameController {
         switch (code) {
             case LEFT, A -> {
                 mouseTargetColumn = -1;
-                if (boardEngine.canMove(currentPiece, -1, 0, currentPiece.getRotation(), suspendedPieces))
+                if (boardEngine.canMove(currentPiece, -1, 0, currentPiece.getRotation(), suspendedPieces)) {
                     currentPiece.setX(currentPiece.getX() - 1);
+                    checkFloatingBombPickup();
+                }
             }
             case RIGHT, D -> {
                 mouseTargetColumn = -1;
-                if (boardEngine.canMove(currentPiece, 1, 0, currentPiece.getRotation(), suspendedPieces))
+                if (boardEngine.canMove(currentPiece, 1, 0, currentPiece.getRotation(), suspendedPieces)) {
                     currentPiece.setX(currentPiece.getX() + 1);
+                    checkFloatingBombPickup();
+                }
             }
             case DOWN, S -> {
                 if (!timeAttack.isFreezeActive && hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT)
@@ -855,6 +994,7 @@ public class GameController {
             }
             case UP, W -> {
                 if (tryRotateWithWallKick()) {
+                    checkFloatingBombPickup();
                     renderer.onRotate();
                     renderer.onRotationArc(currentPiece, Constants.BLOCK_SIZE);
                 }
@@ -863,6 +1003,7 @@ public class GameController {
                 if (hardMode.blackoutState != HardModeHandler.BlackoutState.BLACKOUT)
                     hardDrop();
             }
+            case N -> spawnFloatingBombPickup();
             case B -> useBombSkill();
             case C, SHIFT -> holdCurrentPiece();
             default -> { return; }
@@ -885,8 +1026,10 @@ public class GameController {
         if (targetX == currentX)
             return;
         int step = Integer.compare(targetX, currentX);
-        if (boardEngine.canMove(currentPiece, step, 0, currentPiece.getRotation(), suspendedPieces))
+        if (boardEngine.canMove(currentPiece, step, 0, currentPiece.getRotation(), suspendedPieces)) {
             currentPiece.setX(currentX + step);
+            checkFloatingBombPickup();
+        }
     }
 
     private void handleMouseClicked(MouseEvent event) {
@@ -903,6 +1046,7 @@ public class GameController {
             event.consume();
         } else if (event.getButton() == MouseButton.SECONDARY) {
             if (tryRotateWithWallKick()) {
+                checkFloatingBombPickup();
                 renderer.onRotate();
                 renderer.onRotationArc(currentPiece, Constants.BLOCK_SIZE);
             }
@@ -911,6 +1055,10 @@ public class GameController {
     }
 
     private boolean tryRotateWithWallKick() {
+        if (currentPiece == null || currentPiece.isBomb()) {
+            return false;
+        }
+
         int nextRotation = (currentPiece.getRotation() + 1) % 4;
         for (int dx : new int[] { 0, -1, 1, -2, 2 }) {
             if (boardEngine.canMove(currentPiece, dx, 0, nextRotation, suspendedPieces)) {
@@ -1151,13 +1299,14 @@ public class GameController {
         dropStartRow = currentPiece.getY();
         renderer.onHardDrop();
         int drop = boardEngine.getDropDistance(currentPiece, suspendedPieces);
+        checkFloatingBombPickupAlongDrop(drop);
         if (timeAttack.isFreezeActive) renderer.onHardDropTrail(currentPiece, drop);
         currentPiece.setY(currentPiece.getY() + drop);
         lockAndSpawn();
     }
 
     private void holdCurrentPiece() {
-        if (!canHold || currentPiece == null || isGameOver || currentPiece.getType() == TetrominoType.BOMB) {
+        if (!canHold || currentPiece == null || isGameOver || currentPiece.isBomb()) {
             return;
         }
 
@@ -1188,7 +1337,7 @@ public class GameController {
 
     private void useBombSkill() {
         if (isGameOver || gamePaused || currentPiece == null
-                || currentPiece.getType() == TetrominoType.BOMB
+                || currentPiece.isBomb()
                 || gameContext.getGameMode() == GameContext.GameMode.STANDARD) return;
 
         GameContext.GameMode currentMode = gameContext.getGameMode();
