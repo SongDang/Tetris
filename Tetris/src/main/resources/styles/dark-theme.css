@@ -38,7 +38,7 @@
 
 .figma-main-title {
     -fx-font-family: "VT323";
-    -fx-font-size: 128;
+    -fx-font-size: 200;
     -fx-text-fill: #ffffff;
     -fx-alignment: center;
 }
@@ -361,10 +361,6 @@
 
 .screen-timeatk-game {
     -fx-background-color: #021f1e;
-    -fx-background-image: url("../assets/timeatk_bg_full.png");
-    -fx-background-size: 100% 100%;
-    -fx-background-repeat: no-repeat;
-    -fx-background-position: center;
 }
 
 .screen-hard-game {
@@ -388,7 +384,10 @@
 
 .screen-timeatk-game .game-bg-center {
     -fx-background-color: transparent;
-    -fx-background-image: none;
+    -fx-background-image: url("../assets/timeatk_bg_full.png");
+    -fx-background-size: 100% 100%;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
 }
 
 .screen-hard-game .game-bg-center {
@@ -400,10 +399,15 @@
 .game-hold-panel,
 .game-next-panel,
 .game-time-panel,
+.game-bomb-panel,
 .game-flavour-panel {
     -fx-background-color: transparent;
     -fx-background-repeat: no-repeat;
     -fx-background-size: 100% 100%;
+}
+
+.game-bomb-panel {
+    -fx-background-image: url("../assets/standardhold.png");
 }
 
 .game-score-panel {
@@ -427,6 +431,10 @@
 }
 
 .screen-timeatk-game .game-hold-panel {
+    -fx-background-image: url("../assets/timeatkhold.png");
+}
+
+.screen-timeatk-game .game-bomb-panel {
     -fx-background-image: url("../assets/timeatkhold.png");
 }
 
@@ -536,7 +544,7 @@
 
 .hard-flavour-text {
     -fx-font-family: "VT323";
-    -fx-font-size: 32;
+    -fx-font-size: 34;
     -fx-text-fill: #FF8C00;
     -fx-alignment: center;
     -fx-text-alignment: center;

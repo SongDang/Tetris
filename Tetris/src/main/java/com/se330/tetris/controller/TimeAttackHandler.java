@@ -37,6 +37,7 @@ class TimeAttackHandler {
     private boolean gamePausedRef = false;
     private boolean isGameOverRef = false;
     private Runnable onFreezeEnd = null;
+    private double totalGameTime = 0;
 
     TimeAttackHandler(GameContext gameContext, Label timeLabel, Label freezeLabel, Label bombLabel,
                       VBox timePanel, VBox bombPanel, Runnable onGameOver) {
@@ -73,14 +74,7 @@ class TimeAttackHandler {
             }
         }
 
-        if (bombPanel != null) {
-            bombPanel.setVisible(false);
-            bombPanel.setManaged(false);
-        }
-        if (bombLabel != null) {
-            bombLabel.setText("BOMB x" + bombsRemaining);
-        }
-
+        totalGameTime = 0;
         timeRemainingSeconds = TIME_ATTACK_START_SECONDS;
         updateTimeLabel();
         if (timePanel != null) { timePanel.setVisible(true); timePanel.setManaged(true); }
@@ -94,6 +88,31 @@ class TimeAttackHandler {
     void setGameState(boolean paused, boolean gameOver) {
         gamePausedRef = paused;
         isGameOverRef = gameOver;
+    }
+
+    void update(double dt) {
+        if (gameContext.getGameMode() == GameContext.GameMode.TIME_ATTACK
+                && !gamePausedRef && !isGameOverRef && !isFreezeActive) {
+            totalGameTime += dt;
+        }
+    }
+
+    int getPhase() {
+        if (totalGameTime < 30) return 1;
+        if (totalGameTime < 90) return 2;
+        if (totalGameTime < 180) return 3;
+        return 4;
+    }
+
+    boolean shouldSpawnTransparentInBag() {
+        return getPhase() >= 2;
+    }
+
+    double getRandomBlockChance() {
+        int phase = getPhase();
+        if (phase < 3) return 0.0;
+        if (phase == 3) return (totalGameTime - 90) / 90.0 * 0.30;
+        return 0.30;
     }
 
     void pause() {
@@ -136,6 +155,8 @@ class TimeAttackHandler {
     }
 
     void setOnFreezeEnd(Runnable callback) { this.onFreezeEnd = callback; }
+
+    double getTimeRemaining() { return timeRemainingSeconds; }
 
     private void endFreeze() {
         isFreezeActive = false;

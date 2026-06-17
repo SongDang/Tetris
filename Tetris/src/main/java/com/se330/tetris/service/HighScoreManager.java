@@ -26,6 +26,8 @@ public class HighScoreManager {
     }
 
     public boolean checkIfHighscore(int score, String mode) {
+        if (score <= 0) return false;
+
         List<ScoreRecord> modeScores = allHighScores.getOrDefault(mode, new ArrayList<>());
 
         if (modeScores.size() < MAX_RECORDS) return true;
@@ -33,6 +35,11 @@ public class HighScoreManager {
     }
 
     public void addScore(ScoreRecord record) {
+        if (record == null || record.getScore() <= 0) {
+            System.out.println("Bỏ qua việc ghi nhận kỷ lục: Điểm số bằng 0 hoặc bản ghi không hợp lệ.");
+            return;
+        }
+
         String mode = record.getGameMode();
         List<ScoreRecord> scores = allHighScores.computeIfAbsent(mode, k -> new ArrayList<>());
 

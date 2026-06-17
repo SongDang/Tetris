@@ -364,6 +364,10 @@ class GameRenderer {
         preFreezeCallback  = onComplete;
     }
 
+    void triggerTetrisFlash() {
+        tetrisFlashAlpha = 1.0;
+    }
+
     void triggerTetrisFlash(int[] rows) {
         tetrisFlashRows = rows;
         tetrisFlashAlpha = 1.0;
@@ -656,7 +660,7 @@ class GameRenderer {
 
             if (rotationPulse > 0) rotationPulse = Math.max(0, rotationPulse - dt * 8.0);
             if (flashIntensity > 0) flashIntensity = Math.max(0, flashIntensity - dt * 6.0);
-            if (tetrisFlashAlpha > 0) tetrisFlashAlpha = Math.max(0, tetrisFlashAlpha - dt * 5.0);
+            if (tetrisFlashAlpha > 0) tetrisFlashAlpha = Math.max(0, tetrisFlashAlpha - dt * 12.0);
             if (postClearAlpha  > 0) postClearAlpha   = Math.max(0, postClearAlpha  - dt * 5.0);
             hardDropTrails.removeIf(t -> t.alpha <= 0);
             for (HardDropTrail t : hardDropTrails) t.alpha = Math.max(0, t.alpha - dt * 2.5);
