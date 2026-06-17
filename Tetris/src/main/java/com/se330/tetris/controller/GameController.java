@@ -729,8 +729,9 @@ public class GameController {
 
         int stackTop = boardEngine.getStackTopRow();
         int maxRow = Math.max(0, stackTop - 1);
+        int minRow = Math.min(4, maxRow);
         List<int[]> candidates = new ArrayList<>();
-        for (int y = 0; y <= maxRow && y < Constants.BOARD_HEIGHT; y++) {
+        for (int y = minRow; y <= maxRow && y < Constants.BOARD_HEIGHT; y++) {
             for (int x = 0; x < Constants.BOARD_WIDTH; x++) {
                 if (boardEngine.getBoard()[y][x] == 0
                         && !pieceOccupiesCell(currentPiece, x, y)
@@ -1055,7 +1056,7 @@ public class GameController {
     }
 
     private boolean tryRotateWithWallKick() {
-        if (currentPiece == null || currentPiece.isBomb()) {
+        if (currentPiece == null || currentPiece.getType() == TetrominoType.BOMB) {
             return false;
         }
 
