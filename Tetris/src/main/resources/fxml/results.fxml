@@ -13,6 +13,7 @@
 
     <!-- LAYOUT CHÍNH 2 CỘT -->
     <HBox AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="80.0"
+          AnchorPane.bottomAnchor="204.0"
           spacing="80" alignment="CENTER">
 
         <!-- CỘT TRÁI FINAL SCORE -->
@@ -84,10 +85,10 @@
     </HBox>
 
     <!-- Asset Giao diện cũ -->
-    <Region styleClass="bottom-glow" prefHeight="204"
+    <Region styleClass="bottom-glow" prefHeight="204" mouseTransparent="true"
             AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"/>
 
-    <HBox alignment="CENTER" prefHeight="112"
+    <HBox alignment="CENTER" prefHeight="112" mouseTransparent="true"
           AnchorPane.bottomAnchor="46" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
         <StackPane prefWidth="700" prefHeight="112" styleClass="results-note-panel">
             <Label fx:id="commentLabel" text="Not bad, but you can do better"

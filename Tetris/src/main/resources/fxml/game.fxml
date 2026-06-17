@@ -69,7 +69,7 @@
 
             <VBox fx:id="bombInventoryBox"
                   visible="false" managed="false"
-                  prefWidth="216.0" prefHeight="130.0" styleClass="game-time-panel" alignment="CENTER_LEFT">
+                  prefWidth="216.0" prefHeight="176.0" styleClass="game-bomb-panel" alignment="CENTER_LEFT">
                 <VBox alignment="TOP_LEFT" style="-fx-padding: 14 40 10 40;" spacing="4">
                     <Label text="BOMB SKILL" styleClass="game-label-header"/>
                     <Label fx:id="bombsLabel" text="💣 x3"
@@ -108,22 +108,6 @@
             </VBox>
         </VBox>
     </HBox>
-
-    <VBox fx:id="bombInventoryBox"
-          visible="false" managed="false"
-          layoutX="260.0" layoutY="558.0"
-          prefWidth="216.0" prefHeight="130.0"
-          style="-fx-alignment: center; -fx-spacing: 8; -fx-padding: 14;
-                 -fx-border-color: #aa3344; -fx-border-width: 1;
-                 -fx-background-color: #2a1620; -fx-background-radius: 4;
-                 -fx-border-radius: 4;">
-        <Label text="BOMB"
-               style="-fx-font-size: 11; -fx-text-fill: #ff9aa8;
-                      -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-        <Label fx:id="bombsLabel" text="💣 x3"
-               style="-fx-font-size: 24; -fx-text-fill: #ff5566;
-                      -fx-font-family: 'Courier New'; -fx-font-weight: bold;"/>
-    </VBox>
 
     <ImageView fx:id="standardTimeBarView" fitWidth="1440.0" fitHeight="204.0"
                preserveRatio="false" mouseTransparent="true"
