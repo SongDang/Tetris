@@ -400,8 +400,7 @@
 .game-next-panel,
 .game-time-panel,
 .game-bomb-panel,
-.game-flavour-panel,
-.game-bottom-bar {
+.game-flavour-panel {
     -fx-background-color: transparent;
     -fx-background-repeat: no-repeat;
     -fx-background-size: 100% 100%;
@@ -427,10 +426,6 @@
     -fx-background-image: url("../assets/standardflavour.png");
 }
 
-.game-bottom-bar {
-    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #050513 0%, #000000 48%, #000000 100%);
-}
-
 .screen-timeatk-game .game-score-panel {
     -fx-background-image: url("../assets/timeatkbar.png");
 }
@@ -453,10 +448,6 @@
 
 .screen-timeatk-game .game-flavour-panel {
     -fx-background-image: url("../assets/timeatkflavour.png");
-}
-
-.screen-timeatk-game .game-bottom-bar {
-    -fx-background-color: linear-gradient(from 0% 0% to 0% 100%, #001918 0%, #000000 48%, #000000 100%);
 }
 
 .game-label-header {
@@ -511,6 +502,7 @@
     -fx-background-color: transparent;
     -fx-background-image: url("../assets/hardbar.png");
     -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
     -fx-background-size: 100% 100%;
 }
 

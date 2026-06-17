@@ -1,10 +1,10 @@
 {
     "java.configuration.updateBuildConfiguration": "interactive",
-    "java.jdt.ls.java.home": "C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot",
+    "java.jdt.ls.java.home": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.10.7-hotspot",
     "java.configuration.runtimes": [
         {
             "name": "JavaSE-21",
-            "path": "C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot",
+            "path": "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.10.7-hotspot",
             "default": true
         }
     ]

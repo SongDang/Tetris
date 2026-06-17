@@ -100,7 +100,7 @@
 
     </HBox>
 
-    <VBox alignment="TOP_CENTER"
+    <VBox alignment="TOP_CENTER" mouseTransparent="true"
           AnchorPane.topAnchor="259" AnchorPane.rightAnchor="220">
         <ImageView fitWidth="10" fitHeight="610" preserveRatio="false"
                    managed="false" translateX="170" translateY="-580"

@@ -52,6 +52,7 @@ public class GameController {
     @FXML private Canvas holdBlockCanvas;
     @FXML private javafx.scene.image.ImageView lightBulbView;
     @FXML private javafx.scene.image.ImageView mainFrameView;
+    @FXML private javafx.scene.image.ImageView standardTimeBarView;
     @FXML private javafx.scene.control.Label flavourLabel;
     @FXML private javafx.scene.control.Label comboLabel;
     @FXML private Label bombsLabel;
@@ -72,6 +73,8 @@ public class GameController {
     private javafx.scene.image.Image darkMainImage;
     private javafx.scene.image.Image standardMainImage;
     private javafx.scene.image.Image timeAttackMainImage;
+    private javafx.scene.image.Image standardFlavourBgImage;
+    private javafx.scene.image.Image timeAttackFlavourBgImage;
 
     private SceneManager sceneManager;
     private GameContext gameContext;
@@ -355,6 +358,8 @@ public class GameController {
         darkMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/darkmain.png"));
         standardMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/standardmain.png"));
         timeAttackMainImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/timeatkmain.png"));
+        standardFlavourBgImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/standardflavour_bg.png"));
+        timeAttackFlavourBgImage = new javafx.scene.image.Image(getClass().getResourceAsStream("/assets/timeflavour_bg.png"));
     }
 
     // --- Game loop ---
@@ -1114,10 +1119,8 @@ public class GameController {
         if (mode == GameContext.GameMode.TIME_ATTACK) {
             gamePane.getStyleClass().add("screen-timeatk-game");
             if (mainFrameView != null) mainFrameView.setImage(timeAttackMainImage);
-            if (bgCenter != null) {
-                javafx.scene.layout.AnchorPane.setLeftAnchor(bgCenter, 200.0);
-                javafx.scene.layout.AnchorPane.setRightAnchor(bgCenter, 200.0);
-            }
+            if (standardTimeBarView != null) standardTimeBarView.setImage(timeAttackFlavourBgImage);
+            
             startTimeAttackFlavourCycle();
             Platform.runLater(this::initTimeAttackFlavourChars);
         } else if (mode == GameContext.GameMode.HARD_MODE) {
@@ -1126,10 +1129,8 @@ public class GameController {
         } else {
             gamePane.getStyleClass().add("screen-standard-game");
             if (mainFrameView != null) mainFrameView.setImage(standardMainImage);
-            if (bgCenter != null) {
-                javafx.scene.layout.AnchorPane.setLeftAnchor(bgCenter, 0.0);
-                javafx.scene.layout.AnchorPane.setRightAnchor(bgCenter, 0.0);
-            }
+            if (standardTimeBarView != null) standardTimeBarView.setImage(standardFlavourBgImage);
+           
             if (flavourLabel != null)
                 flavourLabel.setText(STD_START[rng.nextInt(STD_START.length)]);
             Platform.runLater(this::initStandardFlavourChars);

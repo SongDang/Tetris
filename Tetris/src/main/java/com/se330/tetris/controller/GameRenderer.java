@@ -27,7 +27,7 @@ class GameRenderer {
     private static final double BG_R = 0x0f / 255.0;
     private static final double BG_G = 0x0d / 255.0;
     private static final double BG_B = 0x1a / 255.0;
-    private static final String PANE_BASE_STYLE = "-fx-padding: 20; -fx-spacing: 20; -fx-alignment: center;";
+    private static final String PANE_BASE_STYLE = "";
     private static final double STARTUP_GLITCH_DUR = 0.75;
 
     // Canvas refs

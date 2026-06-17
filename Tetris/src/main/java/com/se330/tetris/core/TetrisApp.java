@@ -15,7 +15,9 @@ public class TetrisApp extends Application {
         sceneManager.setPrimaryStage(primaryStage);
 
         primaryStage.setTitle(Constants.WINDOW_TITLE);
-        primaryStage.setResizable(false);
+        primaryStage.setResizable(true);
+        primaryStage.setMinWidth(Constants.WINDOW_WIDTH * 0.5);
+        primaryStage.setMinHeight(Constants.WINDOW_HEIGHT * 0.5);
 
         String requestedFromProperty = System.getProperty("tetris.startScene", "").trim();
         String requestedFromEnv = System.getenv("TETRIS_START_SCENE");
