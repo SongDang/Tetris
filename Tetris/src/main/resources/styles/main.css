@@ -63,6 +63,23 @@
     -fx-font-size: 12;
 }
 
+/* Overlay label used on image-based buttons */
+.button-overlay {
+    -fx-font-family: 'VT323', 'Courier New', monospace;
+    -fx-font-size: 28px;
+    -fx-text-fill: #ffffff;
+    -fx-effect: dropshadow( gaussian , rgba(0,0,0,0.8) , 6, 0.0 , 0 , 2 );
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-font-smoothing-type: lcd;
+}
+
+/* Variant for main menu labels if a different size is desired */
+.main-menu-button-label {
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+}
+
 .status-bar {
     -fx-background-color: #2d2d2d;
     -fx-border-color: #ffff00;

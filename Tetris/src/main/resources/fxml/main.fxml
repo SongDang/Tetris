@@ -1,29 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.canvas.Canvas?>
 
 <AnchorPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
             fx:id="mainMenuPane" fx:controller="com.se330.tetris.controller.MainMenuController"
             prefWidth="1440.0" prefHeight="1024.0" styleClass="screen-main-menu">
 
-    <AnchorPane fx:id="mainContent" prefWidth="1440.0" prefHeight="1024.0">
-        <Label layoutX="504.0" layoutY="257.0" prefWidth="472.0" prefHeight="137.0"
-               text="GAME NAME" styleClass="figma-main-title" />
+    <Canvas fx:id="bgCanvas" width="1440.0" height="1024.0" mouseTransparent="true"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"/>
 
-        <Button fx:id="gamemodesBtn" layoutX="614.0" layoutY="475.0" prefWidth="252.0" prefHeight="74.0"
-                onAction="#onGamemodesClicked" text="Gamemodes" styleClass="figma-button,main-menu-button" />
+    <AnchorPane fx:id="mainContent"
+                AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
+                AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
 
-        <Button fx:id="settingsBtn" layoutX="614.0" layoutY="613.0" prefWidth="252.0" prefHeight="74.0"
-                onAction="#onSettingsClicked" text="Settings" styleClass="figma-button,main-menu-button" />
+        <VBox alignment="CENTER" spacing="60"
+              AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0"
+              AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+
+            <Label fx:id="titleLabel" text="TETRIS" styleClass="figma-main-title" maxWidth="Infinity" />
+
+            <VBox alignment="CENTER" spacing="30">
+                <Button fx:id="gamemodesBtn" prefWidth="320.0" prefHeight="114.0"
+                        onAction="#onGamemodesClicked" text="Gamemodes"
+                        styleClass="figma-button,main-menu-button" />
+                <Button fx:id="settingsBtn" prefWidth="320.0" prefHeight="114.0"
+                        onAction="#onSettingsClicked" text="Settings"
+                        styleClass="figma-button,main-menu-button" />
+            </VBox>
+        </VBox>
     </AnchorPane>
 
-        <AnchorPane fx:id="settingsOverlay" prefWidth="1440.0" prefHeight="1024.0"
-                                visible="false" managed="false" styleClass="settings-overlay-host,settings-overlay-from-menu">
+    <AnchorPane fx:id="settingsOverlay" prefWidth="1440.0" prefHeight="1024.0"
+                visible="false" managed="false" styleClass="settings-overlay-host,settings-overlay-from-menu">
         <Region layoutX="0.0" layoutY="0.0" prefWidth="1440.0" prefHeight="1024.0"
                 styleClass="settings-overlay-backdrop" onMouseClicked="#onSettingsOverlayBackdropClicked" />
-
         <AnchorPane layoutX="374.0" layoutY="248.0" prefWidth="692.0" prefHeight="487.0" styleClass="settings-popup-shell">
-                        <fx:include fx:id="settingsPopup" source="settings.fxml" />
+            <fx:include fx:id="settingsPopup" source="settings.fxml" />
         </AnchorPane>
     </AnchorPane>
 

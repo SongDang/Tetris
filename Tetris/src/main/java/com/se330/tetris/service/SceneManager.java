@@ -1,8 +1,19 @@
 package com.se330.tetris.service;
 
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.NumberBinding;
+import com.se330.tetris.util.SoundType;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import com.se330.tetris.util.Constants;
 
@@ -15,13 +26,23 @@ public class SceneManager {
     public static final String MAIN_MENU_SCENE = "main";
     public static final String GAMEMODES_SCENE = "gamemodes";
     public static final String GAME_SCENE = "game";
+    public static final String HARD_GAME_SCENE  = "hardgame";
+    public static final String HARD_INTRO_SCENE     = "hardintro";
+    public static final String TIME_INTRO_SCENE     = "timeintro";
+    public static final String STANDARD_INTRO_SCENE = "standardintro";
     public static final String RESULTS_SCENE = "results";
     public static final String SETTINGS_SCENE = "settings";
 
     private static SceneManager instance;
 
     private Stage primaryStage;
-    private final Map<String, Scene> scenes = new HashMap<>();
+    private Scene appScene;
+    private Pane contentLayer;
+    private Pane viewport;
+    private final Map<String, Parent> roots = new HashMap<>();
+    private boolean fullScreenRequested = false;
+    private boolean stageConfigured = false;
+    private boolean switchingScene = false;
 
     private SceneManager() {
     }
@@ -35,6 +56,7 @@ public class SceneManager {
 
     public void setPrimaryStage(Stage stage) {
         this.primaryStage = stage;
+        configureStage();
     }
 
     public void switchToScene(String sceneName) {
@@ -43,31 +65,137 @@ public class SceneManager {
         }
 
         try {
-            Scene scene = getOrLoadScene(sceneName);
-            primaryStage.setScene(scene);
-            primaryStage.show();
+            Parent root = getOrLoadRoot(sceneName);
+            boolean restoreFullScreen = fullScreenRequested || primaryStage.isFullScreen();
+            switchingScene = true;
+            try {
+                Scene scene = getOrCreateAppScene();
+                contentLayer.getChildren().setAll(root);
+                if (primaryStage.getScene() != scene) {
+                    primaryStage.setScene(scene);
+                }
+                primaryStage.setResizable(true);
+                if (!primaryStage.isShowing() && !restoreFullScreen) {
+                    primaryStage.sizeToScene();
+                }
+                if (!primaryStage.isShowing()) {
+                    primaryStage.show();
+                }
+                if (restoreFullScreen) {
+                    fullScreenRequested = true;
+                    primaryStage.setFullScreen(true);
+                }
+                root.requestFocus();
+            } finally {
+                switchingScene = false;
+            }
         } catch (IOException e) {
             throw new RuntimeException("Failed to load scene: " + sceneName, e);
         }
-    }
 
-    private Scene getOrLoadScene(String sceneName) throws IOException {
-        if (!scenes.containsKey(sceneName)) {
-            Scene newScene = loadScene(sceneName);
-            scenes.put(sceneName, newScene);
+        SoundManager soundManager = SoundManager.getInstance();
+        switch (sceneName) {
+            case SceneManager.MAIN_MENU_SCENE:
+                soundManager.playMusic(SoundType.MAIN_THEME);
+                break;
         }
-        return scenes.get(sceneName);
     }
 
-    private Scene loadScene(String sceneName) throws IOException {
+    private void configureStage() {
+        if (primaryStage == null || stageConfigured) return;
+        stageConfigured = true;
+        primaryStage.setFullScreenExitHint("");
+        primaryStage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+        primaryStage.fullScreenProperty().addListener((obs, wasFullScreen, isFullScreen) -> {
+            if (switchingScene) return;
+            fullScreenRequested = isFullScreen;
+        });
+        primaryStage.maximizedProperty().addListener((obs, wasMaximized, isMaximized) -> {
+            if (!isMaximized) return;
+            Platform.runLater(() -> setFullScreenMode(true));
+        });
+    }
+
+    private void setFullScreenMode(boolean enabled) {
+        if (primaryStage == null) return;
+        fullScreenRequested = enabled;
+        if (enabled) {
+            primaryStage.setFullScreen(true);
+            if (primaryStage.isMaximized()) {
+                Platform.runLater(() -> primaryStage.setMaximized(false));
+            }
+        } else {
+            primaryStage.setFullScreen(false);
+        }
+    }
+
+    private Parent getOrLoadRoot(String sceneName) throws IOException {
+        if (!roots.containsKey(sceneName)) {
+            Parent root = loadRoot(sceneName);
+            roots.put(sceneName, root);
+        }
+        return roots.get(sceneName);
+    }
+
+    private Parent loadRoot(String sceneName) throws IOException {
         String fxmlPath = getFxmlPath(sceneName);
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
         Parent root = loader.load();
+        configureDesignRoot(root);
+        return root;
+    }
 
-        Scene scene = new Scene(root);
-        applyStylesheet(scene);
+    private Scene getOrCreateAppScene() {
+        if (appScene == null) {
+            viewport = createResponsiveViewport();
+            appScene = new Scene(viewport, Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT, Color.BLACK);
+            applyStylesheet(appScene);
+            installFullscreenShortcut(appScene);
+        }
+        return appScene;
+    }
 
-        return scene;
+    private void configureDesignRoot(Parent root) {
+        if (root instanceof Region region) {
+            region.setMinSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+            region.setPrefSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+            region.setMaxSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+            region.resize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        }
+    }
+
+    private Pane createResponsiveViewport() {
+        contentLayer = new Pane();
+        contentLayer.setMinSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        contentLayer.setPrefSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        contentLayer.setMaxSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+
+        StackPane responsiveViewport = new StackPane(contentLayer);
+        responsiveViewport.setStyle("-fx-background-color: #000000;");
+        responsiveViewport.setMinSize(0, 0);
+        responsiveViewport.setPrefSize(Constants.WINDOW_WIDTH, Constants.WINDOW_HEIGHT);
+        responsiveViewport.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+
+        NumberBinding scale = Bindings.min(
+                responsiveViewport.widthProperty().divide(Constants.WINDOW_WIDTH),
+                responsiveViewport.heightProperty().divide(Constants.WINDOW_HEIGHT));
+
+        contentLayer.scaleXProperty().bind(scale);
+        contentLayer.scaleYProperty().bind(scale);
+
+        return responsiveViewport;
+    }
+
+    private void installFullscreenShortcut(Scene scene) {
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (primaryStage == null) return;
+            boolean fullScreenShortcut = event.getCode() == KeyCode.F11
+                    || (event.getCode() == KeyCode.ENTER && event.isAltDown());
+            if (!fullScreenShortcut) return;
+
+            setFullScreenMode(!primaryStage.isFullScreen());
+            event.consume();
+        });
     }
 
     private String getFxmlPath(String sceneName) {
@@ -75,6 +203,10 @@ public class SceneManager {
             case MAIN_MENU_SCENE -> Constants.FXML_MAIN;
             case GAMEMODES_SCENE -> Constants.FXML_GAMEMODES;
             case GAME_SCENE -> Constants.FXML_GAME;
+            case HARD_GAME_SCENE  -> Constants.FXML_HARDGAME;
+            case HARD_INTRO_SCENE     -> Constants.FXML_HARD_INTRO;
+            case TIME_INTRO_SCENE     -> Constants.FXML_TIME_INTRO;
+            case STANDARD_INTRO_SCENE -> Constants.FXML_STANDARD_INTRO;
             case RESULTS_SCENE -> Constants.FXML_RESULTS;
             case SETTINGS_SCENE -> Constants.FXML_SETTINGS;
             default -> throw new IllegalArgumentException("Unknown scene name: " + sceneName);
@@ -87,14 +219,14 @@ public class SceneManager {
     }
 
     public void clearSceneCache() {
-        scenes.clear();
+        roots.clear();
     }
 
     public Scene getScene(String sceneName) {
-        return scenes.get(sceneName);
+        return isSceneLoaded(sceneName) ? appScene : null;
     }
 
     public boolean isSceneLoaded(String sceneName) {
-        return scenes.containsKey(sceneName);
+        return roots.containsKey(sceneName);
     }
 }

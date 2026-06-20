@@ -13,6 +13,7 @@ import java.util.Map;
 public class SoundManager {
     private static SoundManager instance;
     private Clip musicClip;
+    private Clip loopingClip;
     private final Map<SoundType, URL> soundMap = new HashMap<>();
 
     private float musicVolume = 0.8f;
@@ -61,35 +62,115 @@ public class SoundManager {
         }
     }
 
+    public void playSE(SoundType type, float volumeMultiplier) {
+        URL url = soundMap.get(type);
+        if (url == null) return;
+        float vol = seVolume * Math.max(0f, Math.min(1f, volumeMultiplier));
+        Thread t = new Thread(() -> {
+            try {
+                AudioInputStream ais = AudioSystem.getAudioInputStream(url);
+                Clip seClip = AudioSystem.getClip();
+                seClip.open(ais);
+                ais.close();
+                applyVolume(seClip, vol);
+                seClip.start();
+                seClip.addLineListener(event -> {
+                    if (event.getType() == javax.sound.sampled.LineEvent.Type.STOP)
+                        seClip.close();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
     public void playSE(SoundType type) {
+        URL url = soundMap.get(type);
+        if (url == null) return;
+        float vol = seVolume;
+        Thread t = new Thread(() -> {
+            try {
+                AudioInputStream ais = AudioSystem.getAudioInputStream(url);
+                Clip seClip = AudioSystem.getClip();
+                seClip.open(ais);
+                ais.close();
+                applyVolume(seClip, vol);
+                seClip.start();
+                seClip.addLineListener(event -> {
+                    if (event.getType() == javax.sound.sampled.LineEvent.Type.STOP)
+                        seClip.close();
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    public void playLooping(SoundType type) {
+        stopLooping();
         try {
             URL url = soundMap.get(type);
             if (url == null) return;
-
             AudioInputStream ais = AudioSystem.getAudioInputStream(url);
-            Clip seClip = AudioSystem.getClip();
-            seClip.open(ais);
-            applyVolume(seClip, seVolume);
-            seClip.start();
-
-            seClip.addLineListener(event -> {
-                if (event.getType() == javax.sound.sampled.LineEvent.Type.STOP) {
-                    seClip.close();
-                }
-            });
+            loopingClip = AudioSystem.getClip();
+            loopingClip.open(ais);
+            applyVolume(loopingClip, seVolume);
+            loopingClip.loop(Clip.LOOP_CONTINUOUSLY);
+            loopingClip.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    public void stopLooping() {
+        if (loopingClip != null) {
+            loopingClip.stop();
+            loopingClip.close();
+            loopingClip = null;
+        }
+    }
+
+    public void pauseMusic() {
+        if (musicClip != null && musicClip.isRunning()) {
+            musicClip.stop();
+        }
+    }
+
+    public void resumeMusic() {
+        if (musicClip != null && musicClip.isOpen() && !musicClip.isRunning()) {
+            musicClip.loop(Clip.LOOP_CONTINUOUSLY);
+            musicClip.start();
+        }
+    }
+
     public void setMusicVolume(float volume) {
-        this.musicVolume = volume;
+        this.musicVolume = clampVolume(volume);
         if (musicClip != null && musicClip.isOpen()) {
             applyVolume(musicClip, musicVolume);
         }
     }
+
     public void setSEVolume(float volume) {
-        this.seVolume = volume;
+        this.seVolume = clampVolume(volume);
+        if (loopingClip != null && loopingClip.isOpen()) {
+            applyVolume(loopingClip, seVolume);
+        }
+    }
+
+    public float getMusicVolume() {
+        return musicVolume;
+    }
+
+    public float getSEVolume() {
+        return seVolume;
+    }
+
+    private float clampVolume(float volume) {
+        return Math.max(0.0f, Math.min(1.0f, volume));
     }
 
     private void applyVolume(Clip clip, float volume) {

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.geometry.Insets?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/17"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="gamePane"
+            fx:controller="com.se330.tetris.controller.GameController"
+            focusTraversable="true"
+            styleClass="screen-hard-game"
+            prefWidth="1440" prefHeight="1024">
+
+    <Region styleClass="game-bg-center"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="260"
+            AnchorPane.rightAnchor="260" AnchorPane.bottomAnchor="0"/>
+
+    <Canvas fx:id="bgEffectCanvas" width="1440" height="1024"
+            mouseTransparent="true"
+            AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"/>
+
+    <HBox alignment="TOP_CENTER" spacing="20"
+          AnchorPane.topAnchor="20" AnchorPane.leftAnchor="0"
+          AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="204">
+
+        <VBox alignment="TOP_CENTER" spacing="8" style="-fx-padding: 65 0 0 0;">
+
+            <StackPane prefWidth="216" prefHeight="280" styleClass="hard-dash-panel">
+                <VBox StackPane.alignment="TOP_LEFT" alignment="TOP_LEFT"
+                      style="-fx-padding: 46 40 22 40;" spacing="8">
+
+                    <Label text="SCORE" styleClass="hard-label-header"/>
+                    <Label fx:id="scoreLabel" text="0"
+                           style="-fx-font-size: 48; -fx-text-fill: #EA96FF; -fx-font-family: 'VT323';"/>
+
+                    <HBox>
+                        <VBox.margin><Insets top="10"/></VBox.margin>
+                        <Label text="LEVEL" styleClass="hard-label-header"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="levelLabel" text="1"
+                               style="-fx-font-size: 22; -fx-text-fill: #00ff88; -fx-font-family: 'VT323';"/>
+                    </HBox>
+
+                    <HBox>
+                        <Label text="LINES" styleClass="hard-label-header"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="linesLabel" text="0"
+                               style="-fx-font-size: 22; -fx-text-fill: #ffcc00; -fx-font-family: 'VT323';"/>
+                    </HBox>
+
+                    <HBox>
+                        <Label text="COMBO" styleClass="hard-label-header"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <Label fx:id="comboLabel" text="x0"
+                               style="-fx-font-size: 22; -fx-text-fill: #ff88cc; -fx-font-family: 'VT323';"/>
+                    </HBox>
+
+                </VBox>
+            </StackPane>
+
+            <StackPane prefWidth="216" prefHeight="176" styleClass="hard-hold-panel">
+                <VBox alignment="TOP_LEFT" spacing="4" style="-fx-padding: 37 10 10 41;">
+                    <Label text="HOLD" styleClass="hard-label-header"/>
+                    <Canvas fx:id="holdBlockCanvas" width="100" height="100" translateX="15" translateY="-8"/>
+                </VBox>
+            </StackPane>
+
+            <VBox fx:id="bombInventoryBox" prefWidth="216" prefHeight="176" styleClass="hard-dash-panel" alignment="CENTER">
+                <VBox alignment="TOP_LEFT" style="-fx-padding: 37 40 22 40;" spacing="8">
+                    <Label text="BOMB SKILL" styleClass="hard-label-header"/>
+                    <Label fx:id="bombsLabel" text="💣 READY" style="-fx-font-size: 32; -fx-text-fill: #ff5566; -fx-font-family: 'VT323';">
+                        <VBox.margin><Insets top="10"/></VBox.margin>
+                    </Label>
+                    <Label text="[ Press B ]" style="-fx-font-size: 14; -fx-text-fill: #666688; -fx-font-family: 'VT323';"/>
+                </VBox>
+            </VBox>
+
+        </VBox>
+
+        <StackPane prefWidth="352" prefHeight="652">
+            <ImageView fx:id="mainFrameView" fitWidth="352" fitHeight="652" preserveRatio="false"
+                       mouseTransparent="true">
+                <image><Image url="@../assets/hardmain.png"/></image>
+            </ImageView>
+            <Canvas fx:id="gameCanvas" width="300" height="600"/>
+            <Canvas fx:id="vfxCanvas" width="600" height="600"
+                    managed="false" layoutX="-124" layoutY="26" mouseTransparent="true"/>
+        </StackPane>
+
+        <Region prefWidth="216" minWidth="216"/>
+
+    </HBox>
+
+    <VBox alignment="TOP_CENTER" mouseTransparent="true"
+          AnchorPane.topAnchor="259" AnchorPane.rightAnchor="220">
+        <ImageView fitWidth="10" fitHeight="610" preserveRatio="false"
+                   managed="false" translateX="170" translateY="-580"
+                   mouseTransparent="true">
+            <image><Image url="@../assets/string.png"/></image>
+        </ImageView>
+        <ImageView fx:id="lightBulbView" fitWidth="350" fitHeight="350"
+                   preserveRatio="true" visible="false"/>
+    </VBox>
+
+    <Region styleClass="hard-bar" prefHeight="204"
+            AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"/>
+
+    <HBox alignment="CENTER" prefHeight="112"
+          AnchorPane.bottomAnchor="46" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+        <StackPane prefWidth="700" prefHeight="112" styleClass="hard-flavour-panel">
+            <Label fx:id="flavourLabel" text="Back for more?"
+                   maxWidth="Infinity" styleClass="hard-flavour-text"/>
+        </StackPane>
+    </HBox>
+
+    <Button text="?" onAction="#onTutorialButtonClicked"
+            prefWidth="58.0" prefHeight="58.0"
+            styleClass="tutorial-icon-button"
+            AnchorPane.topAnchor="28.0" AnchorPane.rightAnchor="32.0"/>
+
+    <AnchorPane fx:id="tutorialOverlay"
+                visible="false" managed="false" focusTraversable="true"
+                prefWidth="1440.0" prefHeight="1024.0"
+                styleClass="settings-overlay-host,tutorial-overlay-host">
+        <Region styleClass="settings-overlay-backdrop" onMouseClicked="#onTutorialOverlayBackdropClicked"
+                AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
+                AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"/>
+        <AnchorPane fx:id="tutorialPopupShell" prefWidth="692.0" prefHeight="487.0"
+                    styleClass="tutorial-popup-shell">
+            <VBox alignment="CENTER" spacing="14.0"
+                  prefWidth="692.0" prefHeight="487.0"
+                  styleClass="tutorial-popup-content">
+                <Label fx:id="tutorialTitleLabel" text="How to Play" styleClass="tutorial-title"/>
+                <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED"
+                            prefWidth="560.0" prefHeight="285.0"
+                            styleClass="tutorial-scroll-pane">
+                    <content>
+                        <Label fx:id="tutorialBodyLabel" wrapText="true"
+                               maxWidth="538.0" styleClass="tutorial-body"/>
+                    </content>
+                </ScrollPane>
+                <Button text="Close" onAction="#onTutorialCloseClicked"
+                        prefWidth="170.0" prefHeight="78.0"
+                        styleClass="settings-action-button,tutorial-close-button"/>
+            </VBox>
+        </AnchorPane>
+    </AnchorPane>
+
+    <AnchorPane fx:id="settingsOverlay"
+                visible="false" managed="false" focusTraversable="true"
+                prefWidth="1440.0" prefHeight="1024.0"
+                styleClass="settings-overlay-host,settings-overlay-from-game">
+        <Region styleClass="settings-overlay-backdrop" onMouseClicked="#onSettingsOverlayBackdropClicked"
+                AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
+                AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"/>
+        <AnchorPane fx:id="settingsPopupShell" prefWidth="692.0" prefHeight="487.0" styleClass="settings-popup-shell">
+            <fx:include fx:id="settingsPopup" source="settings.fxml" />
+        </AnchorPane>
+    </AnchorPane>
+
+</AnchorPane>

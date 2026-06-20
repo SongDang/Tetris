@@ -1,13 +1,39 @@
 package com.se330.tetris.controller;
 
+import javafx.animation.AnimationTimer;
+import javafx.animation.FadeTransition;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
+import com.se330.tetris.model.ScoreRecord;
+import com.se330.tetris.service.HighScoreManager;
 import com.se330.tetris.service.SoundManager;
 import com.se330.tetris.util.SoundType;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.util.Callback;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import com.se330.tetris.service.GameContext;
 import com.se330.tetris.service.SceneManager;
+import javafx.scene.layout.VBox;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
 
 public class ResultsController {
 
@@ -21,16 +47,10 @@ public class ResultsController {
     private Label gameModeLabel;
 
     @FXML
-    private Label timeLabel;
-
-    @FXML
     private Label linesLabel;
 
     @FXML
     private Label levelLabel;
-
-    @FXML
-    private Label blocksLabel;
 
     @FXML
     private Button saveBtn;
@@ -41,66 +61,356 @@ public class ResultsController {
     @FXML
     private Button menuBtn;
 
+    @FXML
+    private Label commentLabel;
+
+    @FXML
+    private Label modeFilterLabel;
+
+    @FXML
+    private VBox newRecordBox;
+    @FXML
+    private TextField playerNameInput;
+    @FXML
+    private TableView<ScoreRecord> highScoreTable;
+    @FXML
+    private TableColumn<ScoreRecord, String> colName;
+    @FXML
+    private TableColumn<ScoreRecord, Integer> colScore;
+    @FXML
+    private TableColumn<ScoreRecord, String> colDate;
+
     private SceneManager sceneManager;
-    private GameContext gameContext;
+    private GameContext  gameContext;
+
+    private AnimationTimer    glitchTimer;
+    private Region            blackOverlay;
+    private double            elapsed  = 0;
+    private long              lastNano = 0;
+    private String            realScore;
+    private final Random      rng = new Random();
+
+    private final List<Label> noteChars = new ArrayList<>();
+
+    private static final double DARK_HOLD    = 0.25;
+    private static final double FADE_DUR     = 1.50;
+    private static final double SCRAMBLE_END = DARK_HOLD + 0.55;
+    private static final double TYPE_START   = DARK_HOLD + 0.30;
+    private static final double CHAR_DELAY   = 0.055;
+
+    private static final double WAVE_AMP   = 2.5;
+    private static final double WAVE_SPEED = 2.5;
+    private static final double WAVE_PHASE = 0.45;
+
+    int score, level, lines;
+    String mode;
+    String date;
 
     @FXML
     private void initialize() {
+        playerNameInput.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue.length() > 9) {
+                playerNameInput.setText(oldValue);
+            }
+        });
+
         sceneManager = SceneManager.getInstance();
         gameContext = GameContext.getInstance();
+
+        colName.setCellValueFactory(new PropertyValueFactory<>("playerName"));
+        colScore.setCellValueFactory(new PropertyValueFactory<>("score"));
+        colDate.setCellValueFactory(new PropertyValueFactory<>("date"));
+
+        colName.setCellFactory(waveCellFactory(true));
+        colScore.setCellFactory(waveCellFactory(true));
+        colDate.setCellFactory(waveCellFactory(false));
+
         populateResults();
+        for (Button btn : new Button[]{saveBtn, retryBtn, menuBtn})
+            if (btn != null) btn.setOnMouseEntered(e -> SoundManager.getInstance().playSE(SoundType.HOVER));
+        PauseTransition glitchDelay = new PauseTransition(Duration.millis(300));
+        glitchDelay.setOnFinished(e -> SoundManager.getInstance().playSE(SoundType.RESULT_GLITCH));
+        glitchDelay.play();
+        startGlitchIntro();
+    }
+
+    private void startGlitchIntro() {
+        realScore = finalScoreLabel.getText();
+        buildCharLabels();
+
+        blackOverlay = new Region();
+        blackOverlay.setStyle("-fx-background-color: black;");
+        blackOverlay.setMouseTransparent(true);
+        AnchorPane.setTopAnchor(blackOverlay, 0.0);
+        AnchorPane.setBottomAnchor(blackOverlay, 0.0);
+        AnchorPane.setLeftAnchor(blackOverlay, 0.0);
+        AnchorPane.setRightAnchor(blackOverlay, 0.0);
+        resultsPane.getChildren().add(blackOverlay);
+
+        lastNano = System.nanoTime();
+        glitchTimer = new AnimationTimer() {
+            @Override public void handle(long now) {
+                double dt = (now - lastNano) / 1_000_000_000.0;
+                lastNano = now;
+                elapsed += dt;
+                tick(dt);
+            }
+        };
+        glitchTimer.start();
+    }
+
+    private static class WaveCell<T> extends TableCell<ScoreRecord, T> {
+        final List<Label> chars = new ArrayList<>();
+        private final boolean rightBorder;
+
+        WaveCell(boolean rightBorder) { this.rightBorder = rightBorder; }
+
+        @Override
+        protected void updateItem(T item, boolean empty) {
+            super.updateItem(item, empty);
+            chars.clear();
+            if (empty || item == null) { setGraphic(null); setText(null); return; }
+            HBox box = new HBox(0);
+            box.setAlignment(Pos.CENTER);
+            for (char c : item.toString().toCharArray()) {
+                Label l = new Label(String.valueOf(c));
+                l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 20; -fx-text-fill: white;");
+                chars.add(l);
+                box.getChildren().add(l);
+            }
+            setText(null);
+            setGraphic(box);
+            if (rightBorder) getStyleClass().add("results-table-divider-cell");
+        }
+    }
+
+    private <T> Callback<TableColumn<ScoreRecord, T>, TableCell<ScoreRecord, T>> waveCellFactory(boolean rightBorder) {
+        return col -> new WaveCell<>(rightBorder);
+    }
+
+    private void buildCharLabels() {
+        if (commentLabel == null) return;
+        commentLabel.setVisible(false);
+        StackPane notePanel = (StackPane) commentLabel.getParent();
+        if (notePanel == null) return;
+        HBox noteBox = new HBox(0);
+        noteBox.setAlignment(Pos.CENTER);
+        for (char c : commentLabel.getText().toCharArray()) {
+            Label l = new Label(String.valueOf(c));
+            l.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 42; -fx-text-fill: #ffffff;");
+            l.setOpacity(0);
+            noteChars.add(l);
+            noteBox.getChildren().add(l);
+        }
+        notePanel.getChildren().add(noteBox);
+    }
+
+    private void tick(double dt) {
+        // Overlay fade: hold black briefly, then smoothstep ease-out to transparent
+        if (elapsed <= DARK_HOLD) {
+            blackOverlay.setOpacity(1.0);
+        } else {
+            double t     = Math.min(1.0, (elapsed - DARK_HOLD) / FADE_DUR);
+            double eased = t * t * (3.0 - 2.0 * t); // smoothstep
+            blackOverlay.setOpacity(1.0 - eased);
+            if (t >= 1.0) blackOverlay.setVisible(false);
+        }
+
+        // Score scramble while dark/early
+        if (elapsed < SCRAMBLE_END) {
+            finalScoreLabel.setText(scrambleDigits(realScore));
+        } else {
+            finalScoreLabel.setText(realScore);
+        }
+
+        // Glitch jitter + color flash on score — heavy early, rare late
+        double rate = elapsed < DARK_HOLD + FADE_DUR ? 18.0 : 1.5;
+        if (rng.nextDouble() < rate * dt) {
+            double jx  = (rng.nextDouble() - 0.5) * 28;
+            double jy  = (rng.nextDouble() - 0.5) * 6;
+            finalScoreLabel.setTranslateX(jx);
+            finalScoreLabel.setTranslateY(jy);
+            String color = rng.nextBoolean() ? "#00ffff" : "#ff4444";
+            finalScoreLabel.setStyle(
+                "-fx-font-family: 'VT323'; -fx-font-size: 85; -fx-text-fill: " + color + ";"
+            );
+        } else {
+            finalScoreLabel.setTranslateX(0);
+            finalScoreLabel.setTranslateY(0);
+            finalScoreLabel.setStyle(
+                "-fx-font-family: 'VT323'; -fx-font-size: 85; -fx-text-fill: white;"
+            );
+        }
+
+        // Stop score glitch after 8s but keep wave running
+        if (elapsed > 8.0) {
+            finalScoreLabel.setTranslateX(0);
+            finalScoreLabel.setTranslateY(0);
+            finalScoreLabel.setStyle(
+                "-fx-font-family: 'VT323'; -fx-font-size: 85; -fx-text-fill: white;"
+            );
+        }
+
+        // Typing effect for note text
+        double typeElapsed = elapsed - TYPE_START;
+        if (typeElapsed > 0) {
+            int nNote = Math.min(noteChars.size(), (int)(typeElapsed / CHAR_DELAY));
+            for (int i = 0; i < noteChars.size(); i++)
+                noteChars.get(i).setOpacity(i < nNote ? 1.0 : 0.0);
+        }
+
+        // Wave: sine-offset each visible note character
+        for (int i = 0; i < noteChars.size(); i++) {
+            if (noteChars.get(i).getOpacity() > 0)
+                noteChars.get(i).setTranslateY(Math.sin(elapsed * WAVE_SPEED + i * WAVE_PHASE) * WAVE_AMP);
+        }
+
+        // Wave: per-character across all visible table cells
+        List<WaveCell<?>> waveCells = highScoreTable.lookupAll(".table-cell").stream()
+            .filter(n -> n instanceof WaveCell<?> && !((WaveCell<?>) n).isEmpty())
+            .sorted(Comparator.comparingDouble(javafx.scene.Node::getLayoutY)
+                .thenComparingDouble(javafx.scene.Node::getLayoutX))
+            .map(n -> (WaveCell<?>) n)
+            .collect(Collectors.toList());
+        int charIdx = 0;
+        for (WaveCell<?> cell : waveCells) {
+            for (Label l : cell.chars) {
+                l.setTranslateY(Math.sin(elapsed * WAVE_SPEED + charIdx * WAVE_PHASE) * WAVE_AMP);
+                charIdx++;
+            }
+        }
+    }
+
+    private void fadeToBlack(Runnable onDone) {
+        if (glitchTimer != null) glitchTimer.stop();
+        resultsPane.setMouseTransparent(true);
+        blackOverlay.setOpacity(0);
+        blackOverlay.setVisible(true);
+        blackOverlay.setMouseTransparent(false);
+        FadeTransition ft = new FadeTransition(Duration.millis((long)(FADE_DUR * 1000)), blackOverlay);
+        ft.setFromValue(0);
+        ft.setToValue(1);
+        ft.setOnFinished(e -> onDone.run());
+        ft.play();
+    }
+
+    private String scrambleDigits(String original) {
+        StringBuilder sb = new StringBuilder();
+        for (char c : original.toCharArray())
+            sb.append(Character.isDigit(c) ? (char)('0' + rng.nextInt(10)) : c);
+        return sb.toString();
     }
 
     private void populateResults() {
-        int demoScore = gameContext.getScore();
-        ;
-        int demoLevel = gameContext.getLevel();
-        int demoLines = gameContext.getLines();
-        int demoBlocks = 156;
-        long demoTime = 332000;
+        score = gameContext.getScore();
+        level = gameContext.getLevel();
+        lines = gameContext.getLines();
+        mode = gameContext.getGameMode().getDisplayName();
+        LocalDateTime now = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+        date = now.format(formatter);
 
-        finalScoreLabel.setText(String.valueOf(demoScore));
-        gameModeLabel.setText(gameContext.getGameMode().getDisplayName());
-        levelLabel.setText(String.valueOf(demoLevel));
-        linesLabel.setText(String.valueOf(demoLines));
-        blocksLabel.setText(String.valueOf(demoBlocks));
+        finalScoreLabel.setText(String.valueOf(score));
+        gameModeLabel.setText(mode);
 
-        long totalSeconds = demoTime / 1000;
-        long minutes = totalSeconds / 60;
-        long seconds = totalSeconds % 60;
-        timeLabel.setText(String.format("Time: %d:%02d", minutes, seconds));
+        if (modeFilterLabel != null) {
+            String color = switch (gameContext.getGameMode()) {
+                case STANDARD    -> "#cc88ff";
+                case TIME_ATTACK -> "#00ff88";
+                case HARD_MODE   -> "#ff8800";
+            };
+            modeFilterLabel.setText("— " + mode + " —");
+            modeFilterLabel.setStyle("-fx-font-family: 'VT323'; -fx-font-size: 22px; -fx-text-fill: " + color + ";");
+        }
+        levelLabel.setText(String.valueOf(level));
+        linesLabel.setText(String.valueOf(lines));
+
+        if (commentLabel != null) {
+            String comment;
+            if (score < 1000) comment = "Pitiful.";
+            else if (score < 3000) comment = "That's all you've got?";
+            else if (score < 5000) comment = "Could've been better.";
+            else comment = "Impressive.";
+            commentLabel.setText(comment);
+        }
 
         System.out.println("Results displayed:");
-        System.out.println("  Final Score: " + demoScore);
+        System.out.println("  Final Score: " + score);
         System.out.println("  Mode: " + gameContext.getGameMode().getDisplayName());
-        System.out.println("  Level: " + demoLevel);
-        System.out.println("  Lines: " + demoLines);
-        System.out.println("  Time: " + String.format("%d:%02d", minutes, seconds));
+        System.out.println("  Level: " + level);
+        System.out.println("  Lines: " + lines);
+
+        //high score
+        Boolean isNewHighScore = HighScoreManager.getInstance().checkIfHighscore(score, mode);
+        if(isNewHighScore)
+        {
+            newRecordBox.setVisible(true);
+        }
+        else {
+            newRecordBox.setVisible(false);
+        }
+
+        refreshHighscoreTable();
     }
 
     @FXML
     private void onSaveClicked() {
-        int score = Integer.parseInt(finalScoreLabel.getText());
-        System.out.println("Saving score: " + score + " (" + gameModeLabel.getText() + ")");
-        System.out.println("Save completed, returning to main menu");
-        gameContext.reset();
-        sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        fadeToBlack(() -> {
+            int score = Integer.parseInt(finalScoreLabel.getText());
+            System.out.println("Saving score: " + score + " (" + gameModeLabel.getText() + ")");
+            System.out.println("Save completed, returning to main menu");
+            gameContext.reset();
+            sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        });
+
+        String playerName = playerNameInput.getText();
+        ScoreRecord scoreRecord = new ScoreRecord(playerName, score, date, mode);
+        HighScoreManager.getInstance().addScore(scoreRecord);
+        System.out.println("Add score record: " + scoreRecord);
+
+        newRecordBox.setVisible(false);
+        newRecordBox.setManaged(false);
+
+        refreshHighscoreTable();
+    }
+    @FXML
+    private void onResetAllClicked() {
+        HighScoreManager.getInstance().resetAllScores();
+
+        highScoreTable.getItems().clear();
+
+        System.out.println("Bảng xếp hạng đã được xóa sạch hoàn toàn.");
+    }
+
+    private void refreshHighscoreTable() {
+        List<ScoreRecord> topScores = HighScoreManager.getInstance().getTopScores(mode);
+
+        ObservableList<ScoreRecord> observableData = FXCollections.observableArrayList(topScores);
+
+        highScoreTable.setItems(observableData);
     }
 
     @FXML
     private void onRetryClicked() {
-        System.out.println("Retrying with mode: " + gameContext.getGameMode().getDisplayName());
-        gameContext.reset();
-        // Clear cache to force GameController.initialize() to run again
-        sceneManager.clearSceneCache();
-        sceneManager.switchToScene(SceneManager.GAME_SCENE);
-        SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        fadeToBlack(() -> {
+            System.out.println("Retrying with mode: " + gameContext.getGameMode().getDisplayName());
+            gameContext.reset();
+            sceneManager.clearSceneCache();
+            boolean hardMode = gameContext.getGameMode() == GameContext.GameMode.HARD_MODE;
+            sceneManager.switchToScene(hardMode ? SceneManager.HARD_GAME_SCENE : SceneManager.GAME_SCENE);
+            SoundManager.getInstance().playMusic(SoundType.GAMEPLAY_THEME);
+        });
     }
 
     @FXML
     private void onMenuClicked() {
-        System.out.println("Returning to main menu");
-        gameContext.reset();
-        sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        SoundManager.getInstance().playSE(SoundType.CLICK);
+        fadeToBlack(() -> {
+            System.out.println("Returning to main menu");
+            gameContext.reset();
+            sceneManager.switchToScene(SceneManager.MAIN_MENU_SCENE);
+        });
     }
 }

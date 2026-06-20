@@ -33,18 +33,19 @@
     -fx-background-repeat: no-repeat;
     -fx-background-position: 20% 50%;
     -fx-background-size: 175% 175%;
+    -fx-font-family: "VT323";
 }
 
 .figma-main-title {
     -fx-font-family: "VT323";
-    -fx-font-size: 128;
+    -fx-font-size: 200;
     -fx-text-fill: #ffffff;
     -fx-alignment: center;
 }
 
 .figma-button {
     -fx-background-color: transparent;
-    -fx-background-image: url("../assets/rectangle-26.png");
+    -fx-background-image: url("../assets/mainbtn_df.png");
     -fx-background-repeat: no-repeat;
     -fx-background-position: center;
     -fx-background-size: 100% 100%;
@@ -55,6 +56,22 @@
     -fx-background-insets: 0;
     -fx-border-width: 0;
     -fx-padding: 0;
+}
+
+.figma-button:hover {
+    -fx-background-image: url("../assets/mainbtn_var2.png");
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.figma-button:pressed {
+    -fx-background-image: url("../assets/mainbtn_var3.png");
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
 }
 
 .main-menu-button {
@@ -102,16 +119,12 @@
 
 .settings-main-panel {
     -fx-background-color: transparent;
-    -fx-background-image: url("../assets/rectangle-30.png");
-    -fx-background-repeat: no-repeat;
-    -fx-background-position: center;
-    -fx-background-size: 100% 100%;
     -fx-border-width: 0;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 4, 0.0, 0, 4);
+    -fx-effect: none;
 }
 
 .settings-overlay-backdrop {
-    -fx-background-color: rgba(0, 0, 0, 0.56);
+    -fx-background-color: rgba(0, 0, 0, 0.28);
 }
 
 .settings-popup-shell {
@@ -123,7 +136,119 @@
 }
 
 .settings-action-button {
-    -fx-font-size: 46;
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/setting_btn.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-border-width: 0;
+    -fx-padding: 0 0 7 0;
+    -fx-font-family: "VT323";
+    -fx-font-size: 40;
+    -fx-text-fill: #ffffff;
+    -fx-effect: none;
+    -fx-cursor: hand;
+}
+
+.settings-action-button:hover {
+    -fx-background-image: url("../assets/setting_btn_var2.png");
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.settings-action-button:pressed {
+    -fx-background-image: url("../assets/setting_btn_var3.png");
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.tutorial-icon-button {
+    -fx-background-color: #000000;
+    -fx-border-color: #ffffff;
+    -fx-border-width: 4;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
+    -fx-font-family: "VT323";
+    -fx-font-size: 42;
+    -fx-text-fill: #ffffff;
+    -fx-padding: 0 0 5 0;
+    -fx-cursor: hand;
+    -fx-effect: none;
+}
+
+.tutorial-icon-button:hover {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.tutorial-icon-button:pressed {
+    -fx-background-color: #bdbdbd;
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.tutorial-popup-shell {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/setting_frame.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+}
+
+.tutorial-popup-content {
+    -fx-background-color: transparent;
+    -fx-padding: 52 66 42 66;
+}
+
+.tutorial-title {
+    -fx-font-family: "VT323";
+    -fx-font-size: 48;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center;
+}
+
+.tutorial-body {
+    -fx-font-family: "VT323";
+    -fx-font-size: 27;
+    -fx-text-fill: #ffffff;
+    -fx-line-spacing: 2;
+}
+
+.tutorial-scroll-pane,
+.tutorial-scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.tutorial-scroll-pane {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.tutorial-scroll-pane .scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 14;
+}
+
+.tutorial-scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: #1c1c1c;
+}
+
+.tutorial-scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 0;
+}
+
+.tutorial-close-button {
+    -fx-font-size: 36;
 }
 
 .settings-header-overlay {
@@ -132,32 +257,47 @@
 
 .settings-header-title {
     -fx-font-family: "VT323";
-    -fx-font-size: 64;
+    -fx-font-size: 45;
     -fx-text-fill: #ffffff;
 }
 
 .settings-score-label {
     -fx-font-family: "VT323";
-    -fx-font-size: 32;
+    -fx-font-size: 24;
     -fx-text-fill: #ffffff;
 }
 
 .settings-score-value {
     -fx-font-family: "VT323";
-    -fx-font-size: 64;
+    -fx-font-size: 42;
     -fx-text-fill: #96ffde;
+}
+
+.settings-volume-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 30;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center-left;
 }
 
 .figma-slider .track {
     -fx-background-color: #ffffff;
-    -fx-pref-height: 10;
+    -fx-pref-height: 8;
 }
 
 .figma-slider .thumb {
     -fx-background-color: #ffffff;
     -fx-background-radius: 0;
-    -fx-pref-width: 14;
-    -fx-pref-height: 24;
+    -fx-border-color: #bdbdbd;
+    -fx-border-width: 2;
+    -fx-pref-width: 22;
+    -fx-pref-height: 22;
+    -fx-padding: 0 0 0 0;
+}
+
+.figma-slider:hover .thumb {
+    -fx-background-color: #96ffde;
+    -fx-border-color: #ffffff;
 }
 
 .figma-slider:focused {
@@ -180,7 +320,7 @@
 
 .results-title {
     -fx-font-family: "VT323";
-    -fx-font-size: 48;
+    -fx-font-size: 64;
     -fx-text-fill: #ffffff;
     -fx-alignment: center;
     -fx-text-alignment: center;
@@ -205,9 +345,241 @@
 
 .results-note-text {
     -fx-font-family: "VT323";
-    -fx-font-size: 32;
+    -fx-font-size: 42;
     -fx-text-fill: #ffffff;
 }
+
+/* ── Hard Mode UI ─────────────────────────────────────────────── */
+
+.screen-standard-game {
+    -fx-background-color: #050515;
+    -fx-background-image: url("../assets/standard_bg_full.png");
+    -fx-background-size: 100% 100%;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.screen-timeatk-game {
+    -fx-background-color: #021f1e;
+}
+
+.screen-hard-game {
+    -fx-background-color: #000000;
+    -fx-background-image: url("../assets/hardbg.png");
+    -fx-background-size: cover;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.game-bg-center {
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+    -fx-background-position: center;
+}
+
+.screen-standard-game .game-bg-center {
+    -fx-background-color: transparent;
+    -fx-background-image: none;
+}
+
+.screen-timeatk-game .game-bg-center {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/timeatk_bg_full.png");
+    -fx-background-size: 100% 100%;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.screen-hard-game .game-bg-center {
+    -fx-background-color: #00000099;
+    -fx-background-image: none;
+}
+
+.game-score-panel,
+.game-hold-panel,
+.game-next-panel,
+.game-time-panel,
+.game-bomb-panel,
+.game-flavour-panel {
+    -fx-background-color: transparent;
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.game-bomb-panel {
+    -fx-background-image: url("../assets/standardhold.png");
+}
+
+.game-score-panel {
+    -fx-background-image: url("../assets/standardbar.png");
+}
+
+.game-hold-panel {
+    -fx-background-image: url("../assets/standardhold.png");
+}
+
+.game-next-panel {
+    -fx-background-image: url("../assets/standarddash.png");
+}
+
+.game-flavour-panel {
+    -fx-background-image: url("../assets/standardflavour.png");
+}
+
+.screen-timeatk-game .game-score-panel {
+    -fx-background-image: url("../assets/timeatkbar.png");
+}
+
+.screen-timeatk-game .game-hold-panel {
+    -fx-background-image: url("../assets/timeatkhold.png");
+}
+
+.screen-timeatk-game .game-bomb-panel {
+    -fx-background-image: url("../assets/timeatkhold.png");
+}
+
+.screen-timeatk-game .game-next-panel {
+    -fx-background-image: url("../assets/timeatkdash.png");
+}
+
+.screen-timeatk-game .game-time-panel {
+    -fx-background-image: url("../assets/timeatkclock.png");
+}
+
+.screen-timeatk-game .game-flavour-panel {
+    -fx-background-image: url("../assets/timeatkflavour.png");
+}
+
+.game-label-header {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: #ffffff;
+}
+
+.game-score-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 48;
+    -fx-text-fill: #EA96FF;
+}
+
+.game-small-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: #ffffff;
+}
+
+.game-combo-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: #FFF200;
+}
+
+.game-time-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 42;
+    -fx-text-fill: #FFF200;
+}
+
+.game-freeze-value {
+    -fx-font-family: "VT323";
+    -fx-font-size: 24;
+    -fx-text-fill: #72ffff;
+}
+
+.game-flavour-text {
+    -fx-font-family: "VT323";
+    -fx-font-size: 34;
+    -fx-text-fill: #B8BBFF;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+.screen-timeatk-game .game-flavour-text {
+    -fx-text-fill: #00FFFF;
+}
+
+.hard-bar {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardbar.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-dash-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/harddash.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-hold-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardhold.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-main-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardmain.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-size: 100% 100%;
+}
+
+.hard-flavour-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hardflavour.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-padding: 12 20 12 20;
+}
+
+.hard-label-header {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: #ffffff;
+}
+
+.hard-flavour-text {
+    -fx-font-family: "VT323";
+    -fx-font-size: 34;
+    -fx-text-fill: #FF8C00;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+}
+
+/* ── Hard Mode Blackout ───────────────────────────────────────── */
+
+.blackout .game-bg-center {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/darkbg.png");
+}
+
+.screen-hard-game.blackout {
+    -fx-background-image: none;
+    -fx-background-color: #000000;
+}
+
+.blackout .hard-bar {
+    -fx-background-image: url("../assets/darkbar.png");
+}
+
+.blackout .hard-dash-panel {
+    -fx-background-image: url("../assets/darkdash.png");
+}
+
+.blackout .hard-hold-panel {
+    -fx-background-image: url("../assets/darkhold.png");
+}
+
+.blackout .hard-flavour-panel {
+    -fx-background-image: url("../assets/darkflavour.png");
+    -fx-background-color: transparent;
+}
+
+/* ──────────────────────────────────────────────────────────────── */
 
 .button:hover,
 .figma-button:hover,
@@ -221,4 +593,151 @@
 .figma-button:pressed,
 .mode-card-button:pressed {
     -fx-effect: none;
+}
+
+.figma-button {
+    -fx-background-image: url("../assets/mainbtn_df.png");
+}
+
+.figma-button:hover {
+    -fx-background-image: url("../assets/mainbtn_var2.png");
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.figma-button:pressed {
+    -fx-background-image: url("../assets/mainbtn_var3.png");
+    -fx-text-fill: #000000;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.results-button {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-30.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-font-family: "VT323";
+    -fx-font-size: 36;
+    -fx-text-fill: #ffffff;
+    -fx-alignment: center;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 0;
+}
+
+.results-button:hover {
+    -fx-opacity: 0.75;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.results-button:pressed {
+    -fx-opacity: 0.55;
+    -fx-effect: none;
+    -fx-scale-x: 1.0;
+    -fx-scale-y: 1.0;
+}
+
+.results-panel {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/rectangle-30.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 50;
+}
+
+.results-panel-halloffame {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/hof.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 60;
+}
+
+.results-panel-newachieve {
+    -fx-background-color: transparent;
+    -fx-background-image: url("../assets/quote_rec.png");
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+    -fx-background-size: 100% 100%;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 40 40 40 40;
+}
+
+/* ── Results screen table ─────────────────────────────────────── */
+
+#highScoreTable,
+#highScoreTable .table-view {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+#highScoreTable .column-header-background {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+}
+
+#highScoreTable .column-header {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-size: 36;
+}
+
+#highScoreTable #colName,
+#highScoreTable #colScore {
+    -fx-border-color: transparent white transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+#highScoreTable .column-header .label {
+    -fx-font-family: "VT323";
+    -fx-font-size: 22;
+    -fx-text-fill: white;
+    -fx-alignment: center;
+    -fx-text-alignment: center;
+    -fx-border-color: transparent;
+}
+
+#highScoreTable .filler {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+}
+
+#highScoreTable .table-row-cell {
+    -fx-background-color: #000000;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+}
+
+#highScoreTable .table-row-cell:selected {
+    -fx-background-color: #222222;
+}
+
+#highScoreTable .table-cell {
+    -fx-font-family: "VT323";
+    -fx-font-size: 20;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+    -fx-padding: 4 8 4 8;
+    -fx-background-color: transparent;
+    -fx-alignment: center;
+}
+
+#highScoreTable .results-table-divider-cell {
+    -fx-border-color: transparent white transparent transparent;
+    -fx-border-width: 0 1 0 0;
 }
